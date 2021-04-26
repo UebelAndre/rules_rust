@@ -1,0 +1,68 @@
+"""
+@generated
+cargo-raze crate build file.
+
+DO NOT EDIT! Replaced on runs of cargo-raze
+"""
+
+# buildifier: disable=load
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
+# buildifier: disable=load
+load(
+    "@rules_rust//rust:rust.bzl",
+    "rust_binary",
+    "rust_library",
+    "rust_test",
+)
+
+package(default_visibility = [
+    # Public for visibility by "@raze__crate__version//" targets.
+    #
+    # Prefer access through "//proto/prostgen/raze", which limits external
+    # visibility to explicit Cargo.toml dependencies.
+    "//visibility:public",
+])
+
+licenses([
+    "notice",  # MIT from expression "MIT"
+])
+
+# Generated Targets
+
+rust_library(
+    name = "tower",
+    srcs = glob(["**/*.rs"]),
+    crate_features = [
+        "default",
+        "full",
+        "log",
+    ],
+    crate_root = "src/lib.rs",
+    crate_type = "lib",
+    data = [],
+    edition = "2018",
+    rustc_flags = [
+        "--cap-lints=allow",
+    ],
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+    version = "0.3.1",
+    # buildifier: leave-alone
+    deps = [
+        "@rules_rust_prostgen__futures_core__0_3_12//:futures_core",
+        "@rules_rust_prostgen__tower_buffer__0_3_0//:tower_buffer",
+        "@rules_rust_prostgen__tower_discover__0_3_0//:tower_discover",
+        "@rules_rust_prostgen__tower_layer__0_3_1//:tower_layer",
+        "@rules_rust_prostgen__tower_limit__0_3_1//:tower_limit",
+        "@rules_rust_prostgen__tower_load_shed__0_3_0//:tower_load_shed",
+        "@rules_rust_prostgen__tower_retry__0_3_0//:tower_retry",
+        "@rules_rust_prostgen__tower_service__0_3_1//:tower_service",
+        "@rules_rust_prostgen__tower_timeout__0_3_0//:tower_timeout",
+        "@rules_rust_prostgen__tower_util__0_3_1//:tower_util",
+    ],
+)
+
+# Unsupported target "builder" with type "test" omitted
