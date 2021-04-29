@@ -14,7 +14,7 @@ defaults:
 
 jobs:
   release:
-    if: ${{ github.repository_owner == 'bazelbuild' }}
+    # if: ${{ github.repository_owner == 'bazelbuild' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
