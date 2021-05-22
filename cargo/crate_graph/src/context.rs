@@ -70,9 +70,11 @@ pub struct Metadep {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LicenseData {
-    ///
+    /// The name of the license
     pub name: String,
-    ///
+
+    /// The rating of the licesce as described by 
+    /// [Bazel's internal rating](https://github.com/bazelbuild/bazel/blob/a1f2a386b8bc16a10601c559ef36ae86d658f8c3/src/main/java/com/google/devtools/build/lib/packages/License.java#L52-L68)
     pub rating: String,
 }
 
@@ -87,10 +89,10 @@ impl Default for LicenseData {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct GitRepo {
-    ///
+    /// The url of the git repository
     pub remote: String,
 
-    ///
+    /// A full git commit hash
     pub commit: String,
 
     /// Directory containing the crate's Cargo.toml file, relative to the git repo root.
@@ -167,29 +169,29 @@ pub struct CrateContext {
     /// Additional settings associated with the crate's Cargo metadata
     pub crate_settings: CrateSettings,
 
-    ///
+    /// The dependencies of the current crate
     pub default_deps: CrateDependencyContext,
 
-    ///
+    /// Conditional dependencies of the current crate based on the target platform triple
     pub targeted_deps: Vec<CrateTargetedDepContext>,
 
-    ///
+    /// The license data of the crate
     pub license: LicenseData,
 
-    ///
+    /// A list of features to enable
     pub features: Vec<String>,
 
-    ///
+    /// A list of workspace members that depend on on the crate described 
+    /// by this context as a normal dependency
     pub workspace_member_dependents: Vec<PathBuf>,
 
-    ///
+    /// A list of workspace members that depend on on the crate described
+    /// by this context as a dev dependency
     pub workspace_member_dev_dependents: Vec<PathBuf>,
 
-    ///
+    /// A list of workspace members that depend on on the crate described 
+    /// by this context as a build dependency
     pub workspace_member_build_dependents: Vec<PathBuf>,
-
-    ///
-    pub is_workspace_member_dependency: bool,
 
     ///
     pub targets: Vec<BuildableTarget>,
@@ -203,14 +205,17 @@ pub struct CrateContext {
     ///
     pub source_details: SourceDetails,
 
-    ///
+    /// The full sha256 digest of the crate expected at #registry_url
     pub sha256: Option<String>,
 
-    ///
+    /// The url where the crate can be downloaded
     pub registry_url: String,
 
-    ///
-    pub workspace_path_to_crate: String,
+    /// Whether or not the described crate is a workspace member
+    pub is_workspace_member_dependency: bool,
+
+    /// The intended Bazel label of the current crate
+    pub label: String,
 
     /// The name of the main lib target for this crate (if present).
     /// Currently only one such lib can exist per crate.
@@ -223,14 +228,14 @@ pub struct CrateContext {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct WorkspaceContext {
-    // The bazel path prefix to the vendor directory
+    /// The bazel path prefix to the vendor directory
     pub workspace_path: String,
 
-    // The generated new_http_library Bazel workspace prefix.
-    //
-    // This has no effect unless the GenMode setting is Remote.
+    /// The generated new_http_library Bazel workspace prefix.
+    ///
+    /// This has no effect unless the GenMode setting is Remote.
     pub gen_workspace_prefix: String,
 
-    // A list of relative paths from a Cargo workspace root to a Cargo package.
+    /// A list of relative paths from a Cargo workspace root to a Cargo package.
     pub workspace_members: Vec<PathBuf>,
 }

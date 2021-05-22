@@ -6,7 +6,7 @@ use tempfile::TempDir;
 
 use crate::{
     metadata::{
-        tests::{mock_raze_metadata_fetcher, DummyCargoMetadataFetcher},
+        tests::{mock_raze_metadata_fetcher, MockCargoMetadataFetcher},
         CrateMetadata, DEFAULT_CRATE_INDEX_URL, DEFAULT_CRATE_REGISTRY_URL,
     },
     settings::{GenMode, PlanningSettings},
@@ -135,7 +135,7 @@ pub fn template_raze_metadata(template_path: &str) -> CrateMetadata {
     let mut fetcher = mock_raze_metadata_fetcher();
 
     // Always render basic metadata
-    fetcher.set_metadata_fetcher(Box::new(DummyCargoMetadataFetcher {
+    fetcher.set_metadata_fetcher(Box::new(MockCargoMetadataFetcher {
         metadata_template: Some(template_path.to_string()),
     }));
 

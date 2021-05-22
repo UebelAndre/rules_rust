@@ -238,11 +238,11 @@ pub mod tests {
     use super::*;
     use crate::testing::*;
 
-    pub struct DummyCargoMetadataFetcher {
+    pub struct MockCargoMetadataFetcher {
         pub metadata_template: Option<String>,
     }
 
-    impl DummyCargoMetadataFetcher {
+    impl MockCargoMetadataFetcher {
         fn render_metadata(&self, mock_workspace_path: &Path) -> Option<Metadata> {
             if self.metadata_template.is_none() {
                 return None;
@@ -251,12 +251,10 @@ pub mod tests {
             let dir = TempDir::new().unwrap();
             let mut renderer = Tera::new(&format!("{}/*", dir.as_ref().display())).unwrap();
 
-            let templates_dir = PathBuf::from(std::file!())
-                .parent()
-                .unwrap()
-                .join("testing/metadata_templates")
-                .canonicalize()
-                .unwrap();
+            let templates_dir = PathBuf::from(std::env!("CARGO_MANIFEST_DIR"))
+                .join("src")
+                .join("testing")
+                .join("metadata_templates");
 
             renderer
                 .add_raw_templates(vec![(
@@ -279,7 +277,7 @@ pub mod tests {
         }
     }
 
-    impl MetadataFetcher for DummyCargoMetadataFetcher {
+    impl MetadataFetcher for MockCargoMetadataFetcher {
         fn fetch_metadata(&self, working_dir: &Path, include_deps: bool) -> Result<Metadata> {
             // Only use the template if the command is looking to reach out to the internet.
             if include_deps {
@@ -324,7 +322,7 @@ pub mod tests {
 
     pub fn mock_raze_metadata_fetcher() -> CrateMetadataFetcher {
         let mut fetcher = CrateMetadataFetcher::new(cargo_bin_path());
-        fetcher.set_metadata_fetcher(Box::new(DummyCargoMetadataFetcher {
+        fetcher.set_metadata_fetcher(Box::new(MockCargoMetadataFetcher {
             metadata_template: None,
         }));
         fetcher.set_lockfile_generator(Box::new(DummyLockfileGenerator {
@@ -339,7 +337,7 @@ pub mod tests {
         let mut fetcher = mock_raze_metadata_fetcher();
 
         // Always render basic metadata
-        fetcher.set_metadata_fetcher(Box::new(DummyCargoMetadataFetcher {
+        fetcher.set_metadata_fetcher(Box::new(MockCargoMetadataFetcher {
             metadata_template: Some(templates::BASIC_METADATA.to_string()),
         }));
 

@@ -236,7 +236,7 @@ impl<'planner> WorkspaceSubplanner<'planner> {
             .filter(|to_alias| to_alias.is_workspace_member_dependency)
             .flat_map(|to_alias| {
                 let pkg_name = to_alias.pkg_name.replace("-", "_");
-                let target = format!("{}:{}", &to_alias.workspace_path_to_crate, &pkg_name);
+                let target = format!("{}:{}", &to_alias.label, &pkg_name);
                 let alias = renames
                     .get(&target)
                     .map(|x| x.to_string())
@@ -249,7 +249,7 @@ impl<'planner> WorkspaceSubplanner<'planner> {
                     .iter()
                     .map(move |extra_alias| DependencyAlias {
                         alias: extra_alias.clone(),
-                        target: format!("{}:{}", &to_alias.workspace_path_to_crate, extra_alias),
+                        target: format!("{}:{}", &to_alias.label, extra_alias),
                     })
                     .chain(std::iter::once(dep_alias))
             })
@@ -380,7 +380,7 @@ impl<'planner> CrateSubplanner<'planner> {
                 &package.name,
                 &package.version.to_string(),
             ),
-            workspace_path_to_crate: self.crate_catalog_entry.workspace_path(&self.settings)?,
+            label: self.crate_catalog_entry.workspace_path(&self.settings)?,
             lib_target_name,
             targets,
         };

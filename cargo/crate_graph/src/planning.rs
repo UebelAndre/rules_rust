@@ -51,7 +51,10 @@ pub trait BuildPlanner {
 
 /// The default implementation of a `BuildPlanner`.
 pub struct BuildPlannerImpl {
+    /// Raw cargo metadata of the current workspace
     metadata: CrateMetadata,
+
+    /// Configuration settings used for the `planning` phase.
     settings: PlanningSettings,
 }
 
@@ -85,7 +88,7 @@ mod tests {
 
     use crate::{
         metadata::tests::{
-            mock_raze_metadata, mock_raze_metadata_fetcher, DummyCargoMetadataFetcher,
+            mock_raze_metadata, mock_raze_metadata_fetcher, MockCargoMetadataFetcher,
         },
         settings::GenMode,
         testing::*,
@@ -149,14 +152,14 @@ mod tests {
         assert_eq!(dep.pkg_name, "test_dep");
         assert!(!dep.workspace_member_dependents.is_empty());
         assert!(
-            !dep.workspace_path_to_crate.contains("."),
+            !dep.label.contains("."),
             "{} should be sanitized",
-            dep.workspace_path_to_crate
+            dep.label
         );
         assert!(
-            !dep.workspace_path_to_crate.contains("-"),
+            !dep.label.contains("-"),
             "{} should be sanitized",
-            dep.workspace_path_to_crate
+            dep.label
         );
     }
 
@@ -165,7 +168,7 @@ mod tests {
         let mut fetcher = mock_raze_metadata_fetcher();
 
         // Ensure we render the given template
-        fetcher.set_metadata_fetcher(Box::new(DummyCargoMetadataFetcher {
+        fetcher.set_metadata_fetcher(Box::new(MockCargoMetadataFetcher {
             metadata_template: Some(metadata_template.to_string()),
         }));
 
@@ -264,7 +267,7 @@ mod tests {
             .iter()
             .exactly_one()
             .unwrap();
-        assert_eq!(dep.target, "@raze_test__log__0_3_9//:log");
+        assert_eq!(dep.target, "@crate_graph_test__log__0_3_9//:log");
         assert_eq!(dep.alias, "old_log");
     }
 
@@ -571,7 +574,7 @@ mod tests {
 
     fn mock_workspace_members_metadata() -> CrateMetadata {
         let mut fetcher = mock_raze_metadata_fetcher();
-        fetcher.set_metadata_fetcher(Box::new(DummyCargoMetadataFetcher {
+        fetcher.set_metadata_fetcher(Box::new(MockCargoMetadataFetcher {
             metadata_template: Some("mock_workspace_members_metadata.json.template".to_string()),
         }));
 
