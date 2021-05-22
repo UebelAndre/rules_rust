@@ -1,17 +1,10 @@
-use std::{
-    collections::{BTreeSet, HashMap},
-    fs::File,
-    io::Write,
-};
+use std::{collections::HashMap, fs::File, io::Write};
 
 use indoc::{formatdoc, indoc};
-use semver::Version;
+
 use tempfile::TempDir;
 
 use crate::{
-    context::{
-        BuildableTarget, CrateContext, CrateDependencyContext, GitRepo, LicenseData, SourceDetails,
-    },
     metadata::{
         tests::{mock_raze_metadata_fetcher, DummyCargoMetadataFetcher},
         CrateMetadata, DEFAULT_CRATE_INDEX_URL, DEFAULT_CRATE_REGISTRY_URL,

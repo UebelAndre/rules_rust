@@ -17,8 +17,7 @@ use crate::{
     metadata::{MetadataFetcher, DEFAULT_CRATE_INDEX_URL, DEFAULT_CRATE_REGISTRY_URL},
     util,
 };
-use anyhow::{anyhow, bail, Context, Result};
-use cargo_metadata::{Metadata, MetadataCommand, Package};
+
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 use std::{

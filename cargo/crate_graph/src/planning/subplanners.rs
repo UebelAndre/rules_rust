@@ -19,7 +19,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use cargo_lock::SourceId;
 use cargo_metadata::{DepKindInfo, DependencyKind, Node, Package};
 use cargo_platform::Platform;
@@ -260,7 +260,7 @@ impl<'planner> WorkspaceSubplanner<'planner> {
 
 impl<'planner> CrateSubplanner<'planner> {
     /// Builds a crate context from internal state.
-    fn produce_context(&self, cargo_workspace_root: &Path) -> Result<CrateContext> {
+    fn produce_context(&self, _cargo_workspace_root: &Path) -> Result<CrateContext> {
         let package = self.crate_catalog_entry.package();
 
         let manifest_path = PathBuf::from(&package.manifest_path);

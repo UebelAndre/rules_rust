@@ -95,7 +95,7 @@ mod tests {
     use cargo_metadata::PackageId;
     use indoc::indoc;
     use itertools::Itertools;
-    use semver::{Version, VersionReq};
+    use semver::Version;
 
     fn mock_resolve_dropping_metadata() -> CrateMetadata {
         let raze_metadata = mock_raze_metadata();
