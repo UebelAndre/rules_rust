@@ -12,19 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-    error::GraphError,
-    metadata::{MetadataFetcher, DEFAULT_CRATE_INDEX_URL, DEFAULT_CRATE_REGISTRY_URL},
-    util,
+use std::{
+    collections::{BTreeMap, HashMap, HashSet},
+    path::PathBuf,
 };
 
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeMap, HashMap, HashSet},
-    hash::Hash,
-    path::{Path, PathBuf},
-};
+
+use crate::metadata::{DEFAULT_CRATE_INDEX_URL, DEFAULT_CRATE_REGISTRY_URL};
 
 /// Configuration settings for the `planning` phase
 #[derive(Debug, Clone, Deserialize)]

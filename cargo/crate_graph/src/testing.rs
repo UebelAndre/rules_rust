@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::File, io::Write};
 
-use indoc::{formatdoc, indoc};
+use indoc::indoc;
 
 use tempfile::TempDir;
 
@@ -88,18 +88,6 @@ pub const fn advanced_lock_contents() -> &'static str {
     source = "registry+https://github.com/rust-lang/crates.io-index"
     checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
   "# }
-}
-
-pub fn named_toml_contents(name: &str, version: &str) -> String {
-    formatdoc! { r#"
-    [package]
-    name = "{name}"
-    version = "{version}"
-
-    [lib]
-    path = "not_a_file.rs"
-
-  "#, name = name, version = version }
 }
 
 pub fn make_workspace(toml_file: &str, lock_file: Option<&str>) -> TempDir {

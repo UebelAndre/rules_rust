@@ -73,7 +73,7 @@ pub struct LicenseData {
     /// The name of the license
     pub name: String,
 
-    /// The rating of the licesce as described by 
+    /// The rating of the licesce as described by
     /// [Bazel's internal rating](https://github.com/bazelbuild/bazel/blob/a1f2a386b8bc16a10601c559ef36ae86d658f8c3/src/main/java/com/google/devtools/build/lib/packages/License.java#L52-L68)
     pub rating: String,
 }
@@ -181,7 +181,7 @@ pub struct CrateContext {
     /// A list of features to enable
     pub features: Vec<String>,
 
-    /// A list of workspace members that depend on on the crate described 
+    /// A list of workspace members that depend on on the crate described
     /// by this context as a normal dependency
     pub workspace_member_dependents: Vec<PathBuf>,
 
@@ -189,7 +189,7 @@ pub struct CrateContext {
     /// by this context as a dev dependency
     pub workspace_member_dev_dependents: Vec<PathBuf>,
 
-    /// A list of workspace members that depend on on the crate described 
+    /// A list of workspace members that depend on on the crate described
     /// by this context as a build dependency
     pub workspace_member_build_dependents: Vec<PathBuf>,
 
