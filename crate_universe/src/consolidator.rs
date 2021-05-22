@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::anyhow;
+use crate_graph::context::CrateContext;
 
 use crate::{
-    context::CrateContext,
     renderer::{RenderConfig, Renderer},
     resolver::Dependencies,
 };
@@ -100,11 +100,11 @@ impl Consolidator {
                 // TODO: What should this actually do?
                 // pkg.targeted_deps.extend();
                 // Add extra environment variables.
-                pkg.raze_settings
+                pkg.crate_settings
                     .additional_env
                     .extend(overryde.extra_rustc_env_vars.into_iter());
                 // Add extra build script environment variables.
-                pkg.raze_settings
+                pkg.crate_settings
                     .buildrs_additional_environment_variables
                     .extend(overryde.extra_build_script_env_vars.into_iter());
 

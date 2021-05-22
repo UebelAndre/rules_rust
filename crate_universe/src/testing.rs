@@ -1,18 +1,9 @@
-use std::{collections::BTreeSet, fs::File, io::Write};
+use std::collections::BTreeSet;
 
-use indoc::{formatdoc, indoc};
-use semver::Version;
-use tempfile::TempDir;
-
-use crate::{
-    context::{
-        BuildableTarget, CrateContext, CrateDependencyContext, GitRepo, LicenseData, SourceDetails,
-    },
-    metadata::{
-        tests::{dummy_raze_metadata_fetcher, DummyCargoMetadataFetcher},
-        RazeMetadata,
-    },
+use crate_graph::context::{
+    BuildableTarget, CrateContext, CrateDependencyContext, GitRepo, LicenseData, SourceDetails,
 };
+use semver::Version;
 
 pub(crate) fn lazy_static_crate_context(git: bool) -> CrateContext {
     let git_data = if git {
@@ -29,8 +20,7 @@ pub(crate) fn lazy_static_crate_context(git: bool) -> CrateContext {
         pkg_name: String::from("lazy_static"),
         pkg_version: Version::parse("1.4.0").unwrap(),
         edition: String::from("2015"),
-        raze_settings: Default::default(),
-        canonical_additional_build_file: None,
+        crate_settings: Default::default(),
         default_deps: CrateDependencyContext {
             dependencies: vec![],
             proc_macro_dependencies: vec![],
@@ -46,7 +36,6 @@ pub(crate) fn lazy_static_crate_context(git: bool) -> CrateContext {
             "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646",
         )),
         registry_url: String::from("https://registry.url/"),
-        expected_build_path: String::from("UNUSED"),
         lib_target_name: Some(String::from("UNUSED")),
         license: LicenseData::default(),
         features: vec![],
@@ -83,8 +72,7 @@ pub(crate) fn maplit_crate_context(git: bool) -> CrateContext {
         pkg_name: String::from("maplit"),
         pkg_version: Version::parse("1.0.2").unwrap(),
         edition: String::from("2015"),
-        raze_settings: Default::default(),
-        canonical_additional_build_file: None,
+        crate_settings: Default::default(),
         default_deps: CrateDependencyContext {
             dependencies: vec![],
             proc_macro_dependencies: vec![],
@@ -100,7 +88,6 @@ pub(crate) fn maplit_crate_context(git: bool) -> CrateContext {
             "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d",
         )),
         registry_url: String::from("https://registry.url/"),
-        expected_build_path: String::from("UNUSED"),
         lib_target_name: Some(String::from("UNUSED")),
         license: LicenseData::default(),
         features: vec![],

@@ -7,6 +7,12 @@ use std::{
 
 use anyhow::Context;
 use cargo_metadata::{DependencyKind, Metadata, MetadataCommand};
+use crate_graph::{
+    context::CrateContext,
+    metadata::CrateMetadataFetcher,
+    planning::{BuildPlanner, BuildPlannerImpl},
+    settings::{GenMode, PlanningSettings},
+};
 use log::trace;
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
@@ -15,11 +21,7 @@ use url::Url;
 
 use crate::{
     consolidator::{Consolidator, ConsolidatorConfig, ConsolidatorOverride},
-    context::CrateContext,
-    metadata::RazeMetadataFetcher,
-    planning::{BuildPlanner, BuildPlannerImpl},
     renderer::RenderConfig,
-    settings::{GenMode, RazeSettings},
     NamedTempFile,
 };
 
@@ -220,29 +222,22 @@ impl Resolver {
         let merged_cargo_toml = NamedTempFile::with_str_content("Cargo.toml", &toml_str)
             .context("Writing intermediate Cargo.toml")?;
 
-        let md_fetcher = RazeMetadataFetcher::new(&self.resolver_config.cargo);
+        let md_fetcher = CrateMetadataFetcher::new(&self.resolver_config.cargo);
         let metadata = md_fetcher
             .fetch_metadata(merged_cargo_toml.path().parent().unwrap(), None)
             .context("Failed fetching metadata")?;
 
-        let raze_settings = RazeSettings {
+        let raze_settings = PlanningSettings {
             gen_workspace_prefix: self.render_config.repo_rule_name.clone(),
             genmode: GenMode::Remote,
 
             // TODO: These are ?all ignored
             workspace_path: "".to_string(),
-            package_aliases_dir: "".to_string(),
-            render_package_aliases: false,
-            target: None,
             targets: Some(self.target_triples.clone()),
             crates: HashMap::default(),
-            output_buildfile_suffix: "".to_string(),
             default_gen_buildrs: true,
             registry: self.render_config.crate_registry_template.clone(),
             index_url: self.resolver_config.index_url.as_str().to_owned(),
-            rust_rules_workspace_name: self.render_config.rules_rust_workspace_name.clone(),
-            vendor_dir: "".to_string(),
-            experimental_api: false,
         };
 
         let planner = BuildPlannerImpl::new(metadata, raze_settings);

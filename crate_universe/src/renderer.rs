@@ -7,11 +7,12 @@ use std::{
 
 use anyhow::Context;
 use config::crate_to_repo_rule_name;
+use crate_graph::context::CrateContext;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use tera::{self, Tera};
 
-use crate::{config, context::CrateContext, resolver::Dependencies};
+use crate::{config, resolver::Dependencies};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub struct RenderConfig {
