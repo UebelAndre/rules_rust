@@ -25,13 +25,13 @@ pub struct BuildableDependency {
     // of this struct by `buildable_target`. Do not add fields preceding this field.
     pub buildable_target: String,
 
-    ///
+    /// The crate's name.
     pub name: String,
 
-    ///
+    /// The crate's version
     pub version: Version,
 
-    ///
+    /// Whether or not the crate is of kind `proc-macro`.
     pub is_proc_macro: bool,
 }
 
@@ -46,16 +46,16 @@ pub struct DependencyAlias {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BuildableTarget {
-    ///
+    /// Kind of target (“bin”, “example”, “test”, “bench”, “lib”)
     pub kind: String,
 
-    ///
+    /// Name as given in the `Cargo.toml` or generated from the file name
     pub name: String,
 
     /// The path in Bazel's format (i.e. with forward slashes) to the target's entry point.
     pub path: String,
 
-    ///
+    /// Rust edition for this target
     pub edition: String,
 }
 
@@ -193,16 +193,16 @@ pub struct CrateContext {
     /// by this context as a build dependency
     pub workspace_member_build_dependents: Vec<PathBuf>,
 
-    ///
+    /// 
     pub targets: Vec<BuildableTarget>,
 
-    ///
+    /// The generated `cargo_builds_script` target if one is used by the crate
     pub build_script_target: Option<BuildableTarget>,
 
-    ///
+    /// The name of a native library the package is linking to.
     pub links: Option<String>,
 
-    ///
+    /// Information about the source code location
     pub source_details: SourceDetails,
 
     /// The full sha256 digest of the crate expected at #registry_url

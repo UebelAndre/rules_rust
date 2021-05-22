@@ -372,204 +372,23 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_semver_matching() {
-    //     let toml_file = indoc! { r#"
-    // [package]
-    // name = "semver_toml"
-    // version = "0.1.0"
-
-    // [lib]
-    // path = "not_a_file.rs"
-
-    // [dependencies]
-    // # This has no settings
-    // anyhow = "1.0"
-
-    // openssl-sys = "=0.9.24"
-    // openssl = "=0.10.2"
-    // unicase = "=2.1"
-    // bindgen = "=0.32"
-    // clang-sys = "=0.21.1"
-
-    // # The following are negative tests aka test they dont match
-    // lexical-core = "0.7.4"
-
-    // [package.metadata.raze]
-    // workspace_path = "//cargo"
-    // genmode = "Remote"
-
-    // # All these examples are basically from the readme and "handling unusual crates:
-    // # They are adapted to handle the variety of semver patterns
-    // # In reality, you probably want to express many patterns more generally
-
-    // # Test bare versions
-    // # AKA: `==0.9.24`
-    // [package.metadata.raze.crates.openssl-sys.'0.9.24']
-    // additional_flags = [
-    //   # Vendored openssl is 1.0.2m
-    //   "--cfg=ossl102",
-    //   "--cfg=version=102",
-    // ]
-    // additional_deps = [
-    //   "@//third_party/openssl:crypto",
-    //   "@//third_party/openssl:ssl",
-    // ]
-
-    // # Test `^` range
-    // # AKA: `>=0.10.0 < 0.11.0-0`
-    // [package.metadata.raze.crates.openssl.'^0.10']
-    // additional_flags = [
-    //   # Vendored openssl is 1.0.2m
-    //   "--cfg=ossl102",
-    //   "--cfg=version=102",
-    //   "--cfg=ossl10x",
-    // ]
-
-    // # Test `*` or globs
-    // # AKA: `>=0.21.0 < 0.22.0-0`
-    // [package.metadata.raze.crates.clang-sys.'0.21.*']
-    // gen_buildrs = true
-
-    // # Test `~` range
-    // # AKA: `>=2.0.0 < 3.0.0-0`
-    // [package.metadata.raze.crates.unicase.'~2']
-    // additional_flags = [
-    //   # Rustc is 1.15, enable all optional settings
-    //   "--cfg=__unicase__iter_cmp",
-    //   "--cfg=__unicase__defauler_hasher",
-    // ]
-
-    // # Test `*` full glob
-    // # AKA: Get out of my way raze and just give me this for everything
-    // [package.metadata.raze.crates.bindgen.'*']
-    // gen_buildrs = true # needed to build bindgen
-    // extra_aliased_targets = [
-    //     "cargo_bin_bindgen"
-    // ]
-
-    // # This should not match unicase, and should not error
-    // [package.metadata.raze.crates.unicase.'2.6.0']
-    // additional_flags = [
-    //     "--cfg=SHOULD_NOT_MATCH"
-    // ]
-
-    // [package.metadata.raze.crates.lexical-core.'~0.6']
-    // additional_flags = [
-    //     "--cfg=SHOULD_NOT_MATCH"
-    // ]
-
-    // [package.metadata.raze.crates.lexical-core.'^0.6']
-    // additional_flags = [
-    //     "--cfg=SHOULD_NOT_MATCH"
-    // ]
-    // "#};
-
-    //     let mut settings = mock_graph_settings();
-
-    //     let settings = {
-    //         let temp_dir = make_workspace(toml_file, None);
-    //         let manifest_path = temp_dir.as_ref().join("Cargo.toml");
-    //         crate::settings::load_settings_from_manifest(&manifest_path, None).unwrap()
-    //     };
-
-    //     let planner = BuildPlannerImpl::new(
-    //         mock_workspace_crate_metadata(templates::SEMVER_MATCHING),
-    //         settings,
-    //     );
-
-    //     // N.B. This will fail if we don't correctly ignore workspace crates.
-    //     let planned_build_res = planner.plan_build(Some(PlatformDetails::new(
-    //         "some_target_triple".to_owned(),
-    //         Vec::new(),
-    //     )));
-
-    //     let crates: Vec<CrateContext> = planned_build_res
-    //         .unwrap()
-    //         .crate_contexts
-    //         .into_iter()
-    //         .collect();
-
-    //     let dep = |name: &str, ver_req: &str| {
-    //         let ver_req = VersionReq::parse(ver_req).unwrap();
-    //         &crates
-    //             .iter()
-    //             .find(|dep| dep.pkg_name == name && ver_req.matches(&dep.pkg_version))
-    //             .expect(&format!("{} not found", name))
-    //             .raze_settings
-    //     };
-
-    //     let assert_dep_not_match = |name: &str, ver_req: &str| {
-    //         // Didnt match anything so should not have any settings
-    //         let test_dep = dep(name, ver_req);
-    //         assert!(test_dep.additional_flags.is_empty());
-    //         assert!(test_dep.additional_deps.is_empty());
-    //         assert!(test_dep.gen_buildrs.is_none());
-    //         assert!(test_dep.extra_aliased_targets.is_empty());
-    //         assert!(test_dep.patches.is_empty());
-    //         assert!(test_dep.patch_cmds.is_empty());
-    //         assert!(test_dep.patch_tool.is_none());
-    //         assert!(test_dep.patch_cmds_win.is_empty());
-    //         assert!(test_dep.skipped_deps.is_empty());
-    //         assert!(test_dep.additional_build_file.is_none());
-    //         assert!(test_dep.data_attr.is_none());
-    //         assert!(test_dep.compile_data_attr.is_none());
-    //     };
-
-    //     assert_dep_not_match("anyhow", "*");
-    //     assert_dep_not_match("lexical-core", "^0.7");
-
-    //     assert_eq! {
-    //       dep("openssl-sys", "0.9.24").additional_deps,
-    //       vec![
-    //         "@//third_party/openssl:crypto",
-    //         "@//third_party/openssl:ssl"
-    //       ]
-    //     };
-    //     assert_eq! {
-    //       dep("openssl-sys", "0.9.24").additional_flags,
-    //       vec!["--cfg=ossl102", "--cfg=version=102"]
-    //     };
-
-    //     assert_eq! {
-    //       dep("openssl", "0.10.*").additional_flags,
-    //       vec!["--cfg=ossl102", "--cfg=version=102", "--cfg=ossl10x"],
-    //     };
-
-    //     assert!(dep("clang-sys", "0.21").gen_buildrs.unwrap_or_default());
-
-    //     assert_eq! {
-    //       dep("unicase", "2.1").additional_flags,
-    //       vec! [
-    //         "--cfg=__unicase__iter_cmp",
-    //         "--cfg=__unicase__defauler_hasher",
-    //       ]
-    //     };
-
-    //     assert!(dep("bindgen", "*").gen_buildrs.unwrap_or_default());
-    //     assert_eq! {
-    //         dep("bindgen", "*").extra_aliased_targets,
-    //         vec!["cargo_bin_bindgen"]
-    //     };
-    // }
-
     fn mock_workspace_member_toml_contents(name: &str, dep_version: &str) -> String {
         assert!(
-            dep_version == "0.2.1" || dep_version == "0.1.0",
-            "The `mock_workspace_members_metadata` template was generated with these versions, if \
-       something else is passed, that file will need to be regenerated"
+            dep_version == "0.2.1" || dep_version == "0.1.0", 
+            "The `mock_workspace_members_metadata` template was generated with these versions, if something else is passed, that file will need to be regenerated",
         );
         indoc::formatdoc! { r#"
-      [package]
-      name = "{name}"
-      version = "0.0.1"
+            [package]
+            name = "{name}"
+            version = "0.0.1"
 
-      [lib]
-      path = "src/lib.rs"
+            [lib]
+            path = "src/lib.rs"
 
-      [dependencies]
-      unicode-xid = "{dep_version}"
-    "#, name = name, dep_version = dep_version }
+            [dependencies]
+            unicode-xid = "{dep_version}"
+            "#, name = name, dep_version = dep_version 
+        }
     }
 
     fn mock_workspace_members_metadata() -> CrateMetadata {
@@ -579,28 +398,28 @@ mod tests {
         }));
 
         let workspace_toml = indoc! { r#"
-      [workspace]
-      members = [
-          "lib_a",
-          "lib_b",
-      ]
-     "# };
+            [workspace]
+            members = [
+                "lib_a",
+                "lib_b",
+            ]
+        "# };
 
         let workspace_lock = indoc! { r#"
-      [[package]]
-      name = "lib_a"
-      version = "0.0.1"
-      dependencies = [
-          "unicode-xid 0.2.1",
-      ]
-      
-      [[package]]
-      name = "lib_b"
-      version = "0.0.1"
-      dependencies = [
-          "unicode-xid 0.1.0",
-      ]
-    "# };
+            [[package]]
+            name = "lib_a"
+            version = "0.0.1"
+            dependencies = [
+                "unicode-xid 0.2.1",
+            ]
+            
+            [[package]]
+            name = "lib_b"
+            version = "0.0.1"
+            dependencies = [
+                "unicode-xid 0.1.0",
+            ]
+        "# };
 
         let crate_dir = make_workspace(&workspace_toml, Some(&workspace_lock));
 
