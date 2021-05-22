@@ -105,7 +105,7 @@ impl LockfileGenerator for CargoLockfileGenerator {
 
 /// A struct containing all metadata about a project with which to plan generated output files for
 #[derive(Debug, Clone)]
-pub struct RazeMetadata {
+pub struct CrateMetadata {
     // `cargo metadata` output of the current project
     pub metadata: Metadata,
 
@@ -121,7 +121,7 @@ pub struct RazeMetadata {
     pub checksums: HashMap<String, String>,
 }
 
-impl RazeMetadata {
+impl CrateMetadata {
     /// Get the checksum of a crate using a unique formatter.
     pub fn checksum_for(&self, name: &str, version: &str) -> Option<&String> {
         self.checksums.get(&package_ident(name, version))
@@ -130,15 +130,15 @@ impl RazeMetadata {
 
 /// A workspace metadata fetcher that uses the Cargo commands to gather information about a Cargo
 /// project and it's transitive dependencies for planning and rendering of Bazel BUILD files.
-pub struct RazeMetadataFetcher {
+pub struct CrateMetadataFetcher {
     metadata_fetcher: Box<dyn MetadataFetcher>,
     lockfile_generator: Box<dyn LockfileGenerator>,
 }
 
-impl RazeMetadataFetcher {
-    pub fn new<P: Into<PathBuf>>(cargo_bin_path: P) -> RazeMetadataFetcher {
+impl CrateMetadataFetcher {
+    pub fn new<P: Into<PathBuf>>(cargo_bin_path: P) -> CrateMetadataFetcher {
         let cargo_bin_pathbuf: PathBuf = cargo_bin_path.into();
-        RazeMetadataFetcher {
+        CrateMetadataFetcher {
             metadata_fetcher: Box::new(CargoMetadataFetcher {
                 cargo_bin_path: cargo_bin_pathbuf.clone(),
             }),
@@ -189,7 +189,7 @@ impl RazeMetadataFetcher {
         &self,
         cargo_workspace_root: &Path,
         reused_lockfile: Option<PathBuf>,
-    ) -> Result<RazeMetadata> {
+    ) -> Result<CrateMetadata> {
         let output_lockfile =
             self.cargo_generate_lockfile(&reused_lockfile, cargo_workspace_root)?;
 
@@ -208,7 +208,7 @@ impl RazeMetadataFetcher {
             .metadata_fetcher
             .fetch_metadata(cargo_workspace_root, /*include_deps=*/ true)?;
 
-        Ok(RazeMetadata {
+        Ok(CrateMetadata {
             metadata,
             checksums,
             cargo_workspace_root: cargo_workspace_root.to_path_buf(),
@@ -217,17 +217,10 @@ impl RazeMetadataFetcher {
     }
 }
 
-impl Default for RazeMetadataFetcher {
-    fn default() -> RazeMetadataFetcher {
-        RazeMetadataFetcher::new(cargo_bin_path())
+impl Default for CrateMetadataFetcher {
+    fn default() -> CrateMetadataFetcher {
+        CrateMetadataFetcher::new(cargo_bin_path())
     }
-}
-
-/// A struct containing information about a binary dependency
-pub struct BinaryDependencyInfo {
-    pub name: String,
-    pub info: cargo_toml::Dependency,
-    pub lockfile: Option<PathBuf>,
 }
 
 #[cfg(test)]
@@ -329,8 +322,8 @@ pub mod tests {
         }
     }
 
-    pub fn dummy_raze_metadata_fetcher() -> RazeMetadataFetcher {
-        let mut fetcher = RazeMetadataFetcher::new(cargo_bin_path());
+    pub fn mock_raze_metadata_fetcher() -> CrateMetadataFetcher {
+        let mut fetcher = CrateMetadataFetcher::new(cargo_bin_path());
         fetcher.set_metadata_fetcher(Box::new(DummyCargoMetadataFetcher {
             metadata_template: None,
         }));
@@ -341,9 +334,9 @@ pub mod tests {
         fetcher
     }
 
-    pub fn dummy_raze_metadata() -> RazeMetadata {
+    pub fn mock_raze_metadata() -> CrateMetadata {
         let dir = make_basic_workspace();
-        let mut fetcher = dummy_raze_metadata_fetcher();
+        let mut fetcher = mock_raze_metadata_fetcher();
 
         // Always render basic metadata
         fetcher.set_metadata_fetcher(Box::new(DummyCargoMetadataFetcher {
@@ -360,7 +353,7 @@ pub mod tests {
         let mut toml = File::create(&toml_path).unwrap();
         toml.write_all(basic_toml_contents().as_bytes()).unwrap();
 
-        let mut fetcher = RazeMetadataFetcher::default();
+        let mut fetcher = CrateMetadataFetcher::default();
         fetcher.set_lockfile_generator(Box::new(DummyLockfileGenerator {
             lockfile_contents: None,
         }));
@@ -384,7 +377,7 @@ pub mod tests {
             lock.write_all(basic_lock_contents().as_bytes()).unwrap();
         }
 
-        let mut fetcher = RazeMetadataFetcher::default();
+        let mut fetcher = CrateMetadataFetcher::default();
         fetcher.set_lockfile_generator(Box::new(DummyLockfileGenerator {
             lockfile_contents: None,
         }));
@@ -401,13 +394,13 @@ pub mod tests {
             toml.write_all(b"hello").unwrap();
         }
 
-        let fetcher = RazeMetadataFetcher::default();
+        let fetcher = CrateMetadataFetcher::default();
         assert!(fetcher.fetch_metadata(dir.as_ref(), None).is_err());
     }
 
     #[test]
     fn test_generate_lockfile_use_previously_generated() {
-        let fetcher = dummy_raze_metadata_fetcher();
+        let fetcher = mock_raze_metadata_fetcher();
 
         let crate_dir = make_workspace_with_dependency();
         let reused_lockfile = crate_dir.as_ref().join("locks_test/Cargo.raze.lock");
@@ -426,7 +419,7 @@ pub mod tests {
 
     #[test]
     fn test_cargo_generate_lockfile_new_file() {
-        let mut fetcher = dummy_raze_metadata_fetcher();
+        let mut fetcher = mock_raze_metadata_fetcher();
         fetcher.set_lockfile_generator(Box::new(DummyLockfileGenerator {
             lockfile_contents: Some(advanced_lock_contents().to_string()),
         }));
@@ -444,7 +437,7 @@ pub mod tests {
 
     #[test]
     fn test_cargo_generate_lockfile_no_file() {
-        let mut fetcher = dummy_raze_metadata_fetcher();
+        let mut fetcher = mock_raze_metadata_fetcher();
         fetcher.set_lockfile_generator(Box::new(DummyLockfileGenerator {
             lockfile_contents: Some(advanced_lock_contents().to_string()),
         }));

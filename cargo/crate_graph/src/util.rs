@@ -327,6 +327,13 @@ pub fn cargo_bin_path() -> PathBuf {
     PathBuf::from(env::var("CARGO").unwrap_or_else(|_| SYSTEM_CARGO_BIN_PATH.to_string()))
 }
 
+/// Formats a registry url to include the name and version fo the target package
+pub fn format_registry_url(registry_url: &str, name: &str, version: &str) -> String {
+    registry_url
+        .replace("{crate}", name)
+        .replace("{version}", version)
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;

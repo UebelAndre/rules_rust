@@ -13,6 +13,7 @@ edition = "2018"
 [dependencies]
 # Several of these dependencies need to be compatible with the version cargo-raze is using.
 
+crate_graph = { path = "../cargo/crate_graph" }
 anyhow = "1"
 cargo_metadata = "0.13.1"
 cargo_toml = "0.8.1"
@@ -44,7 +45,3 @@ maplit = "1"
 predicates = "1"
 spectral = "0.6"
 tempfile = "3.2.0"
-
-[patch.crates-io]
-# Until https://github.com/steveklabnik/semver-parser/pull/60 merges.
-semver-parser = { git = "https://github.com/illicitonion/semver-parser.git", rev = "ad6589269eab8851f3d5ad362a6b1cd89a1b6693" }

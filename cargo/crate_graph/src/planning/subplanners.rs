@@ -31,10 +31,10 @@ use crate::{
         CrateTargetedDepContext, DependencyAlias, GitRepo, LicenseData, SourceDetails,
         WorkspaceContext,
     },
-    error::{RazeError, PLEASE_FILE_A_BUG},
-    metadata::RazeMetadata,
+    error::{GraphError, PLEASE_FILE_A_BUG},
+    metadata::CrateMetadata,
     planning::license,
-    settings::{format_registry_url, CrateSettings, GenMode, RazeSettings},
+    settings::{CrateSettings, GenMode, PlanningSettings},
     util,
 };
 
@@ -52,7 +52,7 @@ type DepProduction = HashMap<Option<String>, CrateDependencyContext>;
 /// An internal working planner for generating context for an individual crate.
 struct CrateSubplanner<'planner> {
     // Workspace-Wide details
-    settings: &'planner RazeSettings,
+    settings: &'planner PlanningSettings,
     platform_details: &'planner Option<util::PlatformDetails>,
     crate_catalog: &'planner CrateCatalog,
     // Crate specific content
@@ -65,10 +65,10 @@ struct CrateSubplanner<'planner> {
 
 /// An internal working planner for generating context for a whole workspace.
 pub struct WorkspaceSubplanner<'planner> {
-    pub(super) settings: &'planner RazeSettings,
+    pub(super) settings: &'planner PlanningSettings,
     pub(super) platform_details: &'planner Option<util::PlatformDetails>,
     pub(super) crate_catalog: &'planner CrateCatalog,
-    pub(super) metadata: &'planner RazeMetadata,
+    pub(super) metadata: &'planner CrateMetadata,
 }
 
 impl<'planner> WorkspaceSubplanner<'planner> {
@@ -114,7 +114,6 @@ impl<'planner> WorkspaceSubplanner<'planner> {
         WorkspaceContext {
             workspace_path: self.settings.workspace_path.clone(),
             gen_workspace_prefix: self.settings.gen_workspace_prefix.clone(),
-            output_buildfile_suffix: self.settings.output_buildfile_suffix.clone(),
             workspace_members,
         }
     }
@@ -176,7 +175,7 @@ impl<'planner> WorkspaceSubplanner<'planner> {
                     // This is possible if the crate does not have any version overrides to match against
                     None => Ok(None),
                     Some((_, settings)) if versions.peek().is_none() => Ok(Some(settings)),
-                    Some(current) => Err(RazeError::Config {
+                    Some(current) => Err(GraphError::Config {
                         field_path_opt: None,
                         message: format!(
                             "Multiple potential semver matches `[{}]` found for `{}`",
@@ -196,7 +195,10 @@ impl<'planner> WorkspaceSubplanner<'planner> {
             .metadata
             .resolve
             .as_ref()
-            .ok_or_else(|| RazeError::Generic("Missing resolve graph".into()))?
+            .ok_or_else(|| GraphError::Planning {
+                dependency_name_opt: None,
+                message: "Missing resolve graph".into(),
+            })?
             .nodes
             .iter()
             .sorted_by_key(|n| &n.id)
@@ -242,7 +244,7 @@ impl<'planner> WorkspaceSubplanner<'planner> {
                 let dep_alias = DependencyAlias { alias, target };
 
                 to_alias
-                    .raze_settings
+                    .crate_settings
                     .extra_aliased_targets
                     .iter()
                     .map(move |extra_alias| DependencyAlias {
@@ -355,24 +357,6 @@ impl<'planner> CrateSubplanner<'planner> {
             || !&workspace_member_dev_dependents.is_empty()
             || !&workspace_member_build_dependents.is_empty();
 
-        // Generate canonicalized paths to additional build files so they're guaranteed to exist
-        // and always locatable.
-        let raze_settings = self.crate_settings.cloned().unwrap_or_default();
-        let canonical_additional_build_file = match &raze_settings.additional_build_file {
-            Some(build_file) => Some(
-                cargo_workspace_root
-                    .join(&build_file)
-                    .canonicalize()
-                    .with_context(|| {
-                        format!(
-                            "Failed to find additional_build_file: {}",
-                            &build_file.display()
-                        )
-                    })?,
-            ),
-            None => None,
-        };
-
         let context = CrateContext {
             pkg_name: package.name.clone(),
             pkg_version: package.version.clone(),
@@ -386,19 +370,17 @@ impl<'planner> CrateSubplanner<'planner> {
             is_proc_macro,
             default_deps,
             targeted_deps,
-            workspace_path_to_crate: self.crate_catalog_entry.workspace_path(&self.settings)?,
             build_script_target: build_script_target_opt,
             links: package.links.clone(),
-            raze_settings,
-            canonical_additional_build_file,
+            crate_settings: self.crate_settings.cloned().unwrap_or_default(),
             source_details: self.produce_source_details(&package, &package_root),
-            expected_build_path: self.crate_catalog_entry.local_build_path(&self.settings)?,
             sha256: self.sha256.clone(),
-            registry_url: format_registry_url(
+            registry_url: util::format_registry_url(
                 &self.settings.registry,
                 &package.name,
                 &package.version.to_string(),
             ),
+            workspace_path_to_crate: self.crate_catalog_entry.workspace_path(&self.settings)?,
             lib_target_name,
             targets,
         };
@@ -518,7 +500,7 @@ impl<'planner> CrateSubplanner<'planner> {
                 dep_set.dependencies.push(build_dep)
             }
             kind => {
-                return Err(RazeError::Planning {
+                return Err(GraphError::Planning {
                     dependency_name_opt: Some(pkg.name.to_string()),
                     message: format!(
                         "Unhandlable dependency type {:?} on {} detected! {}",
@@ -536,7 +518,7 @@ impl<'planner> CrateSubplanner<'planner> {
             };
 
             if !dep_set.aliased_dependencies.insert(dep_alias) {
-                return Err(RazeError::Planning {
+                return Err(GraphError::Planning {
                     dependency_name_opt: Some(pkg.name.to_string()),
                     message: format!("Duplicated renamed package {}", name),
                 }
@@ -569,15 +551,17 @@ impl<'planner> CrateSubplanner<'planner> {
                 let potential_targets = self
                     .platform_details
                     .as_ref()
-                    .zip(self.settings.target.as_ref());
+                    .zip(self.settings.targets.as_ref());
 
                 match potential_targets {
                     // Legacy behavior
-                    Some((platform_details, settings_target)) => {
+                    Some((platform_details, settings_targets)) => {
                         // Skip this dep if it doesn't match our platform attributes
                         // UNWRAP: It is reasonable to assume cargo is not giving us odd platform strings
                         let platform = Platform::from_str(platform).unwrap();
-                        platform.matches(settings_target, platform_details.attrs())
+                        settings_targets.iter().any(|settings_target| {
+                            platform.matches(settings_target, platform_details.attrs())
+                        })
                     }
                     None => {
                         util::is_bazel_supported_platform(platform)
@@ -733,10 +717,13 @@ impl<'planner> CrateSubplanner<'planner> {
             }
 
             // Reached filesystem root and did not find Git repo
-            Err(RazeError::Generic(format!(
-                "Unable to locate git repository root for manifest at {:?}. {}",
-                manifest_path, PLEASE_FILE_A_BUG
-            ))
+            Err(GraphError::Planning {
+                dependency_name_opt: None,
+                message: format!(
+                    "Unable to locate git repository root for manifest at {:?}. {}",
+                    manifest_path, PLEASE_FILE_A_BUG
+                ),
+            }
             .into())
         }
     }

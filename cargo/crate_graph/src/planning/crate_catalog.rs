@@ -21,25 +21,25 @@ use anyhow::{anyhow, Result};
 use cargo_metadata::{Metadata, Node, Package, PackageId};
 
 use crate::{
-    error::RazeError,
-    settings::{GenMode, RazeSettings},
+    error::GraphError,
+    settings::{GenMode, PlanningSettings},
     util,
     util::package_ident,
 };
 
 /// An entry in the Crate catalog for a single crate.
 pub struct CrateCatalogEntry {
-    // The package metadata for the crate
+    /// The package metadata for the crate
     pub package: Package,
-    // The name of the package sanitized for use within Bazel
+    /// The name of the package sanitized for use within Bazel
     pub sanitized_name: String,
-    // The version of the package sanitized for use within Bazel
+    /// The version of the package sanitized for use within Bazel
     pub sanitized_version: String,
-    // A unique identifier for the package derived from Cargo usage of the form {name}-{version}
+    /// A unique identifier for the package derived from Cargo usage of the form {name}-{version}
     pub package_ident: String,
-    // Is this a member of the root crate workspace?
+    /// Is this a member of the root crate workspace?
     pub is_workspace_crate: bool,
-    // A list of workspace members that depend on this entry
+    /// A list of workspace members that depend on this entry
     pub workspace_member_dependents: Vec<PackageId>,
 }
 
@@ -78,23 +78,8 @@ impl CrateCatalogEntry {
         self.is_workspace_crate
     }
 
-    /// Yields the expected location of the build file (relative to execution path).
-    pub fn local_build_path(&self, settings: &RazeSettings) -> Result<String> {
-        match settings.genmode {
-            GenMode::Remote => Ok(format!("remote/BUILD.{}.bazel", &self.package_ident,)),
-            GenMode::Vendored => Ok(format!(
-                "vendor/{}/{}",
-                &self.package_ident, settings.output_buildfile_suffix,
-            )),
-            // Settings should always have `genmode` set to one of the above fields
-            GenMode::Unspecified => Err(anyhow!(
-                "Unable to determine local build path. GenMode should not be Unspecified"
-            )),
-        }
-    }
-
     /// Yields the precise path to this dependency for the provided settings.
-    pub fn workspace_path(&self, settings: &RazeSettings) -> Result<String> {
+    pub fn workspace_path(&self, settings: &PlanningSettings) -> Result<String> {
         match settings.genmode {
             GenMode::Remote => Ok(format!(
                 "@{}__{}__{}//",
@@ -121,7 +106,7 @@ impl CrateCatalogEntry {
     }
 
     /// Emits a complete path to this dependency and default target using the given settings.
-    pub fn workspace_path_and_default_target(&self, settings: &RazeSettings) -> Result<String> {
+    pub fn workspace_path_and_default_target(&self, settings: &PlanningSettings) -> Result<String> {
         match settings.genmode {
             GenMode::Remote => Ok(format!(
                 "@{}__{}__{}//:{}",
@@ -164,7 +149,10 @@ impl CrateCatalog {
         let resolve = metadata
             .resolve
             .as_ref()
-            .ok_or_else(|| RazeError::Generic("Missing resolve graph".into()))?;
+            .ok_or_else(|| GraphError::Planning {
+                dependency_name_opt: None,
+                message: "Missing resolve graph".into(),
+            })?;
 
         let workspace_crates: Vec<&Node> = resolve
             .nodes
