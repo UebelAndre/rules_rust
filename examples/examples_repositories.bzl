@@ -25,7 +25,7 @@ def repositories():
     maybe(
         http_archive,
         name = "rules_foreign_cc",
-        strip_prefix = "rules_foreign_cc-d54c78ab86b40770ee19f0949db9d74a831ab9f0",
-        url = "https://github.com/bazelbuild/rules_foreign_cc/archive/d54c78ab86b40770ee19f0949db9d74a831ab9f0.zip",
-        sha256 = "3c6445404e9e5d17fa0ecdef61be00dd93b20222c11f45e146a98c0a3f67defa",
+        sha256 = "e14a159c452a68a97a7c59fa458033cc91edb8224516295b047a95555140af5f",
+        strip_prefix = "rules_foreign_cc-0.4.0",
+        url = "https://github.com/bazelbuild/rules_foreign_cc/archive/0.4.0.tar.gz",
     )

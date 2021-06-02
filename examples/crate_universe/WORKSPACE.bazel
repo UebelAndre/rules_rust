@@ -67,9 +67,9 @@ rbe_autoconfig(name = "buildkite_config")
 
 http_archive(
     name = "rules_foreign_cc",
-    sha256 = "d39b6930a21aed518bf5403dbf333fff731de6314bd0d528f4df62366350a312",
-    strip_prefix = "rules_foreign_cc-98c88de5e0f57dd2a896dd595469ccd6bf97ceab",
-    url = "https://github.com/bazelbuild/rules_foreign_cc/archive/98c88de5e0f57dd2a896dd595469ccd6bf97ceab.tar.gz",
+    sha256 = "e14a159c452a68a97a7c59fa458033cc91edb8224516295b047a95555140af5f",
+    strip_prefix = "rules_foreign_cc-0.4.0",
+    url = "https://github.com/bazelbuild/rules_foreign_cc/archive/0.4.0.tar.gz",
 )
 
 load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
