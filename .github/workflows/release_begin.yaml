@@ -46,10 +46,11 @@ jobs:
       - run: |
           # Install cross
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            curl --fail -Lo ~/cross.tar.gz https://github.com/rust-embedded/cross/releases/download/v0.2.1/cross-v0.2.1-x86_64-apple-darwin.tar.gz
+            CROSS_URL="https://github.com/rust-embedded/cross/releases/download/v0.2.1/cross-v0.2.1-x86_64-apple-darwin.tar.gz"
           else
-            curl --fail -Lo ~/cross.tar.gz https://github.com/rust-embedded/cross/releases/download/v0.2.1/cross-v0.2.1-x86_64-unknown-linux-gnu.tar.gz
+            CROSS_URL="https://github.com/rust-embedded/cross/releases/download/v0.2.1/cross-v0.2.1-x86_64-unknown-linux-gnu.tar.gz"
           fi
+          curl --fail -Lo ~/cross.tar.gz "${CROSS_URL}"
           sudo tar -xf ~/cross.tar.gz -C /usr/local/bin/
           sudo chmod +x /usr/local/bin/cross
         if: matrix.os != 'windows-2019'
@@ -93,6 +94,29 @@ jobs:
           | sed 's/{VERSION}/${{ github.event.inputs.version }}/' \
           > ${{ github.workspace }}/version.bzl
       - run: |
+          # Update references to previous release
+          function replace_inline() {
+              local pattern="$1"
+              local replacement="$2"
+
+              update_candidates="$(grep -R -l -E . | grep -E "(.bazel|.bzl|.md)$")"
+
+              if [[ -z "${update_candidates}" ]]; then
+                  return
+              fi
+
+              echo "${update_candidates}" \
+                  | xargs sed -i -E "s/${pattern//\//\\/}/${replacement//\//\\/}/g"
+          }
+
+          replace_inline \
+              "(https|http)://github\.com/bazelbuild/rules_rust/(archive|release/downloads)/([0-9\.]+)\.(tar.*|zip)" \
+              "\1://github\.com/bazelbuild/rules_rust/\2${{ github.event.inputs.version }}.\4"
+
+          replace_inline \
+              "rules_rust-([0-9\.]+)" \
+              "rules_rust-${{ github.event.inputs.version }}"
+      - run: |
           # Get release candidate number
           git fetch origin &> /dev/null
           num_tags="$(git tag -l | grep "${{ github.event.inputs.version }}" | wc -l | xargs || true)"
@@ -132,6 +156,11 @@ jobs:
       - run: |
           # Update docs for release
           SKIP_COMMIT=1 ${{ github.workspace }}/docs/update_docs.sh
+      - run: |
+          # Generate the release candidate notes
+          sed 's/{version}/${{ github.event.inputs.version }}rc-${{ env.RELEASE_CANDIDATE_NUMBER }}/' \
+            ${{ github.workspace }}/.github/release.txt.template \
+          > ${{ github.workspace }}/.github/release.txt
       - uses: actions/create-release@v1
         id: rules_rust_release
         env:
@@ -140,7 +169,7 @@ jobs:
           prerelease: true
           tag_name: ${{ github.event.inputs.version }}rc-${{ env.RELEASE_CANDIDATE_NUMBER }}
           release_name: ${{ github.event.inputs.version }}rc-${{ env.RELEASE_CANDIDATE_NUMBER }}
-          body: ${{ github.event.inputs.version }}rc-${{ env.RELEASE_CANDIDATE_NUMBER }}
+          body_path: ${{ github.workspace }}/.github/release.txt
           commitish: main
       # There must be a upload action for each platform triple we create
       - name: "Upload aarch64-apple-darwin"
