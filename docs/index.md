@@ -23,8 +23,8 @@ http_archive(
     #       https://github.com/bazelbuild/rules_rust/releases
     #
     # sha256 = "...",
-    strip_prefix = "rules_rust-0.8.0",
-    url = "https://github.com/bazelbuild/rules_rust/archive/0.8.0.tar.gz",
+    strip_prefix = "rules_rust-0.0.14",
+    url = "https://github.com/bazelbuild/rules_rust/archive/0.0.14.tar.gz",
 )
 
 load("@rules_rust//rust:repositories.bzl", "rust_repositories")
