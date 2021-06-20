@@ -62,34 +62,43 @@ def _rust_doc_impl(ctx):
     Args:
         ctx (ctx): The rule's context object
     """
-    if rust_common.crate_info not in ctx.attr.dep:
-        fail("Expected rust_library or rust_binary.", "dep")
 
-    crate = ctx.attr.dep[rust_common.crate_info]
-    dep_info = ctx.attr.dep[rust_common.dep_info]
+    crate = ctx.attr.crate or ctx.attr.dep
+    if not crate:
+        fail("{} is missing the `crate` attribute".format(ctx.label))
+
+    crate_info = crate[rust_common.crate_info]
+    dep_info = crate[rust_common.dep_info]
 
     toolchain = find_toolchain(ctx)
 
     rustdoc_inputs = depset(
         [c.output for c in dep_info.transitive_crates.to_list()] +
-        [toolchain.rust_doc],
+        [toolchain.rustdoc],
         transitive = [
-            crate.srcs,
+            crate_info.srcs,
             toolchain.rustc_lib.files,
-            toolchain.rust_lib.files,
+            toolchain.rust_stdlib.files,
         ],
     )
 
     output_dir = ctx.actions.declare_directory(ctx.label.name)
     args = ctx.actions.args()
-    args.add(crate.root.path)
-    args.add("--crate-name", crate.name)
-    args.add("--crate-type", crate.type)
+    args.add(crate_info.root.path)
+    args.add("--crate-name", crate_info.name)
+    args.add("--crate-type", crate_info.type)
     args.add("--output", output_dir.path)
-    add_edition_flags(args, crate)
+    add_edition_flags(args, crate_info)
 
     # nb. rustdoc can't do anything with native link flags; we must omit them.
     add_crate_link_flags(args, dep_info)
+
+    # Gets the paths to the folders containing the standard library (or libcore)
+    rust_lib_files = depset(transitive = [toolchain.rust_stdlib.files, toolchain.rustc_lib.files])
+    rust_lib_paths = depset([file.dirname for file in rust_lib_files.to_list()]).to_list()
+
+    # Tell Rustc where to find the standard library
+    args.add_all(rust_lib_paths, before_each = "-L", format_each = "%s")
 
     args.add_all(ctx.files.markdown_css, before_each = "--markdown-css")
     if ctx.file.html_in_header:
@@ -100,12 +109,15 @@ def _rust_doc_impl(ctx):
         args.add("--html-after-content", ctx.file.html_after_content)
 
     ctx.actions.run(
-        executable = toolchain.rust_doc,
+        executable = toolchain.rustdoc,
         inputs = rustdoc_inputs,
         outputs = [output_dir],
         arguments = [args],
         mnemonic = "Rustdoc",
-        progress_message = "Generating rustdoc for {} ({} files)".format(crate.name, len(crate.srcs.to_list())),
+        progress_message = "Generating rustdoc for {} ({} files)".format(
+            crate_info.name,
+            len(crate_info.srcs.to_list()),
+        ),
     )
 
     # This rule does nothing without a single-file output, though the directory should've sufficed.
@@ -136,14 +148,18 @@ rust_doc = rule(
     doc = _rust_doc_doc,
     implementation = _rust_doc_impl,
     attrs = {
-        "dep": attr.label(
+        "crate": attr.label(
             doc = (
                 "The label of the target to generate code documentation for.\n" +
                 "\n" +
                 "`rust_doc` can generate HTML code documentation for the source files of " +
                 "`rust_library` or `rust_binary` targets."
             ),
-            mandatory = True,
+            providers = [rust_common.crate_info],
+        ),
+        "dep": attr.label(
+            doc = "__deprecated__: use `crate`",
+            providers = [rust_common.crate_info],
         ),
         "html_after_content": attr.label(
             doc = "File to add in `<body>`, after content.",
@@ -175,6 +191,9 @@ rust_doc = rule(
     outputs = {
         "rust_doc_zip": "%{name}.zip",
     },
-    toolchains = [str(Label("//rust:toolchain"))],
+    toolchains = [
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
+    ],
     incompatible_use_toolchain_transition = True,
 )

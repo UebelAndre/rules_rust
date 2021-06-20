@@ -25,7 +25,28 @@ def find_toolchain(ctx):
     Returns:
         rust_toolchain: A Rust toolchain context.
     """
-    return ctx.toolchains[Label("//rust:toolchain")]
+    exec_toolchain = ctx.toolchains[Label("//rust:exec_toolchain")]
+    target_toolchain = ctx.toolchains[Label("//rust:target_toolchain")]
+    return struct(
+        binary_ext = target_toolchain.binary_ext,
+        compilation_mode_opts = target_toolchain.compilation_mode_opts,
+        crosstool_files = exec_toolchain.crosstool_files,
+        default_edition = target_toolchain.default_edition,
+        dylib_ext = target_toolchain.dylib_ext,
+        exec_triple = exec_toolchain.triple,
+        libstd_and_allocator_ccinfo = target_toolchain.libstd_and_allocator_ccinfo,
+        os = target_toolchain.os,
+        rust_lib = target_toolchain.rust_stdlib,
+        rust_stdlib = target_toolchain.rust_stdlib,
+        rustc = exec_toolchain.rustc,
+        rustc_lib = exec_toolchain.rustc_lib,
+        rustc_srcs = exec_toolchain.rustc_srcs,
+        rustdoc = exec_toolchain.rustdoc,
+        staticlib_ext = target_toolchain.staticlib_ext,
+        stdlib_linkflags = target_toolchain.stdlib_linkflags,
+        target_arch = target_toolchain.triple.split("-")[0],
+        target_triple = target_toolchain.triple,
+    )
 
 def find_cc_toolchain(ctx):
     """Extracts a CcToolchain from the current target's context
@@ -241,3 +262,32 @@ def crate_name_from_attr(attr):
             "Consider adding a crate_name attribute to set a valid crate name",
         )
     return crate_name
+
+def dedent(doc_string):
+    """Tidy excess whitespace in docstrings to not break index.md
+
+    Args:
+        doc_string (str): A docstring style string
+
+    Returns:
+        str: A string optimized for stardoc rendering
+    """
+    lines = doc_string.splitlines()
+    if not lines:
+        return doc_string
+
+    # If the first line is empty, use the second line
+    first_line = lines[0]
+    if not first_line:
+        first_line = lines[1]
+
+    # Detect how much space prepends the first line and subtract that from all lines
+    space_count = len(first_line) - len(first_line.lstrip())
+
+    # If there are no leading spaces, do not alter the docstring
+    if space_count == 0:
+        return doc_string
+    else:
+        # Remove the leading block of spaces from the current line
+        block = " " * space_count
+        return "\n".join([line.replace(block, "", 1).rstrip() for line in lines])

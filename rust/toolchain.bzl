@@ -2,6 +2,7 @@
 
 load(
     "//rust/private:utils.bzl",
+    "dedent",
     "find_cc_toolchain",
 )
 
@@ -19,30 +20,29 @@ def _make_dota(ctx, f):
     ctx.actions.symlink(output = dot_a, target_file = f)
     return dot_a
 
-def _ltl(library, ctx, cc_toolchain, feature_configuration):
-    return cc_common.create_library_to_link(
-        actions = ctx.actions,
-        feature_configuration = feature_configuration,
-        cc_toolchain = cc_toolchain,
-        static_library = library,
-        pic_static_library = library,
-    )
+RustStdLibInfo = provider(
+    doc = "",
+    fields = {
+        "alloc_files": "",
+        "between_alloc_and_core_files": "",
+        "between_core_and_std_files": "",
+        "core_files": "",
+        "dot_a_files": "Depset of Files",
+        "srcs": "",
+        "std_files": "Depset of Files",
+        "std_rlibs": "",
+    },
+)
 
-def _make_libstd_and_allocator_ccinfo(ctx, rust_lib, allocator_library):
-    """Make the CcInfo (if possible) for libstd and allocator libraries.
-
-    Args:
-        ctx (ctx): The rule's context object.
-        rust_lib: The rust standard library.
-        allocator_library: The target to use for providing allocator functions.
-
-
-    Returns:
-        A CcInfo object for the required libraries, or None if no such libraries are available.
-    """
-    cc_toolchain, feature_configuration = find_cc_toolchain(ctx)
-    link_inputs = []
-    std_rlibs = [f for f in rust_lib.files.to_list() if f.basename.endswith(".rlib")]
+def _rust_stdlib_filegroup_impl(ctx):
+    rust_lib = ctx.files.srcs
+    std_rlibs = [f for f in rust_lib if f.basename.endswith(".rlib")]
+    dot_a_files = []
+    between_alloc_and_core_files = []
+    core_files = []
+    between_core_and_std_files = []
+    std_files = []
+    alloc_files = []
     if std_rlibs:
         # std depends on everything
         #
@@ -71,26 +71,80 @@ def _make_libstd_and_allocator_ccinfo(ctx, rust_lib, allocator_library):
                 print("File partitioned: {}".format(f.basename))
             fail("rust_toolchain couldn't properly partition rlibs in rust_lib. Partitioned {} out of {} files. This is probably a bug in the rule implementation.".format(partitioned_files_len, len(dot_a_files)))
 
+    return [
+        DefaultInfo(
+            files = depset(ctx.files.srcs),
+        ),
+        RustStdLibInfo(
+            std_rlibs = std_rlibs,
+            dot_a_files = dot_a_files,
+            between_alloc_and_core_files = between_alloc_and_core_files,
+            core_files = core_files,
+            between_core_and_std_files = between_core_and_std_files,
+            std_files = std_files,
+            alloc_files = alloc_files,
+        ),
+    ]
+
+rust_stdlib_filegroup = rule(
+    doc = dedent("""\
+
+    """),
+    implementation = _rust_stdlib_filegroup_impl,
+    attrs = {
+        "srcs": attr.label_list(
+            allow_files = True,
+            doc = "",
+            mandatory = True,
+        ),
+    },
+)
+
+def _ltl(library, ctx, cc_toolchain, feature_configuration):
+    return cc_common.create_library_to_link(
+        actions = ctx.actions,
+        feature_configuration = feature_configuration,
+        cc_toolchain = cc_toolchain,
+        static_library = library,
+        pic_static_library = library,
+    )
+
+def _make_libstd_and_allocator_ccinfo(ctx, rust_lib, allocator_library):
+    """Make the CcInfo (if possible) for libstd and allocator libraries.
+
+    Args:
+        ctx (ctx): The rule's context object.
+        rust_lib: The rust standard library.
+        allocator_library: The target to use for providing allocator functions.
+
+
+    Returns:
+        A CcInfo object for the required libraries, or None if no such libraries are available.
+    """
+    cc_toolchain, feature_configuration = find_cc_toolchain(ctx)
+    link_inputs = []
+    rust_stdlib_info = ctx.attr.rust_stdlib[RustStdLibInfo]
+    if rust_stdlib_info.std_rlibs:
         alloc_inputs = depset(
-            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in alloc_files],
+            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in rust_stdlib_info.alloc_files],
         )
         between_alloc_and_core_inputs = depset(
-            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in between_alloc_and_core_files],
+            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in rust_stdlib_info.between_alloc_and_core_files],
             transitive = [alloc_inputs],
             order = "topological",
         )
         core_inputs = depset(
-            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in core_files],
+            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in rust_stdlib_info.core_files],
             transitive = [between_alloc_and_core_inputs],
             order = "topological",
         )
         between_core_and_std_inputs = depset(
-            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in between_core_and_std_files],
+            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in rust_stdlib_info.between_core_and_std_files],
             transitive = [core_inputs],
             order = "topological",
         )
         std_inputs = depset(
-            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in std_files],
+            [_ltl(f, ctx, cc_toolchain, feature_configuration) for f in rust_stdlib_info.std_files],
             transitive = [between_core_and_std_inputs],
             order = "topological",
         )
@@ -113,8 +167,8 @@ def _make_libstd_and_allocator_ccinfo(ctx, rust_lib, allocator_library):
         )))
     return None
 
-def _rust_toolchain_impl(ctx):
-    """The rust_toolchain implementation
+def _rust_exec_toolchain_impl(ctx):
+    """The rust_exec_toolchain implementation
 
     Args:
         ctx (ctx): The rule's context object
@@ -122,6 +176,102 @@ def _rust_toolchain_impl(ctx):
     Returns:
         list: A list containing the target's toolchain Provider info
     """
+
+    toolchain = platform_common.ToolchainInfo(
+        rustc = ctx.file.rustc,
+        triple = ctx.attr.triple,
+        os = ctx.attr.os,
+        arch = ctx.attr.triple.split("-")[0],
+        crosstool_files = ctx.files._crosstool,
+        rustc_srcs = ctx.attr.rustc_srcs,
+        rustc_lib = ctx.attr.rustc_lib,
+        rustdoc = ctx.file.rustdoc,
+    )
+    return [toolchain]
+
+rust_exec_toolchain = rule(
+    doc = dedent("""\
+    Declares a Rust exec/host toolchain for use.
+
+    This is for declaring a custom toolchain, eg. for configuring a particular version of rust or supporting a new platform.
+
+    Example:
+
+    Suppose the core rust team has ported the compiler to a new target CPU, called `cpuX`. This \
+    support can be used in Bazel by defining a new toolchain definition and declaration:
+
+    ```python
+    load('@rules_rust//rust:toolchain.bzl', 'rust_exec_toolchain')
+
+    rust_exec_toolchain(
+        name = "rust_cpuX_impl",
+        # see attributes...
+    )
+
+    toolchain(
+        name = "rust_cpuX",
+        exec_compatible_with = [
+            "@platforms//cpu:cpuX",
+        ],
+        toolchain = ":rust_cpuX_impl",
+        toolchain_type = "@rules_rust//rust:exec_toolchain",
+    )
+    ```
+
+    Then, either add the label of the toolchain rule to `register_toolchains` in the WORKSPACE, or pass \
+    it to the `"--extra_toolchains"` flag for Bazel, and it will be used.
+
+    See @rules_rust//rust:repositories.bzl for examples of defining the @rust_cpuX repository \
+    with the actual binaries and libraries.
+    """),
+    implementation = _rust_exec_toolchain_impl,
+    fragments = ["cpp"],
+    attrs = {
+        "os": attr.string(
+            doc = "The operating system for the current toolchain",
+            mandatory = True,
+        ),
+        "rustc": attr.label(
+            doc = "The location of the `rustc` binary. Can be a direct source or a filegroup containing one item.",
+            allow_single_file = True,
+            mandatory = True,
+        ),
+        "rustc_lib": attr.label(
+            doc = "The location of the `rustc` binary. Can be a direct source or a filegroup containing one item.",
+            allow_files = True,
+            mandatory = True,
+        ),
+        "rustc_srcs": attr.label(
+            doc = "The source code of rustc.",
+        ),
+        "rustdoc": attr.label(
+            doc = "The location of the `rustdoc` binary. Can be a direct source or a filegroup containing one item.",
+            allow_single_file = True,
+        ),
+        "triple": attr.string(
+            doc = (
+                "The platform triple for the toolchains execution environment. " +
+                "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
+            ),
+        ),
+        "_cc_toolchain": attr.label(
+            default = "@bazel_tools//tools/cpp:current_cc_toolchain",
+            cfg = "exec",
+        ),
+        "_crosstool": attr.label(
+            default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),
+            cfg = "exec",
+        ),
+    },
+    toolchains = [
+        "@bazel_tools//tools/cpp:toolchain_type",
+    ],
+    incompatible_use_toolchain_transition = True,
+)
+
+rust_toolchain = rust_exec_toolchain
+
+def _rust_target_toolchain_impl(ctx):
     compilation_mode_opts = {}
     for k, v in ctx.attr.opt_level.items():
         if not k in ctx.attr.debug_info:
@@ -132,31 +282,50 @@ def _rust_toolchain_impl(ctx):
             fail("Compilation mode {} is not defined in opt_level but is defined debug_info".format(k))
 
     toolchain = platform_common.ToolchainInfo(
-        rustc = ctx.file.rustc,
-        rust_doc = ctx.file.rust_doc,
-        rustfmt = ctx.file.rustfmt,
-        cargo = ctx.file.cargo,
-        clippy_driver = ctx.file.clippy_driver,
-        rustc_lib = ctx.attr.rustc_lib,
-        rustc_srcs = ctx.attr.rustc_srcs,
-        rust_lib = ctx.attr.rust_lib,
+        rust_stdlib = ctx.attr.rust_stdlib,
         binary_ext = ctx.attr.binary_ext,
         staticlib_ext = ctx.attr.staticlib_ext,
         dylib_ext = ctx.attr.dylib_ext,
         stdlib_linkflags = ctx.attr.stdlib_linkflags,
-        target_triple = ctx.attr.target_triple,
-        exec_triple = ctx.attr.exec_triple,
-        os = ctx.attr.os,
-        target_arch = ctx.attr.target_triple.split("-")[0],
-        default_edition = ctx.attr.default_edition,
+        triple = ctx.attr.triple,
         compilation_mode_opts = compilation_mode_opts,
-        crosstool_files = ctx.files._crosstool,
-        libstd_and_allocator_ccinfo = _make_libstd_and_allocator_ccinfo(ctx, ctx.attr.rust_lib, ctx.attr.allocator_library),
+        os = ctx.attr.os,
+        default_edition = ctx.attr.default_edition,
+        arch = ctx.attr.triple.split("-")[0],
+        libstd_and_allocator_ccinfo = _make_libstd_and_allocator_ccinfo(ctx, ctx.attr.rust_stdlib, ctx.attr.allocator_library),
     )
     return [toolchain]
 
-rust_toolchain = rule(
-    implementation = _rust_toolchain_impl,
+rust_target_toolchain = rule(
+    doc = dedent("""\
+    Declares a Rust target toolchain for use.
+
+    This is for declaring a custom toolchain, eg. for configuring a particular version of rust or supporting a new platform.
+
+    Example:
+
+    Suppose the core rust team has ported the compiler to a new target CPU, called `cpuX`. This \
+    support can be used in Bazel by defining a new toolchain definition and declaration:
+
+    ```python
+    load('@rules_rust//rust:toolchain.bzl', 'rust_target_toolchain')
+
+    rust_target_toolchain(
+        name = "rust_cpuX_impl",
+        # see attributes...
+    )
+
+    toolchain(
+        name = "rust_cpuX",
+        target_compatible_with = [
+            "@platforms//cpu:cpuX",
+        ],
+        toolchain = ":rust_cpuX_impl",
+        toolchain_type = "@rules_rust//rust:target_toolchain",
+    )
+    ```
+    """),
+    implementation = _rust_target_toolchain_impl,
     fragments = ["cpp"],
     attrs = {
         "allocator_library": attr.label(
@@ -165,14 +334,6 @@ rust_toolchain = rule(
         "binary_ext": attr.string(
             doc = "The extension for binaries created from rustc.",
             mandatory = True,
-        ),
-        "cargo": attr.label(
-            doc = "The location of the `cargo` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-        ),
-        "clippy_driver": attr.label(
-            doc = "The location of the `clippy-driver` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
         ),
         "debug_info": attr.string_dict(
             doc = "Rustc debug info levels per opt level",
@@ -190,12 +351,6 @@ rust_toolchain = rule(
             doc = "The extension for dynamic libraries created from rustc.",
             mandatory = True,
         ),
-        "exec_triple": attr.string(
-            doc = (
-                "The platform triple for the toolchains execution environment. " +
-                "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
-            ),
-        ),
         "opt_level": attr.string_dict(
             doc = "Rustc optimization levels.",
             default = {
@@ -208,26 +363,10 @@ rust_toolchain = rule(
             doc = "The operating system for the current toolchain",
             mandatory = True,
         ),
-        "rust_doc": attr.label(
-            doc = "The location of the `rustdoc` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-        ),
-        "rust_lib": attr.label(
+        "rust_stdlib": attr.label(
+            providers = [RustStdLibInfo],
             doc = "The rust standard library.",
-        ),
-        "rustc": attr.label(
-            doc = "The location of the `rustc` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-        ),
-        "rustc_lib": attr.label(
-            doc = "The libraries used by rustc during compilation.",
-        ),
-        "rustc_srcs": attr.label(
-            doc = "The source code of rustc.",
-        ),
-        "rustfmt": attr.label(
-            doc = "The location of the `rustfmt` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
+            mandatory = True,
         ),
         "staticlib_ext": attr.string(
             doc = "The extension for static libraries created from rustc.",
@@ -240,70 +379,82 @@ rust_toolchain = rule(
             ),
             mandatory = True,
         ),
-        "target_triple": attr.string(
+        "triple": attr.string(
             doc = (
-                "The platform triple for the toolchains target environment. " +
+                "The platform triple for the toolchains execution environment. " +
                 "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
             ),
         ),
         "_cc_toolchain": attr.label(
             default = "@bazel_tools//tools/cpp:current_cc_toolchain",
-        ),
-        "_crosstool": attr.label(
-            default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),
+            cfg = "exec",
         ),
     },
     toolchains = [
         "@bazel_tools//tools/cpp:toolchain_type",
     ],
     incompatible_use_toolchain_transition = True,
-    doc = """Declares a Rust toolchain for use.
-
-This is for declaring a custom toolchain, eg. for configuring a particular version of rust or supporting a new platform.
-
-Example:
-
-Suppose the core rust team has ported the compiler to a new target CPU, called `cpuX`. This \
-support can be used in Bazel by defining a new toolchain definition and declaration:
-
-```python
-load('@rules_rust//rust:toolchain.bzl', 'rust_toolchain')
-
-rust_toolchain(
-    name = "rust_cpuX_impl",
-    rustc = "@rust_cpuX//:rustc",
-    rustc_lib = "@rust_cpuX//:rustc_lib",
-    rust_lib = "@rust_cpuX//:rust_lib",
-    rust_doc = "@rust_cpuX//:rustdoc",
-    binary_ext = "",
-    staticlib_ext = ".a",
-    dylib_ext = ".so",
-    stdlib_linkflags = ["-lpthread", "-ldl"],
-    os = "linux",
 )
 
-toolchain(
-    name = "rust_cpuX",
-    exec_compatible_with = [
-        "@platforms//cpu:cpuX",
-    ],
-    target_compatible_with = [
-        "@platforms//cpu:cpuX",
-    ],
-    toolchain = ":rust_cpuX_impl",
+def _rust_cargo_toolchain_impl(ctx):
+    toolchain = platform_common.ToolchainInfo(
+        cargo = ctx.file.cargo,
+    )
+    return [toolchain]
+
+rust_cargo_toolchain = rule(
+    doc = "Declares a Cargo toolchain for use.",
+    implementation = _rust_cargo_toolchain_impl,
+    attrs = {
+        "cargo": attr.label(
+            doc = "The location of the `cargo` binary.",
+            allow_single_file = True,
+            mandatory = True,
+        ),
+    },
+    incompatible_use_toolchain_transition = True,
 )
-```
 
-Then, either add the label of the toolchain rule to `register_toolchains` in the WORKSPACE, or pass \
-it to the `"--extra_toolchains"` flag for Bazel, and it will be used.
+def _rust_clippy_toolchain_impl(ctx):
+    toolchain = platform_common.ToolchainInfo(
+        clippy_driver = ctx.file.clippy_driver,
+    )
+    return [toolchain]
 
-See @rules_rust//rust:repositories.bzl for examples of defining the @rust_cpuX repository \
-with the actual binaries and libraries.
-""",
+rust_clippy_toolchain = rule(
+    doc = "Declares a Clippy toolchain for use.",
+    implementation = _rust_clippy_toolchain_impl,
+    attrs = {
+        "clippy_driver": attr.label(
+            doc = "The location of the `clippy-driver` binary.",
+            allow_single_file = True,
+            mandatory = True,
+        ),
+    },
+    incompatible_use_toolchain_transition = True,
+)
+
+def _rust_rustfmt_toolchain_impl(ctx):
+    toolchain = platform_common.ToolchainInfo(
+        rustfmt = ctx.file.rustfmt,
+    )
+    return [toolchain]
+
+rust_rustfmt_toolchain = rule(
+    doc = "Declares a Rustfmt toolchain for use.",
+    implementation = _rust_rustfmt_toolchain_impl,
+    attrs = {
+        "rustfmt": attr.label(
+            doc = "The location of the `rustfmt` binary.",
+            allow_single_file = True,
+            mandatory = True,
+        ),
+    },
+    incompatible_use_toolchain_transition = True,
 )
 
 def _cargo_tool_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+    toolchain = ctx.toolchains[str(Label("//rust:cargo_toolchain"))]
 
     # Executables must be produced within the rule marked executable. To
     # satisfy this, a symlink is created.
@@ -323,14 +474,14 @@ _cargo_tool = rule(
     doc = "A rule for fetching a `cargo` binary from a rust toolchain.",
     implementation = _cargo_tool_impl,
     toolchains = [
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:cargo_toolchain")),
     ],
     incompatible_use_toolchain_transition = True,
     executable = True,
 )
 
 def _clippy_tool_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+    toolchain = ctx.toolchains[str(Label("//rust:clippy_toolchain"))]
 
     # Executables must be produced within the rule marked executable. To
     # satisfy this, a symlink is created.
@@ -350,14 +501,14 @@ _clippy_tool = rule(
     doc = "A rule for fetching a `clippy` binary from a rust toolchain.",
     implementation = _clippy_tool_impl,
     toolchains = [
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:clippy_toolchain")),
     ],
     incompatible_use_toolchain_transition = True,
     executable = True,
 )
 
 def _rustc_tool_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+    toolchain = ctx.toolchains[str(Label("//rust:exec_toolchain"))]
 
     # Executables must be produced within the rule marked executable. To
     # satisfy this, a symlink is created.
@@ -378,14 +529,14 @@ _rustc_tool = rule(
     doc = "A rule for fetching a `rustc` binary from a rust toolchain.",
     implementation = _rustc_tool_impl,
     toolchains = [
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:exec_toolchain")),
     ],
     incompatible_use_toolchain_transition = True,
     executable = True,
 )
 
 def _rustc_srcs_tool_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+    toolchain = ctx.toolchains[str(Label("//rust:exec_toolchain"))]
     srcs = []
     if toolchain.rustc_srcs:
         srcs = toolchain.rustc_srcs[DefaultInfo].files
@@ -401,13 +552,13 @@ _rustc_srcs_tool = rule(
     ),
     implementation = _rustc_srcs_tool_impl,
     toolchains = [
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:exec_toolchain")),
     ],
     incompatible_use_toolchain_transition = True,
 )
 
 def _rustfmt_tool_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+    toolchain = ctx.toolchains[str(Label("//rust:rustfmt_toolchain"))]
 
     # Executables must be produced within the rule marked executable. To
     # satisfy this, a symlink is created.
@@ -427,26 +578,26 @@ _rustfmt_tool = rule(
     doc = "A rule for fetching a `rustfmt` binary from a rust toolchain.",
     implementation = _rustfmt_tool_impl,
     toolchains = [
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:rustfmt_toolchain")),
     ],
     incompatible_use_toolchain_transition = True,
     executable = True,
 )
 
 def _rustdoc_tool_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+    toolchain = ctx.toolchains[str(Label("//rust:exec_toolchain"))]
 
     # Executables must be produced within the rule marked executable. To
     # satisfy this, a symlink is created.
     rustdoc = ctx.actions.declare_file(ctx.label.name)
     ctx.actions.symlink(
         output = rustdoc,
-        target_file = toolchain.rust_doc,
+        target_file = toolchain.rustdoc,
         is_executable = True,
     )
 
     return [DefaultInfo(
-        files = depset([toolchain.rust_doc]),
+        files = depset([toolchain.rustdoc]),
         executable = rustdoc,
     )]
 
@@ -454,7 +605,7 @@ _rustdoc_tool = rule(
     doc = "A rule for fetching a `rustdoc` binary from a rust toolchain.",
     implementation = _rustdoc_tool_impl,
     toolchains = [
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:exec_toolchain")),
     ],
     incompatible_use_toolchain_transition = True,
     executable = True,

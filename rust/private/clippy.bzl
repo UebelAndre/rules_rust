@@ -28,16 +28,16 @@ def _clippy_aspect_impl(target, ctx):
         return []
 
     toolchain = find_toolchain(ctx)
+    clippy_toolchain = ctx.toolchains[Label("//rust:clippy_toolchain")]
     cc_toolchain, feature_configuration = find_cc_toolchain(ctx)
     crate_info = target[rust_common.crate_info]
     crate_type = crate_info.type
 
     dep_info, build_info = collect_deps(
-        ctx.label,
-        crate_info.deps,
-        crate_info.proc_macro_deps,
-        crate_info.aliases,
-        toolchain,
+        label = ctx.label,
+        deps = crate_info.deps,
+        proc_macro_deps = crate_info.proc_macro_deps,
+        aliases = crate_info.aliases,
     )
 
     compile_inputs, out_dir, build_env_files, build_flags_files = collect_inputs(
@@ -53,14 +53,14 @@ def _clippy_aspect_impl(target, ctx):
 
     # A marker file indicating clippy has executed successfully.
     # This file is necessary because "ctx.actions.run" mandates an output.
-    clippy_marker = ctx.actions.declare_file(ctx.label.name + "_clippy.ok")
+    clippy_marker = ctx.actions.declare_file(ctx.label.name + ".clippy.ok")
 
     args, env = construct_arguments(
         ctx,
         ctx.rule.attr,
         ctx.file,
         toolchain,
-        toolchain.clippy_driver.path,
+        clippy_toolchain.clippy_driver.path,
         cc_toolchain,
         feature_configuration,
         crate_type,
@@ -97,7 +97,7 @@ def _clippy_aspect_impl(target, ctx):
         inputs = compile_inputs,
         outputs = [clippy_marker],
         env = env,
-        tools = [toolchain.clippy_driver],
+        tools = [clippy_toolchain.clippy_driver],
         arguments = [args],
         mnemonic = "Clippy",
     )
@@ -133,7 +133,9 @@ rust_clippy_aspect = aspect(
         ),
     },
     toolchains = [
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
+        str(Label("//rust:clippy_toolchain")),
         "@bazel_tools//tools/cpp:toolchain_type",
     ],
     incompatible_use_toolchain_transition = True,

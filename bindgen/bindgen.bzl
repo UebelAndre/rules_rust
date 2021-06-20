@@ -84,7 +84,7 @@ def _rust_bindgen_impl(ctx):
 
     toolchain = ctx.toolchains[Label("//bindgen:bindgen_toolchain")]
     bindgen_bin = toolchain.bindgen
-    rustfmt_bin = toolchain.rustfmt or rust_toolchain.rustfmt
+    rustfmt_bin = toolchain.rustfmt or ctx.toolchains[Label("//rust:rustfmt_toolchain")].rustfmt
     clang_bin = toolchain.clang
     libclang = toolchain.libclang
 
@@ -198,7 +198,9 @@ rust_bindgen = rule(
     outputs = {"out": "%{name}.rs"},
     toolchains = [
         str(Label("//bindgen:bindgen_toolchain")),
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
+        str(Label("//rust:rustfmt_toolchain")),
     ],
     incompatible_use_toolchain_transition = True,
 )

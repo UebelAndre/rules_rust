@@ -652,6 +652,12 @@ _common_attrs = {
     ),
 }
 
+_common_toolchains = [
+    str(Label("//rust:exec_toolchain")),
+    str(Label("//rust:target_toolchain")),
+    "@bazel_tools//tools/cpp:toolchain_type",
+]
+
 _rust_test_attrs = {
     "crate": attr.label(
         mandatory = False,
@@ -700,10 +706,7 @@ rust_library = rule(
     attrs = dict(_common_attrs.items()),
     fragments = ["cpp"],
     host_fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust library crate.
@@ -777,10 +780,7 @@ rust_static_library = rule(
     attrs = dict(_common_attrs.items()),
     fragments = ["cpp"],
     host_fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust static library.
@@ -801,10 +801,7 @@ rust_shared_library = rule(
     attrs = dict(_common_attrs.items()),
     fragments = ["cpp"],
     host_fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust shared library.
@@ -825,10 +822,7 @@ rust_proc_macro = rule(
     attrs = dict(_common_attrs.items()),
     fragments = ["cpp"],
     host_fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust proc-macro crate.
@@ -862,10 +856,7 @@ rust_binary = rule(
     executable = True,
     fragments = ["cpp"],
     host_fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust binary crate.
@@ -962,10 +953,7 @@ rust_test = rule(
     fragments = ["cpp"],
     host_fragments = ["cpp"],
     test = True,
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust test crate.
@@ -1112,10 +1100,7 @@ rust_test_binary = rule(
     executable = True,
     fragments = ["cpp"],
     host_fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust test binary, without marking this rule as a Bazel test.
@@ -1211,10 +1196,7 @@ rust_benchmark = rule(
     executable = True,
     fragments = ["cpp"],
     host_fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain")),
-        "@bazel_tools//tools/cpp:toolchain_type",
-    ],
+    toolchains = _common_toolchains,
     incompatible_use_toolchain_transition = True,
     doc = dedent("""\
         Builds a Rust benchmark test.
