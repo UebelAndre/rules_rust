@@ -32,7 +32,9 @@ rust_proto_repositories()
 ```
 """
 
+load("@bazel_skylib//lib:versions.bzl", "versions")
 load("@rules_proto//proto:defs.bzl", "ProtoInfo")
+load("@rules_rust_bazel_version//:version.bzl", "BAZEL_VERSION")
 load(
     "//proto:toolchain.bzl",
     _generate_proto = "rust_generate_proto",
@@ -44,7 +46,10 @@ load("//rust:rust.bzl", "rust_common")
 load("//rust/private:rustc.bzl", "rustc_compile_action")
 
 # buildifier: disable=bzl-visibility
-load("//rust/private:utils.bzl", "determine_output_hash", "find_toolchain")
+load("//rust/private:toolchain_utils.bzl", "find_toolchain")
+
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "determine_output_hash")
 
 RustProtoInfo = provider(
     doc = "Rust protobuf provider info",
@@ -306,12 +311,22 @@ rust_proto_library = rule(
             allow_single_file = True,
             cfg = "exec",
         ),
+        "_rust_toolchain": attr.label(
+            # https://github.com/bazelbuild/bazel/issues/13243
+            doc = "Required for bazel versions below `4.1.0` to generate the sysroot",
+            default = Label("//rust/toolchain:current"),
+        ),
     },
     fragments = ["cpp"],
     host_fragments = ["cpp"],
     toolchains = [
         str(Label("//proto:toolchain")),
         str(Label("//rust:toolchain")),
+        "@bazel_tools//tools/cpp:toolchain_type",
+    ] if versions.is_at_least("4.1.0", BAZEL_VERSION) else [
+        str(Label("//proto:toolchain")),
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
         "@bazel_tools//tools/cpp:toolchain_type",
     ],
     # TODO: Remove once (bazelbuild/bazel#11584) is closed and the rules use
@@ -384,12 +399,22 @@ rust_grpc_library = rule(
             allow_single_file = True,
             cfg = "exec",
         ),
+        "_rust_toolchain": attr.label(
+            # https://github.com/bazelbuild/bazel/issues/13243
+            doc = "Required for bazel versions below `4.1.0` to generate the sysroot",
+            default = Label("//rust/toolchain:current"),
+        ),
     },
     fragments = ["cpp"],
     host_fragments = ["cpp"],
     toolchains = [
         str(Label("//proto:toolchain")),
         str(Label("//rust:toolchain")),
+        "@bazel_tools//tools/cpp:toolchain_type",
+    ] if versions.is_at_least("4.1.0", BAZEL_VERSION) else [
+        str(Label("//proto:toolchain")),
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
         "@bazel_tools//tools/cpp:toolchain_type",
     ],
     # TODO: Remove once (bazelbuild/bazel#11584) is closed and the rules use
