@@ -13,18 +13,21 @@
 # limitations under the License.
 
 # buildifier: disable=module-docstring
-load("@bazel_skylib//lib:paths.bzl", "paths")
 load(
     "@bazel_tools//tools/build_defs/cc:action_names.bzl",
     "CPP_LINK_EXECUTABLE_ACTION_NAME",
 )
 load("//rust/private:common.bzl", "rust_common")
 load(
+    "//rust/private:toolchain_utils.bzl",
+    "find_cc_toolchain",
+    "find_sysroot",
+)
+load(
     "//rust/private:utils.bzl",
     "crate_name_from_attr",
     "expand_dict_value_locations",
     "expand_list_element_locations",
-    "find_cc_toolchain",
     "get_lib_name",
     "get_preferred_artifact",
     "relativize",
@@ -289,11 +292,12 @@ def collect_inputs(
         ([build_info.rustc_env, build_info.flags] if build_info else []) +
         ([] if linker_script == None else [linker_script]),
         transitive = [
-            toolchain.rustc_lib.files,
-            toolchain.rust_lib.files,
+            toolchain.rustc_lib,
+            toolchain.rust_lib,
             linker_depset,
             crate_info.srcs,
             dep_info.transitive_libs,
+            toolchain.sysroot_files,
         ],
     )
     build_env_files = getattr(files, "rustc_env_files", [])
@@ -436,7 +440,8 @@ def construct_arguments(
         args.add(linker_script.path, format = "--codegen=link-arg=-T%s")
 
     # Gets the paths to the folders containing the standard library (or libcore)
-    rust_lib_paths = depset([file.dirname for file in toolchain.rust_lib.files.to_list()]).to_list()
+    rust_lib_files = depset(transitive = [toolchain.rust_stdlib, toolchain.rustc_lib])
+    rust_lib_paths = depset([file.dirname for file in rust_lib_files.to_list()]).to_list()
 
     # Tell Rustc where to find the standard library
     args.add_all(rust_lib_paths, before_each = "-L", format_each = "%s")
@@ -488,8 +493,9 @@ def construct_arguments(
         data_paths,
     ))
 
-    # Set the SYSROOT to the directory of the rust_lib files passed to the toolchain
-    env["SYSROOT"] = paths.dirname(toolchain.rust_lib.files.to_list()[0].short_path)
+    # Ensure the sysroot is set for the target platform
+    env["SYSROOT"] = find_sysroot(toolchain)
+    args.add("--sysroot", "${pwd}/" + find_sysroot(toolchain))
 
     return args, env
 
