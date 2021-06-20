@@ -3,6 +3,10 @@ load(":platform.bzl", "declare_config_settings")
 
 package(default_visibility = ["//visibility:public"])
 
+toolchain_type(
+    name = "toolchain_type",
+)
+
 declare_config_settings()
 
 package_group(

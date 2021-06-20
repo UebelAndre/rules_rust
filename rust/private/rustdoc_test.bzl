@@ -41,7 +41,7 @@ def _rust_doc_test_impl(ctx):
 
     # Construct rustdoc test command, which will be written to a shell script
     # to be executed to run the test.
-    flags = _build_rustdoc_flags(dep_info, crate_info)
+    flags = _build_rustdoc_flags(dep_info, crate_info, toolchain)
     if toolchain.os != "windows":
         rust_doc_test = _build_rustdoc_test_bash_script(ctx, toolchain, flags, crate_info)
     else:
@@ -50,7 +50,7 @@ def _rust_doc_test_impl(ctx):
     # The test script compiles the crate and runs it, so it needs both compile and runtime inputs.
     compile_inputs = depset(
         [crate_info.output] +
-        [toolchain.rust_doc] +
+        [toolchain.rustdoc] +
         [toolchain.rustc] +
         toolchain.crosstool_files,
         transitive = [
@@ -82,12 +82,13 @@ def _dirname(path_str):
     """
     return "/".join(path_str.split("/")[:-1])
 
-def _build_rustdoc_flags(dep_info, crate_info):
+def _build_rustdoc_flags(dep_info, crate_info, toolchain):
     """Constructs the rustdoc script used to test `crate`.
 
     Args:
         dep_info (DepInfo): The DepInfo provider
         crate_info (CrateInfo): The CrateInfo provider
+        toolchain (rust_toolchain): The rust toolchain
 
     Returns:
         list: A list of rustdoc flags (str)
@@ -102,6 +103,13 @@ def _build_rustdoc_flags(dep_info, crate_info):
     link_flags.append("--extern=" + crate_info.name + "=" + crate_info.output.short_path)
     link_flags += ["--extern=" + c.name + "=" + c.dep.output.short_path for c in d.direct_crates.to_list()]
     link_search_flags += ["-Ldependency={}".format(_dirname(c.output.short_path)) for c in d.transitive_crates.to_list()]
+
+    # Gets the paths to the folders containing the standard library (or libcore)
+    rust_lib_files = depset(transitive = [toolchain.rust_stdlib.files, toolchain.rustc_lib.files])
+    rust_lib_paths = depset([file.dirname for file in rust_lib_files.to_list()]).to_list()
+
+    # Tell Rustc where to find the standard library
+    link_search_flags.extend(["-L {}".format(lib) for lib in rust_lib_paths])
 
     # TODO(hlopko): use the more robust logic from rustc.bzl also here, through a reasonable API.
     for lib_to_link in dep_info.transitive_noncrates.to_list():
@@ -150,7 +158,7 @@ def _build_rustdoc_test_bash_script(ctx, toolchain, flags, crate_info):
     ctx.actions.write(
         output = rust_doc_test,
         content = _rustdoc_test_bash_script.format(
-            rust_doc = toolchain.rust_doc.short_path,
+            rust_doc = toolchain.rustdoc.short_path,
             crate_root = crate_info.root.path,
             crate_name = crate_info.name,
             # TODO: Should be possible to do this with ctx.actions.Args, but can't seem to get them as a str and into the template.
@@ -187,7 +195,7 @@ def _build_rustdoc_test_batch_script(ctx, toolchain, flags, crate_info):
     ctx.actions.write(
         output = rust_doc_test,
         content = _rustdoc_test_batch_script.format(
-            rust_doc = toolchain.rust_doc.short_path.replace("/", "\\"),
+            rust_doc = toolchain.rustdoc.short_path.replace("/", "\\"),
             crate_root = crate_info.root.path,
             crate_name = crate_info.name,
             # TODO: Should be possible to do this with ctx.actions.Args, but can't seem to get them as a str and into the template.
@@ -217,7 +225,10 @@ rust_doc_test = rule(
     },
     executable = True,
     test = True,
-    toolchains = [str(Label("//rust:toolchain"))],
+    toolchains = [
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
+    ],
     incompatible_use_toolchain_transition = True,
     doc = """Runs Rust documentation tests.
 

@@ -311,7 +311,8 @@ rust_proto_library = rule(
     host_fragments = ["cpp"],
     toolchains = [
         str(Label("//proto:toolchain")),
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
         "@bazel_tools//tools/cpp:toolchain_type",
     ],
     # TODO: Remove once (bazelbuild/bazel#11584) is closed and the rules use
@@ -389,7 +390,8 @@ rust_grpc_library = rule(
     host_fragments = ["cpp"],
     toolchains = [
         str(Label("//proto:toolchain")),
-        str(Label("//rust:toolchain")),
+        str(Label("//rust:exec_toolchain")),
+        str(Label("//rust:target_toolchain")),
         "@bazel_tools//tools/cpp:toolchain_type",
     ],
     # TODO: Remove once (bazelbuild/bazel#11584) is closed and the rules use

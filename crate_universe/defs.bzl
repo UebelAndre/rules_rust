@@ -211,7 +211,7 @@ Environment Variables:
                 "to consider when resoliving dependencies."
             ),
             allow_empty = False,
-            default = DEFAULT_TOOLCHAIN_TRIPLES.keys(),
+            default = DEFAULT_TOOLCHAIN_TRIPLES,
         ),
         "version": attr.string(
             doc = "The version of cargo the resolver should use",

@@ -55,14 +55,21 @@ load(
 )
 load(
     "@rules_rust//rust:repositories.bzl",
+    _rust_cargo_repository = "rust_cargo_repository",
+    _rust_clippy_repository = "rust_clippy_repository",
+    _rust_exec_toolchain_repository = "rust_exec_toolchain_repository",
     _rust_repositories = "rust_repositories",
-    _rust_repository_set = "rust_repository_set",
-    _rust_toolchain_repository = "rust_toolchain_repository",
-    _rust_toolchain_repository_proxy = "rust_toolchain_repository_proxy",
+    _rust_rustc_repository = "rust_rustc_repository",
+    _rust_rustfmt_repository = "rust_rustfmt_repository",
+    _rust_target_toolchain_repository = "rust_target_toolchain_repository",
 )
 load(
     "@rules_rust//rust:toolchain.bzl",
-    _rust_toolchain = "rust_toolchain",
+    _rust_cargo_toolchain = "rust_cargo_toolchain",
+    _rust_clippy_toolchain = "rust_clippy_toolchain",
+    _rust_exec_toolchain = "rust_exec_toolchain",
+    _rust_rustfmt_toolchain = "rust_rustfmt_toolchain",
+    _rust_target_toolchain = "rust_target_toolchain",
     _toolchain_tool = "toolchain_tool",
 )
 load(
@@ -94,10 +101,15 @@ rust_bindgen = _rust_bindgen
 rust_bindgen_library = _rust_bindgen_library
 rust_bindgen_repositories = _rust_bindgen_repositories
 
-rust_toolchain = _rust_toolchain
+rust_exec_toolchain = _rust_exec_toolchain
+rust_target_toolchain = _rust_target_toolchain
+rust_cargo_toolchain = _rust_cargo_toolchain
+rust_clippy_toolchain = _rust_clippy_toolchain
+rust_rustfmt_toolchain = _rust_rustfmt_toolchain
+toolchain_tool = _toolchain_tool
+
 rust_proto_toolchain = _rust_proto_toolchain
 rust_proto_repositories = _rust_proto_repositories
-toolchain_tool = _toolchain_tool
 
 cargo_build_script = _cargo_build_script
 
@@ -106,9 +118,12 @@ rust_wasm_bindgen_toolchain = _rust_wasm_bindgen_toolchain
 rust_wasm_bindgen_repositories = _rust_wasm_bindgen_repositories
 
 rust_repositories = _rust_repositories
-rust_repository_set = _rust_repository_set
-rust_toolchain_repository = _rust_toolchain_repository
-rust_toolchain_repository_proxy = _rust_toolchain_repository_proxy
+rust_exec_toolchain_repository = _rust_exec_toolchain_repository
+rust_target_toolchain_repository = _rust_target_toolchain_repository
+rust_rustc_repository = _rust_rustc_repository
+rust_clippy_repository = _rust_clippy_repository
+rust_cargo_repository = _rust_cargo_repository
+rust_rustfmt_repository = _rust_rustfmt_repository
 
 rust_clippy = _rust_clippy
 rust_clippy_aspect = _rust_clippy_aspect

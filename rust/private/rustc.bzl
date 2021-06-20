@@ -434,7 +434,8 @@ def construct_arguments(
         args.add(linker_script.path, format = "--codegen=link-arg=-T%s")
 
     # Gets the paths to the folders containing the standard library (or libcore)
-    rust_lib_paths = depset([file.dirname for file in toolchain.rust_lib.files.to_list()]).to_list()
+    rust_lib_files = depset(transitive = [toolchain.rust_stdlib.files, toolchain.rustc_lib.files])
+    rust_lib_paths = depset([file.dirname for file in rust_lib_files.to_list()]).to_list()
 
     # Tell Rustc where to find the standard library
     args.add_all(rust_lib_paths, before_each = "-L", format_each = "%s")
@@ -715,6 +716,24 @@ def _create_extra_input_args(ctx, file, build_info, dep_info):
 
     return input_files, out_dir, build_env_file, build_flags_files
 
+def _has_dylib_ext(file, dylib_ext):
+    """[summary]
+
+    Args:
+        file ([type]): [description]
+        dylib_ext ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    if file.basename.endswith(dylib_ext):
+        return True
+    split = file.basename.split(".", 2)
+    if len(split) == 2:
+        if split[1] == dylib_ext[1:]:
+            return True
+    return False
+
 def _compute_rpaths(toolchain, output_dir, dep_info):
     """Determine the artifact's rpaths relative to the bazel root for runtime linking of shared libraries.
 
@@ -731,7 +750,7 @@ def _compute_rpaths(toolchain, output_dir, dep_info):
     # TODO(augie): I don't understand why this can't just be filtering on
     # _is_dylib(lib), but doing that causes failures on darwin and windows
     # examples that otherwise work.
-    dylibs = [lib for lib in preferreds if lib.basename.endswith(toolchain.dylib_ext) or lib.basename.split(".", 2)[1] == toolchain.dylib_ext[1:]]
+    dylibs = [lib for lib in preferreds if _has_dylib_ext(lib, toolchain.dylib_ext)]
     if not dylibs:
         return depset([])
 
