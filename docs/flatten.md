@@ -11,10 +11,16 @@
 * [rust_bindgen_library](#rust_bindgen_library)
 * [rust_bindgen_repositories](#rust_bindgen_repositories)
 * [rust_bindgen_toolchain](#rust_bindgen_toolchain)
+* [rust_cargo_repository](#rust_cargo_repository)
+* [rust_cargo_toolchain](#rust_cargo_toolchain)
 * [rust_clippy](#rust_clippy)
 * [rust_clippy_aspect](#rust_clippy_aspect)
+* [rust_clippy_repository](#rust_clippy_repository)
+* [rust_clippy_toolchain](#rust_clippy_toolchain)
 * [rust_doc](#rust_doc)
 * [rust_doc_test](#rust_doc_test)
+* [rust_exec_toolchain](#rust_exec_toolchain)
+* [rust_exec_toolchain_repository](#rust_exec_toolchain_repository)
 * [rust_grpc_library](#rust_grpc_library)
 * [rust_library](#rust_library)
 * [rust_proc_macro](#rust_proc_macro)
@@ -22,14 +28,16 @@
 * [rust_proto_repositories](#rust_proto_repositories)
 * [rust_proto_toolchain](#rust_proto_toolchain)
 * [rust_repositories](#rust_repositories)
-* [rust_repository_set](#rust_repository_set)
+* [rust_repositories](#rust_repositories)
+* [rust_rustc_repository](#rust_rustc_repository)
+* [rust_rustfmt_repository](#rust_rustfmt_repository)
+* [rust_rustfmt_toolchain](#rust_rustfmt_toolchain)
 * [rust_shared_library](#rust_shared_library)
 * [rust_static_library](#rust_static_library)
+* [rust_target_toolchain](#rust_target_toolchain)
+* [rust_target_toolchain_repository](#rust_target_toolchain_repository)
 * [rust_test](#rust_test)
 * [rust_test_suite](#rust_test_suite)
-* [rust_toolchain](#rust_toolchain)
-* [rust_toolchain_repository](#rust_toolchain_repository)
-* [rust_toolchain_repository_proxy](#rust_toolchain_repository_proxy)
 * [rust_wasm_bindgen](#rust_wasm_bindgen)
 * [rust_wasm_bindgen_repositories](#rust_wasm_bindgen_repositories)
 * [rust_wasm_bindgen_toolchain](#rust_wasm_bindgen_toolchain)
@@ -366,6 +374,49 @@ The tools required for the `rust_bindgen` rule.
 | <a id="rust_bindgen_toolchain-rustfmt"></a>rustfmt |  The label of a <code>rustfmt</code> executable. If this is provided, generated sources will be formatted.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
 
 
+<a id="#rust_cargo_repository"></a>
+
+## rust_cargo_repository
+
+<pre>
+rust_cargo_repository(<a href="#rust_cargo_repository-name">name</a>, <a href="#rust_cargo_repository-iso_date">iso_date</a>, <a href="#rust_cargo_repository-repo_mapping">repo_mapping</a>, <a href="#rust_cargo_repository-sha256">sha256</a>, <a href="#rust_cargo_repository-triple">triple</a>, <a href="#rust_cargo_repository-urls">urls</a>, <a href="#rust_cargo_repository-version">version</a>)
+</pre>
+
+
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_cargo_repository-name"></a>name |  A unique name for this repository.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_cargo_repository-iso_date"></a>iso_date |  The date of the tool (or None, if the version is a specific version).   | String | optional | "" |
+| <a id="rust_cargo_repository-repo_mapping"></a>repo_mapping |  A dictionary from local repository name to global repository name. This allows controls over workspace dependency resolution for dependencies of this repository.&lt;p&gt;For example, an entry <code>"@foo": "@bar"</code> declares that, for any time this repository depends on <code>@foo</code> (such as a dependency on <code>@foo//some:target</code>, it should actually resolve that dependency within globally-declared <code>@bar</code> (<code>@bar//some:target</code>).   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | required |  |
+| <a id="rust_cargo_repository-sha256"></a>sha256 |  The sha256 of the cargo artifact.   | String | optional | "" |
+| <a id="rust_cargo_repository-triple"></a>triple |  The Rust-style target that this compiler runs on   | String | required |  |
+| <a id="rust_cargo_repository-urls"></a>urls |  A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).   | List of strings | optional | ["https://static.rust-lang.org/dist/{}.tar.gz"] |
+| <a id="rust_cargo_repository-version"></a>version |  The version of the tool among "nightly", "beta", or an exact version.   | String | required |  |
+
+
+<a id="#rust_cargo_toolchain"></a>
+
+## rust_cargo_toolchain
+
+<pre>
+rust_cargo_toolchain(<a href="#rust_cargo_toolchain-name">name</a>, <a href="#rust_cargo_toolchain-cargo">cargo</a>)
+</pre>
+
+Declares a Cargo toolchain for use.
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_cargo_toolchain-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_cargo_toolchain-cargo"></a>cargo |  The location of the <code>cargo</code> binary.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+
+
 <a id="#rust_clippy"></a>
 
 ## rust_clippy
@@ -420,12 +471,55 @@ rust_clippy(
 | <a id="rust_clippy-deps"></a>deps |  Rust targets to run clippy on.   | <a href="https://bazel.build/docs/build-ref.html#labels">List of labels</a> | optional | [] |
 
 
+<a id="#rust_clippy_repository"></a>
+
+## rust_clippy_repository
+
+<pre>
+rust_clippy_repository(<a href="#rust_clippy_repository-name">name</a>, <a href="#rust_clippy_repository-iso_date">iso_date</a>, <a href="#rust_clippy_repository-repo_mapping">repo_mapping</a>, <a href="#rust_clippy_repository-sha256">sha256</a>, <a href="#rust_clippy_repository-triple">triple</a>, <a href="#rust_clippy_repository-urls">urls</a>, <a href="#rust_clippy_repository-version">version</a>)
+</pre>
+
+
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_clippy_repository-name"></a>name |  A unique name for this repository.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_clippy_repository-iso_date"></a>iso_date |  The date of the tool (or None, if the version is a specific version).   | String | optional | "" |
+| <a id="rust_clippy_repository-repo_mapping"></a>repo_mapping |  A dictionary from local repository name to global repository name. This allows controls over workspace dependency resolution for dependencies of this repository.&lt;p&gt;For example, an entry <code>"@foo": "@bar"</code> declares that, for any time this repository depends on <code>@foo</code> (such as a dependency on <code>@foo//some:target</code>, it should actually resolve that dependency within globally-declared <code>@bar</code> (<code>@bar//some:target</code>).   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | required |  |
+| <a id="rust_clippy_repository-sha256"></a>sha256 |  The sha256 of the clippy-driver artifact.   | String | optional | "" |
+| <a id="rust_clippy_repository-triple"></a>triple |  The Rust-style target that this compiler runs on   | String | required |  |
+| <a id="rust_clippy_repository-urls"></a>urls |  A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).   | List of strings | optional | ["https://static.rust-lang.org/dist/{}.tar.gz"] |
+| <a id="rust_clippy_repository-version"></a>version |  The version of the tool among "nightly", "beta", or an exact version.   | String | required |  |
+
+
+<a id="#rust_clippy_toolchain"></a>
+
+## rust_clippy_toolchain
+
+<pre>
+rust_clippy_toolchain(<a href="#rust_clippy_toolchain-name">name</a>, <a href="#rust_clippy_toolchain-clippy_driver">clippy_driver</a>)
+</pre>
+
+Declares a Clippy toolchain for use.
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_clippy_toolchain-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_clippy_toolchain-clippy_driver"></a>clippy_driver |  The location of the <code>clippy-driver</code> binary.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+
+
 <a id="#rust_doc"></a>
 
 ## rust_doc
 
 <pre>
-rust_doc(<a href="#rust_doc-name">name</a>, <a href="#rust_doc-dep">dep</a>, <a href="#rust_doc-html_after_content">html_after_content</a>, <a href="#rust_doc-html_before_content">html_before_content</a>, <a href="#rust_doc-html_in_header">html_in_header</a>, <a href="#rust_doc-markdown_css">markdown_css</a>)
+rust_doc(<a href="#rust_doc-name">name</a>, <a href="#rust_doc-crate">crate</a>, <a href="#rust_doc-dep">dep</a>, <a href="#rust_doc-html_after_content">html_after_content</a>, <a href="#rust_doc-html_before_content">html_before_content</a>, <a href="#rust_doc-html_in_header">html_in_header</a>, <a href="#rust_doc-markdown_css">markdown_css</a>)
 </pre>
 
 Generates code documentation.
@@ -471,7 +565,8 @@ Example:
 | Name  | Description | Type | Mandatory | Default |
 | :------------- | :------------- | :------------- | :------------- | :------------- |
 | <a id="rust_doc-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
-| <a id="rust_doc-dep"></a>dep |  The label of the target to generate code documentation for.<br><br><code>rust_doc</code> can generate HTML code documentation for the source files of <code>rust_library</code> or <code>rust_binary</code> targets.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+| <a id="rust_doc-crate"></a>crate |  The label of the target to generate code documentation for.<br><br><code>rust_doc</code> can generate HTML code documentation for the source files of <code>rust_library</code> or <code>rust_binary</code> targets.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
+| <a id="rust_doc-dep"></a>dep |  __deprecated__: use <code>crate</code>   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
 | <a id="rust_doc-html_after_content"></a>html_after_content |  File to add in <code>&lt;body&gt;</code>, after content.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
 | <a id="rust_doc-html_before_content"></a>html_before_content |  File to add in <code>&lt;body&gt;</code>, before content.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
 | <a id="rust_doc-html_in_header"></a>html_in_header |  File to add to <code>&lt;head&gt;</code>.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
@@ -531,6 +626,59 @@ Running `bazel test //hello_lib:hello_lib_doc_test` will run all documentation t
 | :------------- | :------------- | :------------- | :------------- | :------------- |
 | <a id="rust_doc_test-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
 | <a id="rust_doc_test-dep"></a>dep |  The label of the target to run documentation tests for.<br><br><code>rust_doc_test</code> can run documentation tests for the source files of <code>rust_library</code> or <code>rust_binary</code> targets.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+
+
+<a id="#rust_exec_toolchain"></a>
+
+## rust_exec_toolchain
+
+<pre>
+rust_exec_toolchain(<a href="#rust_exec_toolchain-name">name</a>, <a href="#rust_exec_toolchain-os">os</a>, <a href="#rust_exec_toolchain-rustc">rustc</a>, <a href="#rust_exec_toolchain-rustc_lib">rustc_lib</a>, <a href="#rust_exec_toolchain-rustc_srcs">rustc_srcs</a>, <a href="#rust_exec_toolchain-rustdoc">rustdoc</a>, <a href="#rust_exec_toolchain-triple">triple</a>)
+</pre>
+
+Declares a Rust exec/host toolchain for use.
+
+This is for declaring a custom toolchain, eg. for configuring a particular version of rust or supporting a new platform.
+
+Example:
+
+Suppose the core rust team has ported the compiler to a new target CPU, called `cpuX`. This     support can be used in Bazel by defining a new toolchain definition and declaration:
+
+```python
+load('@rules_rust//rust:toolchain.bzl', 'rust_exec_toolchain')
+
+rust_exec_toolchain(
+    name = "rust_cpuX_impl",
+    # see attributes...
+)
+
+toolchain(
+    name = "rust_cpuX",
+    exec_compatible_with = [
+        "@platforms//cpu:cpuX",
+    ],
+    toolchain = ":rust_cpuX_impl",
+    toolchain_type = "@rules_rust//rust:exec_toolchain",
+)
+```
+
+Then, either add the label of the toolchain rule to `register_toolchains` in the WORKSPACE, or pass     it to the `"--extra_toolchains"` flag for Bazel, and it will be used.
+
+See @rules_rust//rust:repositories.bzl for examples of defining the @rust_cpuX repository     with the actual binaries and libraries.
+
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_exec_toolchain-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_exec_toolchain-os"></a>os |  The operating system for the current toolchain   | String | required |  |
+| <a id="rust_exec_toolchain-rustc"></a>rustc |  The location of the <code>rustc</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+| <a id="rust_exec_toolchain-rustc_lib"></a>rustc_lib |  The location of the <code>rustc</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+| <a id="rust_exec_toolchain-rustc_srcs"></a>rustc_srcs |  The source code of rustc.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
+| <a id="rust_exec_toolchain-rustdoc"></a>rustdoc |  The location of the <code>rustdoc</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
+| <a id="rust_exec_toolchain-triple"></a>triple |  The platform triple for the toolchains execution environment. For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations   | String | optional | "" |
 
 
 <a id="#rust_grpc_library"></a>
@@ -805,6 +953,74 @@ See @rules_rust//proto:BUILD for examples of defining the toolchain.
 | <a id="rust_proto_toolchain-protoc"></a>protoc |  The location of the <code>protoc</code> binary. It should be an executable target.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | @com_google_protobuf//:protoc |
 
 
+<a id="#rust_rustc_repository"></a>
+
+## rust_rustc_repository
+
+<pre>
+rust_rustc_repository(<a href="#rust_rustc_repository-name">name</a>, <a href="#rust_rustc_repository-dev_components">dev_components</a>, <a href="#rust_rustc_repository-iso_date">iso_date</a>, <a href="#rust_rustc_repository-repo_mapping">repo_mapping</a>, <a href="#rust_rustc_repository-sha256s">sha256s</a>, <a href="#rust_rustc_repository-triple">triple</a>, <a href="#rust_rustc_repository-urls">urls</a>, <a href="#rust_rustc_repository-version">version</a>)
+</pre>
+
+must be a host toolchain
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_rustc_repository-name"></a>name |  A unique name for this repository.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_rustc_repository-dev_components"></a>dev_components |  Whether to download the rustc-dev components (defaults to False). Requires version to be "nightly".   | Boolean | optional | False |
+| <a id="rust_rustc_repository-iso_date"></a>iso_date |  The date of the tool (or None, if the version is a specific version).   | String | optional | "" |
+| <a id="rust_rustc_repository-repo_mapping"></a>repo_mapping |  A dictionary from local repository name to global repository name. This allows controls over workspace dependency resolution for dependencies of this repository.&lt;p&gt;For example, an entry <code>"@foo": "@bar"</code> declares that, for any time this repository depends on <code>@foo</code> (such as a dependency on <code>@foo//some:target</code>, it should actually resolve that dependency within globally-declared <code>@bar</code> (<code>@bar//some:target</code>).   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | required |  |
+| <a id="rust_rustc_repository-sha256s"></a>sha256s |  A dict associating tool subdirectories to sha256 hashes. See [rust_repositories](#rust_repositories) for more details.   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | optional | {} |
+| <a id="rust_rustc_repository-triple"></a>triple |  The Rust-style target that this compiler runs on   | String | required |  |
+| <a id="rust_rustc_repository-urls"></a>urls |  A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).   | List of strings | optional | ["https://static.rust-lang.org/dist/{}.tar.gz"] |
+| <a id="rust_rustc_repository-version"></a>version |  The version of the tool among "nightly", "beta", or an exact version.   | String | required |  |
+
+
+<a id="#rust_rustfmt_repository"></a>
+
+## rust_rustfmt_repository
+
+<pre>
+rust_rustfmt_repository(<a href="#rust_rustfmt_repository-name">name</a>, <a href="#rust_rustfmt_repository-iso_date">iso_date</a>, <a href="#rust_rustfmt_repository-repo_mapping">repo_mapping</a>, <a href="#rust_rustfmt_repository-sha256">sha256</a>, <a href="#rust_rustfmt_repository-triple">triple</a>, <a href="#rust_rustfmt_repository-urls">urls</a>, <a href="#rust_rustfmt_repository-version">version</a>)
+</pre>
+
+
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_rustfmt_repository-name"></a>name |  A unique name for this repository.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_rustfmt_repository-iso_date"></a>iso_date |  The date of the tool (or None, if the version is a specific version).   | String | optional | "" |
+| <a id="rust_rustfmt_repository-repo_mapping"></a>repo_mapping |  A dictionary from local repository name to global repository name. This allows controls over workspace dependency resolution for dependencies of this repository.&lt;p&gt;For example, an entry <code>"@foo": "@bar"</code> declares that, for any time this repository depends on <code>@foo</code> (such as a dependency on <code>@foo//some:target</code>, it should actually resolve that dependency within globally-declared <code>@bar</code> (<code>@bar//some:target</code>).   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | required |  |
+| <a id="rust_rustfmt_repository-sha256"></a>sha256 |  The sha256 of the rustfmt artifact.   | String | optional | "" |
+| <a id="rust_rustfmt_repository-triple"></a>triple |  The Rust-style target that this compiler runs on   | String | required |  |
+| <a id="rust_rustfmt_repository-urls"></a>urls |  A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).   | List of strings | optional | ["https://static.rust-lang.org/dist/{}.tar.gz"] |
+| <a id="rust_rustfmt_repository-version"></a>version |  The version of the tool among "nightly", "beta", or an exact version.   | String | required |  |
+
+
+<a id="#rust_rustfmt_toolchain"></a>
+
+## rust_rustfmt_toolchain
+
+<pre>
+rust_rustfmt_toolchain(<a href="#rust_rustfmt_toolchain-name">name</a>, <a href="#rust_rustfmt_toolchain-rustfmt">rustfmt</a>)
+</pre>
+
+Declares a Rustfmt toolchain for use.
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_rustfmt_toolchain-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_rustfmt_toolchain-rustfmt"></a>rustfmt |  The location of the <code>rustfmt</code> binary.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+
+
 <a id="#rust_shared_library"></a>
 
 ## rust_shared_library
@@ -887,6 +1103,61 @@ When building the whole binary in Bazel, use `rust_library` instead.
 | <a id="rust_static_library-rustc_flags"></a>rustc_flags |  List of compiler flags passed to <code>rustc</code>.   | List of strings | optional | [] |
 | <a id="rust_static_library-srcs"></a>srcs |  List of Rust <code>.rs</code> source files used to build the library.<br><br>If <code>srcs</code> contains more than one file, then there must be a file either named <code>lib.rs</code>. Otherwise, <code>crate_root</code> must be set to the source file that is the root of the crate to be passed to rustc to build this crate.   | <a href="https://bazel.build/docs/build-ref.html#labels">List of labels</a> | optional | [] |
 | <a id="rust_static_library-version"></a>version |  A version to inject in the cargo environment variable.   | String | optional | "0.0.0" |
+
+
+<a id="#rust_target_toolchain"></a>
+
+## rust_target_toolchain
+
+<pre>
+rust_target_toolchain(<a href="#rust_target_toolchain-name">name</a>, <a href="#rust_target_toolchain-allocator_library">allocator_library</a>, <a href="#rust_target_toolchain-binary_ext">binary_ext</a>, <a href="#rust_target_toolchain-debug_info">debug_info</a>, <a href="#rust_target_toolchain-default_edition">default_edition</a>, <a href="#rust_target_toolchain-dylib_ext">dylib_ext</a>,
+                      <a href="#rust_target_toolchain-opt_level">opt_level</a>, <a href="#rust_target_toolchain-os">os</a>, <a href="#rust_target_toolchain-rust_stdlib">rust_stdlib</a>, <a href="#rust_target_toolchain-staticlib_ext">staticlib_ext</a>, <a href="#rust_target_toolchain-stdlib_linkflags">stdlib_linkflags</a>, <a href="#rust_target_toolchain-triple">triple</a>)
+</pre>
+
+Declares a Rust target toolchain for use.
+
+This is for declaring a custom toolchain, eg. for configuring a particular version of rust or supporting a new platform.
+
+Example:
+
+Suppose the core rust team has ported the compiler to a new target CPU, called `cpuX`. This     support can be used in Bazel by defining a new toolchain definition and declaration:
+
+```python
+load('@rules_rust//rust:toolchain.bzl', 'rust_target_toolchain')
+
+rust_target_toolchain(
+    name = "rust_cpuX_impl",
+    # see attributes...
+)
+
+toolchain(
+    name = "rust_cpuX",
+    target_compatible_with = [
+        "@platforms//cpu:cpuX",
+    ],
+    toolchain = ":rust_cpuX_impl",
+    toolchain_type = "@rules_rust//rust:target_toolchain",
+)
+```
+
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="rust_target_toolchain-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
+| <a id="rust_target_toolchain-allocator_library"></a>allocator_library |  Target that provides allocator functions when rust_library targets are embedded in a cc_binary.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
+| <a id="rust_target_toolchain-binary_ext"></a>binary_ext |  The extension for binaries created from rustc.   | String | required |  |
+| <a id="rust_target_toolchain-debug_info"></a>debug_info |  Rustc debug info levels per opt level   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | optional | {"dbg": "2", "fastbuild": "0", "opt": "0"} |
+| <a id="rust_target_toolchain-default_edition"></a>default_edition |  The edition to use for rust_* rules that don't specify an edition.   | String | optional | "2015" |
+| <a id="rust_target_toolchain-dylib_ext"></a>dylib_ext |  The extension for dynamic libraries created from rustc.   | String | required |  |
+| <a id="rust_target_toolchain-opt_level"></a>opt_level |  Rustc optimization levels.   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | optional | {"dbg": "0", "fastbuild": "0", "opt": "3"} |
+| <a id="rust_target_toolchain-os"></a>os |  The operating system for the current toolchain   | String | required |  |
+| <a id="rust_target_toolchain-rust_stdlib"></a>rust_stdlib |  The rust standard library.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | required |  |
+| <a id="rust_target_toolchain-staticlib_ext"></a>staticlib_ext |  The extension for static libraries created from rustc.   | String | required |  |
+| <a id="rust_target_toolchain-stdlib_linkflags"></a>stdlib_linkflags |  Additional linker libs used when std lib is linked, see https://github.com/rust-lang/rust/blob/master/src/libstd/build.rs   | List of strings | required |  |
+| <a id="rust_target_toolchain-triple"></a>triple |  The platform triple for the toolchains execution environment. For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations   | String | optional | "" |
 
 
 <a id="#rust_test"></a>
@@ -1050,142 +1321,6 @@ Run the test with `bazel build //hello_lib:hello_lib_test`.
 | <a id="rust_test-srcs"></a>srcs |  List of Rust <code>.rs</code> source files used to build the library.<br><br>If <code>srcs</code> contains more than one file, then there must be a file either named <code>lib.rs</code>. Otherwise, <code>crate_root</code> must be set to the source file that is the root of the crate to be passed to rustc to build this crate.   | <a href="https://bazel.build/docs/build-ref.html#labels">List of labels</a> | optional | [] |
 | <a id="rust_test-use_libtest_harness"></a>use_libtest_harness |  Whether to use libtest.   | Boolean | optional | True |
 | <a id="rust_test-version"></a>version |  A version to inject in the cargo environment variable.   | String | optional | "0.0.0" |
-
-
-<a id="#rust_toolchain"></a>
-
-## rust_toolchain
-
-<pre>
-rust_toolchain(<a href="#rust_toolchain-name">name</a>, <a href="#rust_toolchain-allocator_library">allocator_library</a>, <a href="#rust_toolchain-binary_ext">binary_ext</a>, <a href="#rust_toolchain-cargo">cargo</a>, <a href="#rust_toolchain-clippy_driver">clippy_driver</a>, <a href="#rust_toolchain-debug_info">debug_info</a>,
-               <a href="#rust_toolchain-default_edition">default_edition</a>, <a href="#rust_toolchain-dylib_ext">dylib_ext</a>, <a href="#rust_toolchain-exec_triple">exec_triple</a>, <a href="#rust_toolchain-opt_level">opt_level</a>, <a href="#rust_toolchain-os">os</a>, <a href="#rust_toolchain-rust_doc">rust_doc</a>, <a href="#rust_toolchain-rust_lib">rust_lib</a>, <a href="#rust_toolchain-rustc">rustc</a>,
-               <a href="#rust_toolchain-rustc_lib">rustc_lib</a>, <a href="#rust_toolchain-rustc_srcs">rustc_srcs</a>, <a href="#rust_toolchain-rustfmt">rustfmt</a>, <a href="#rust_toolchain-staticlib_ext">staticlib_ext</a>, <a href="#rust_toolchain-stdlib_linkflags">stdlib_linkflags</a>, <a href="#rust_toolchain-target_triple">target_triple</a>)
-</pre>
-
-Declares a Rust toolchain for use.
-
-This is for declaring a custom toolchain, eg. for configuring a particular version of rust or supporting a new platform.
-
-Example:
-
-Suppose the core rust team has ported the compiler to a new target CPU, called `cpuX`. This support can be used in Bazel by defining a new toolchain definition and declaration:
-
-```python
-load('@rules_rust//rust:toolchain.bzl', 'rust_toolchain')
-
-rust_toolchain(
-    name = "rust_cpuX_impl",
-    rustc = "@rust_cpuX//:rustc",
-    rustc_lib = "@rust_cpuX//:rustc_lib",
-    rust_lib = "@rust_cpuX//:rust_lib",
-    rust_doc = "@rust_cpuX//:rustdoc",
-    binary_ext = "",
-    staticlib_ext = ".a",
-    dylib_ext = ".so",
-    stdlib_linkflags = ["-lpthread", "-ldl"],
-    os = "linux",
-)
-
-toolchain(
-    name = "rust_cpuX",
-    exec_compatible_with = [
-        "@platforms//cpu:cpuX",
-    ],
-    target_compatible_with = [
-        "@platforms//cpu:cpuX",
-    ],
-    toolchain = ":rust_cpuX_impl",
-)
-```
-
-Then, either add the label of the toolchain rule to `register_toolchains` in the WORKSPACE, or pass it to the `"--extra_toolchains"` flag for Bazel, and it will be used.
-
-See @rules_rust//rust:repositories.bzl for examples of defining the @rust_cpuX repository with the actual binaries and libraries.
-
-
-**ATTRIBUTES**
-
-
-| Name  | Description | Type | Mandatory | Default |
-| :------------- | :------------- | :------------- | :------------- | :------------- |
-| <a id="rust_toolchain-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
-| <a id="rust_toolchain-allocator_library"></a>allocator_library |  Target that provides allocator functions when rust_library targets are embedded in a cc_binary.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-binary_ext"></a>binary_ext |  The extension for binaries created from rustc.   | String | required |  |
-| <a id="rust_toolchain-cargo"></a>cargo |  The location of the <code>cargo</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-clippy_driver"></a>clippy_driver |  The location of the <code>clippy-driver</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-debug_info"></a>debug_info |  Rustc debug info levels per opt level   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | optional | {"dbg": "2", "fastbuild": "0", "opt": "0"} |
-| <a id="rust_toolchain-default_edition"></a>default_edition |  The edition to use for rust_* rules that don't specify an edition.   | String | optional | "2015" |
-| <a id="rust_toolchain-dylib_ext"></a>dylib_ext |  The extension for dynamic libraries created from rustc.   | String | required |  |
-| <a id="rust_toolchain-exec_triple"></a>exec_triple |  The platform triple for the toolchains execution environment. For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations   | String | optional | "" |
-| <a id="rust_toolchain-opt_level"></a>opt_level |  Rustc optimization levels.   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | optional | {"dbg": "0", "fastbuild": "0", "opt": "3"} |
-| <a id="rust_toolchain-os"></a>os |  The operating system for the current toolchain   | String | required |  |
-| <a id="rust_toolchain-rust_doc"></a>rust_doc |  The location of the <code>rustdoc</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-rust_lib"></a>rust_lib |  The rust standard library.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-rustc"></a>rustc |  The location of the <code>rustc</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-rustc_lib"></a>rustc_lib |  The libraries used by rustc during compilation.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-rustc_srcs"></a>rustc_srcs |  The source code of rustc.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-rustfmt"></a>rustfmt |  The location of the <code>rustfmt</code> binary. Can be a direct source or a filegroup containing one item.   | <a href="https://bazel.build/docs/build-ref.html#labels">Label</a> | optional | None |
-| <a id="rust_toolchain-staticlib_ext"></a>staticlib_ext |  The extension for static libraries created from rustc.   | String | required |  |
-| <a id="rust_toolchain-stdlib_linkflags"></a>stdlib_linkflags |  Additional linker libs used when std lib is linked, see https://github.com/rust-lang/rust/blob/master/src/libstd/build.rs   | List of strings | required |  |
-| <a id="rust_toolchain-target_triple"></a>target_triple |  The platform triple for the toolchains target environment. For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations   | String | optional | "" |
-
-
-<a id="#rust_toolchain_repository"></a>
-
-## rust_toolchain_repository
-
-<pre>
-rust_toolchain_repository(<a href="#rust_toolchain_repository-name">name</a>, <a href="#rust_toolchain_repository-dev_components">dev_components</a>, <a href="#rust_toolchain_repository-edition">edition</a>, <a href="#rust_toolchain_repository-exec_triple">exec_triple</a>, <a href="#rust_toolchain_repository-extra_target_triples">extra_target_triples</a>,
-                          <a href="#rust_toolchain_repository-include_rustc_srcs">include_rustc_srcs</a>, <a href="#rust_toolchain_repository-iso_date">iso_date</a>, <a href="#rust_toolchain_repository-repo_mapping">repo_mapping</a>, <a href="#rust_toolchain_repository-rustfmt_version">rustfmt_version</a>, <a href="#rust_toolchain_repository-sha256s">sha256s</a>,
-                          <a href="#rust_toolchain_repository-toolchain_name_prefix">toolchain_name_prefix</a>, <a href="#rust_toolchain_repository-urls">urls</a>, <a href="#rust_toolchain_repository-version">version</a>)
-</pre>
-
-Composes a single workspace containing the toolchain components for compiling on a given platform to a series of target platforms.
-
-A given instance of this rule should be accompanied by a rust_toolchain_repository_proxy invocation to declare its toolchains to Bazel; the indirection allows separating toolchain selection from toolchain fetching.
-
-**ATTRIBUTES**
-
-
-| Name  | Description | Type | Mandatory | Default |
-| :------------- | :------------- | :------------- | :------------- | :------------- |
-| <a id="rust_toolchain_repository-name"></a>name |  A unique name for this repository.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
-| <a id="rust_toolchain_repository-dev_components"></a>dev_components |  Whether to download the rustc-dev components (defaults to False). Requires version to be "nightly".   | Boolean | optional | False |
-| <a id="rust_toolchain_repository-edition"></a>edition |  The rust edition to be used by default.   | String | optional | "2015" |
-| <a id="rust_toolchain_repository-exec_triple"></a>exec_triple |  The Rust-style target that this compiler runs on   | String | required |  |
-| <a id="rust_toolchain_repository-extra_target_triples"></a>extra_target_triples |  Additional rust-style targets that this set of toolchains should support.   | List of strings | optional | [] |
-| <a id="rust_toolchain_repository-include_rustc_srcs"></a>include_rustc_srcs |  Whether to download and unpack the rustc source files. These are very large, and slow to unpack, but are required to support rust analyzer. An environment variable <code>RULES_RUST_TOOLCHAIN_INCLUDE_RUSTC_SRCS</code> can also be used to control this attribute. This variable will take precedence over the hard coded attribute. Setting it to <code>true</code> to activates this attribute where all other values deactivate it.   | Boolean | optional | False |
-| <a id="rust_toolchain_repository-iso_date"></a>iso_date |  The date of the tool (or None, if the version is a specific version).   | String | optional | "" |
-| <a id="rust_toolchain_repository-repo_mapping"></a>repo_mapping |  A dictionary from local repository name to global repository name. This allows controls over workspace dependency resolution for dependencies of this repository.&lt;p&gt;For example, an entry <code>"@foo": "@bar"</code> declares that, for any time this repository depends on <code>@foo</code> (such as a dependency on <code>@foo//some:target</code>, it should actually resolve that dependency within globally-declared <code>@bar</code> (<code>@bar//some:target</code>).   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | required |  |
-| <a id="rust_toolchain_repository-rustfmt_version"></a>rustfmt_version |  The version of the tool among "nightly", "beta", or an exact version.   | String | optional | "" |
-| <a id="rust_toolchain_repository-sha256s"></a>sha256s |  A dict associating tool subdirectories to sha256 hashes. See [rust_repositories](#rust_repositories) for more details.   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | optional | {} |
-| <a id="rust_toolchain_repository-toolchain_name_prefix"></a>toolchain_name_prefix |  The per-target prefix expected for the rust_toolchain declarations in the parent workspace.   | String | optional | "" |
-| <a id="rust_toolchain_repository-urls"></a>urls |  A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).   | List of strings | optional | ["https://static.rust-lang.org/dist/{}.tar.gz"] |
-| <a id="rust_toolchain_repository-version"></a>version |  The version of the tool among "nightly", "beta", or an exact version.   | String | required |  |
-
-
-<a id="#rust_toolchain_repository_proxy"></a>
-
-## rust_toolchain_repository_proxy
-
-<pre>
-rust_toolchain_repository_proxy(<a href="#rust_toolchain_repository_proxy-name">name</a>, <a href="#rust_toolchain_repository_proxy-exec_triple">exec_triple</a>, <a href="#rust_toolchain_repository_proxy-extra_target_triples">extra_target_triples</a>, <a href="#rust_toolchain_repository_proxy-parent_workspace_name">parent_workspace_name</a>,
-                                <a href="#rust_toolchain_repository_proxy-repo_mapping">repo_mapping</a>, <a href="#rust_toolchain_repository_proxy-toolchain_name_prefix">toolchain_name_prefix</a>)
-</pre>
-
-Generates a toolchain-bearing repository that declares the toolchains from some other rust_toolchain_repository.
-
-**ATTRIBUTES**
-
-
-| Name  | Description | Type | Mandatory | Default |
-| :------------- | :------------- | :------------- | :------------- | :------------- |
-| <a id="rust_toolchain_repository_proxy-name"></a>name |  A unique name for this repository.   | <a href="https://bazel.build/docs/build-ref.html#name">Name</a> | required |  |
-| <a id="rust_toolchain_repository_proxy-exec_triple"></a>exec_triple |  The Rust-style target triple for the compilation platform   | String | required |  |
-| <a id="rust_toolchain_repository_proxy-extra_target_triples"></a>extra_target_triples |  The Rust-style triples for extra compilation targets   | List of strings | optional | [] |
-| <a id="rust_toolchain_repository_proxy-parent_workspace_name"></a>parent_workspace_name |  The name of the other rust_toolchain_repository   | String | required |  |
-| <a id="rust_toolchain_repository_proxy-repo_mapping"></a>repo_mapping |  A dictionary from local repository name to global repository name. This allows controls over workspace dependency resolution for dependencies of this repository.&lt;p&gt;For example, an entry <code>"@foo": "@bar"</code> declares that, for any time this repository depends on <code>@foo</code> (such as a dependency on <code>@foo//some:target</code>, it should actually resolve that dependency within globally-declared <code>@bar</code> (<code>@bar//some:target</code>).   | <a href="https://bazel.build/docs/skylark/lib/dict.html">Dictionary: String -> String</a> | required |  |
-| <a id="rust_toolchain_repository_proxy-toolchain_name_prefix"></a>toolchain_name_prefix |  The per-target prefix expected for the rust_toolchain declarations in the parent workspace.   | String | optional | "" |
 
 
 <a id="#rust_wasm_bindgen"></a>
@@ -1520,6 +1655,35 @@ Declare dependencies needed for bindgen.
 
 
 
+<a id="#rust_exec_toolchain_repository"></a>
+
+## rust_exec_toolchain_repository
+
+<pre>
+rust_exec_toolchain_repository(<a href="#rust_exec_toolchain_repository-prefix">prefix</a>, <a href="#rust_exec_toolchain_repository-triple">triple</a>, <a href="#rust_exec_toolchain_repository-version">version</a>, <a href="#rust_exec_toolchain_repository-edition">edition</a>, <a href="#rust_exec_toolchain_repository-urls">urls</a>, <a href="#rust_exec_toolchain_repository-iso_date">iso_date</a>, <a href="#rust_exec_toolchain_repository-sha256s">sha256s</a>,
+                               <a href="#rust_exec_toolchain_repository-dev_components">dev_components</a>, <a href="#rust_exec_toolchain_repository-include_rustc_srcs">include_rustc_srcs</a>, <a href="#rust_exec_toolchain_repository-rustfmt_version">rustfmt_version</a>, <a href="#rust_exec_toolchain_repository-rustfmt_iso_date">rustfmt_iso_date</a>)
+</pre>
+
+[summary]
+
+**PARAMETERS**
+
+
+| Name  | Description | Default Value |
+| :------------- | :------------- | :------------- |
+| <a id="rust_exec_toolchain_repository-prefix"></a>prefix |  [description]   |  none |
+| <a id="rust_exec_toolchain_repository-triple"></a>triple |  [description]   |  none |
+| <a id="rust_exec_toolchain_repository-version"></a>version |  [description]. Defaults to DEFAULT_RUST_VERSION.   |  <code>"1.53.0"</code> |
+| <a id="rust_exec_toolchain_repository-edition"></a>edition |  [description]. Defaults to DEFAULT_RUST_EDITION.   |  <code>"2015"</code> |
+| <a id="rust_exec_toolchain_repository-urls"></a>urls |  [description]. Defaults to DEFAULT_STATIC_RUST_URL_TEMPLATES.   |  <code>["https://static.rust-lang.org/dist/{}.tar.gz"]</code> |
+| <a id="rust_exec_toolchain_repository-iso_date"></a>iso_date |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_exec_toolchain_repository-sha256s"></a>sha256s |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_exec_toolchain_repository-dev_components"></a>dev_components |  [description]. Defaults to False.   |  <code>False</code> |
+| <a id="rust_exec_toolchain_repository-include_rustc_srcs"></a>include_rustc_srcs |  [description]. Defaults to False.   |  <code>False</code> |
+| <a id="rust_exec_toolchain_repository-rustfmt_version"></a>rustfmt_version |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_exec_toolchain_repository-rustfmt_iso_date"></a>rustfmt_iso_date |  [description]. Defaults to None.   |  <code>None</code> |
+
+
 <a id="#rust_proto_repositories"></a>
 
 ## rust_proto_repositories
@@ -1547,68 +1711,46 @@ rust_repositories(<a href="#rust_repositories-version">version</a>, <a href="#ru
                   <a href="#rust_repositories-include_rustc_srcs">include_rustc_srcs</a>, <a href="#rust_repositories-urls">urls</a>)
 </pre>
 
-Emits a default set of toolchains for Linux, MacOS, and Freebsd
-
-Skip this macro and call the `rust_repository_set` macros directly if you need a compiler for     other hosts or for additional target triples.
-
-The `sha256` attribute represents a dict associating tool subdirectories to sha256 hashes. As an example:
-```python
-{
-    "rust-1.46.0-x86_64-unknown-linux-gnu": "e3b98bc3440fe92817881933f9564389eccb396f5f431f33d48b979fa2fbdcf5",
-    "rustfmt-1.4.12-x86_64-unknown-linux-gnu": "1894e76913303d66bf40885a601462844eec15fca9e76a6d13c390d7000d64b0",
-    "rust-std-1.46.0-x86_64-unknown-linux-gnu": "ac04aef80423f612c0079829b504902de27a6997214eb58ab0765d02f7ec1dbc",
-}
-```
-This would match for `exec_triple = "x86_64-unknown-linux-gnu"`.  If not specified, rules_rust pulls from a non-exhaustive     list of known checksums..
-
-See `load_arbitrary_tool` in `@rules_rust//rust:repositories.bzl` for more details.
-
+[summary]
 
 **PARAMETERS**
 
 
 | Name  | Description | Default Value |
 | :------------- | :------------- | :------------- |
-| <a id="rust_repositories-version"></a>version |  The version of Rust. Either "nightly", "beta", or an exact version. Defaults to a modern version.   |  <code>"1.53.0"</code> |
-| <a id="rust_repositories-iso_date"></a>iso_date |  The date of the nightly or beta release (or None, if the version is a specific version).   |  <code>None</code> |
-| <a id="rust_repositories-rustfmt_version"></a>rustfmt_version |  The version of rustfmt. Either "nightly", "beta", or an exact version. Defaults to <code>version</code> if not specified.   |  <code>None</code> |
-| <a id="rust_repositories-edition"></a>edition |  The rust edition to be used by default (2015 (default) or 2018)   |  <code>None</code> |
-| <a id="rust_repositories-dev_components"></a>dev_components |  Whether to download the rustc-dev components (defaults to False). Requires version to be "nightly".   |  <code>False</code> |
-| <a id="rust_repositories-sha256s"></a>sha256s |  A dict associating tool subdirectories to sha256 hashes. Defaults to None.   |  <code>None</code> |
-| <a id="rust_repositories-include_rustc_srcs"></a>include_rustc_srcs |  Whether to download rustc's src code. This is required in order to use rust-analyzer support. See [rust_toolchain_repository.include_rustc_srcs](#rust_toolchain_repository-include_rustc_srcs). for more details   |  <code>False</code> |
-| <a id="rust_repositories-urls"></a>urls |  A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format). Defaults to ['https://static.rust-lang.org/dist/{}.tar.gz']   |  <code>["https://static.rust-lang.org/dist/{}.tar.gz"]</code> |
+| <a id="rust_repositories-version"></a>version |  [description]. Defaults to DEFAULT_RUST_VERSION.   |  <code>"1.53.0"</code> |
+| <a id="rust_repositories-iso_date"></a>iso_date |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_repositories-rustfmt_version"></a>rustfmt_version |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_repositories-edition"></a>edition |  [description]. Defaults to DEFAULT_RUST_EDITION.   |  <code>"2015"</code> |
+| <a id="rust_repositories-dev_components"></a>dev_components |  [description]. Defaults to False.   |  <code>False</code> |
+| <a id="rust_repositories-sha256s"></a>sha256s |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_repositories-include_rustc_srcs"></a>include_rustc_srcs |  [description]. Defaults to False.   |  <code>False</code> |
+| <a id="rust_repositories-urls"></a>urls |  [description]. Defaults to DEFAULT_STATIC_RUST_URL_TEMPLATES.   |  <code>["https://static.rust-lang.org/dist/{}.tar.gz"]</code> |
 
 
-<a id="#rust_repository_set"></a>
+<a id="#rust_target_toolchain_repository"></a>
 
-## rust_repository_set
+## rust_target_toolchain_repository
 
 <pre>
-rust_repository_set(<a href="#rust_repository_set-name">name</a>, <a href="#rust_repository_set-version">version</a>, <a href="#rust_repository_set-exec_triple">exec_triple</a>, <a href="#rust_repository_set-include_rustc_srcs">include_rustc_srcs</a>, <a href="#rust_repository_set-extra_target_triples">extra_target_triples</a>, <a href="#rust_repository_set-iso_date">iso_date</a>,
-                    <a href="#rust_repository_set-rustfmt_version">rustfmt_version</a>, <a href="#rust_repository_set-edition">edition</a>, <a href="#rust_repository_set-dev_components">dev_components</a>, <a href="#rust_repository_set-sha256s">sha256s</a>, <a href="#rust_repository_set-urls">urls</a>)
+rust_target_toolchain_repository(<a href="#rust_target_toolchain_repository-prefix">prefix</a>, <a href="#rust_target_toolchain_repository-triple">triple</a>, <a href="#rust_target_toolchain_repository-version">version</a>, <a href="#rust_target_toolchain_repository-urls">urls</a>, <a href="#rust_target_toolchain_repository-allocator_library">allocator_library</a>, <a href="#rust_target_toolchain_repository-iso_date">iso_date</a>,
+                                 <a href="#rust_target_toolchain_repository-sha256s">sha256s</a>)
 </pre>
 
-Assembles a remote repository for the given toolchain params, produces a proxy repository     to contain the toolchain declaration, and registers the toolchains.
-
-N.B. A "proxy repository" is needed to allow for registering the toolchain (with constraints)     without actually downloading the toolchain.
-
+[summary]
 
 **PARAMETERS**
 
 
 | Name  | Description | Default Value |
 | :------------- | :------------- | :------------- |
-| <a id="rust_repository_set-name"></a>name |  The name of the generated repository   |  none |
-| <a id="rust_repository_set-version"></a>version |  The version of the tool among "nightly", "beta', or an exact version.   |  none |
-| <a id="rust_repository_set-exec_triple"></a>exec_triple |  The Rust-style target that this compiler runs on   |  none |
-| <a id="rust_repository_set-include_rustc_srcs"></a>include_rustc_srcs |  Whether to download rustc's src code. This is required in order to use rust-analyzer support. Defaults to False.   |  <code>False</code> |
-| <a id="rust_repository_set-extra_target_triples"></a>extra_target_triples |  Additional rust-style targets that this set of toolchains should support. Defaults to [].   |  <code>[]</code> |
-| <a id="rust_repository_set-iso_date"></a>iso_date |  The date of the tool. Defaults to None.   |  <code>None</code> |
-| <a id="rust_repository_set-rustfmt_version"></a>rustfmt_version |  The version of rustfmt to be associated with the toolchain. Defaults to None.   |  <code>None</code> |
-| <a id="rust_repository_set-edition"></a>edition |  The rust edition to be used by default (2015 (if None) or 2018).   |  <code>None</code> |
-| <a id="rust_repository_set-dev_components"></a>dev_components |  Whether to download the rustc-dev components. Requires version to be "nightly". Defaults to False.   |  <code>False</code> |
-| <a id="rust_repository_set-sha256s"></a>sha256s |  A dict associating tool subdirectories to sha256 hashes. See [rust_repositories](#rust_repositories) for more details.   |  <code>None</code> |
-| <a id="rust_repository_set-urls"></a>urls |  A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format). Defaults to ['https://static.rust-lang.org/dist/{}.tar.gz']   |  <code>["https://static.rust-lang.org/dist/{}.tar.gz"]</code> |
+| <a id="rust_target_toolchain_repository-prefix"></a>prefix |  [description]   |  none |
+| <a id="rust_target_toolchain_repository-triple"></a>triple |  [description]   |  none |
+| <a id="rust_target_toolchain_repository-version"></a>version |  [description]. Defaults to DEFAULT_RUST_VERSION.   |  <code>"1.53.0"</code> |
+| <a id="rust_target_toolchain_repository-urls"></a>urls |  [description]. Defaults to DEFAULT_STATIC_RUST_URL_TEMPLATES.   |  <code>["https://static.rust-lang.org/dist/{}.tar.gz"]</code> |
+| <a id="rust_target_toolchain_repository-allocator_library"></a>allocator_library |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_target_toolchain_repository-iso_date"></a>iso_date |  [description]. Defaults to None.   |  <code>None</code> |
+| <a id="rust_target_toolchain_repository-sha256s"></a>sha256s |  [description]. Defaults to None.   |  <code>None</code> |
 
 
 <a id="#rust_test_suite"></a>
