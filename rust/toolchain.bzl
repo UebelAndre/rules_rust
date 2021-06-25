@@ -301,3 +301,170 @@ See @rules_rust//rust:repositories.bzl for examples of defining the @rust_cpuX r
 with the actual binaries and libraries.
 """,
 )
+
+def _cargo_tool_impl(ctx):
+    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+
+    # Executables must be produced within the rule marked executable. To
+    # satisfy this, a symlink is created.
+    cargo = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.symlink(
+        output = cargo,
+        target_file = toolchain.cargo,
+        is_executable = True,
+    )
+
+    return [DefaultInfo(
+        files = depset([toolchain.cargo]),
+        executable = cargo,
+    )]
+
+_cargo_tool = rule(
+    doc = "A rule for fetching a `cargo` binary from a rust toolchain.",
+    implementation = _cargo_tool_impl,
+    toolchains = [
+        str(Label("//rust:toolchain")),
+    ],
+    incompatible_use_toolchain_transition = True,
+    executable = True,
+)
+
+def _clippy_tool_impl(ctx):
+    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+
+    # Executables must be produced within the rule marked executable. To
+    # satisfy this, a symlink is created.
+    clippy_driver = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.symlink(
+        output = clippy_driver,
+        target_file = toolchain.clippy_driver,
+        is_executable = True,
+    )
+
+    return [DefaultInfo(
+        files = depset([toolchain.clippy_driver]),
+        executable = clippy_driver,
+    )]
+
+_clippy_tool = rule(
+    doc = "A rule for fetching a `clippy` binary from a rust toolchain.",
+    implementation = _clippy_tool_impl,
+    toolchains = [
+        str(Label("//rust:toolchain")),
+    ],
+    incompatible_use_toolchain_transition = True,
+    executable = True,
+)
+
+def _rustc_tool_impl(ctx):
+    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+
+    # Executables must be produced within the rule marked executable. To
+    # satisfy this, a symlink is created.
+    rustc = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.symlink(
+        output = rustc,
+        target_file = toolchain.rustc,
+        is_executable = True,
+    )
+
+    return [DefaultInfo(
+        files = depset([toolchain.rustc]),
+        runfiles = ctx.runfiles(transitive_files = toolchain.rustc_lib[DefaultInfo].files),
+        executable = rustc,
+    )]
+
+_rustc_tool = rule(
+    doc = "A rule for fetching a `rustc` binary from a rust toolchain.",
+    implementation = _rustc_tool_impl,
+    toolchains = [
+        str(Label("//rust:toolchain")),
+    ],
+    incompatible_use_toolchain_transition = True,
+    executable = True,
+)
+
+def _rustc_srcs_tool_impl(ctx):
+    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+    srcs = []
+    if toolchain.rustc_srcs:
+        srcs = toolchain.rustc_srcs[DefaultInfo].files
+    return [DefaultInfo(
+        files = depset(srcs),
+    )]
+
+_rustc_srcs_tool = rule(
+    doc = (
+        "A rule for fetching a `rustc-src` artifact from a rust toolchain. " +
+        "This can optionally return no files depending on whtether or not the " +
+        "toolchain was setup using `include_rustc_srcs = True`."
+    ),
+    implementation = _rustc_srcs_tool_impl,
+    toolchains = [
+        str(Label("//rust:toolchain")),
+    ],
+    incompatible_use_toolchain_transition = True,
+)
+
+def _rustfmt_tool_impl(ctx):
+    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+
+    # Executables must be produced within the rule marked executable. To
+    # satisfy this, a symlink is created.
+    rustfmt = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.symlink(
+        output = rustfmt,
+        target_file = toolchain.rustfmt,
+        is_executable = True,
+    )
+
+    return [DefaultInfo(
+        files = depset([toolchain.rustfmt]),
+        executable = rustfmt,
+    )]
+
+_rustfmt_tool = rule(
+    doc = "A rule for fetching a `rustfmt` binary from a rust toolchain.",
+    implementation = _rustfmt_tool_impl,
+    toolchains = [
+        str(Label("//rust:toolchain")),
+    ],
+    incompatible_use_toolchain_transition = True,
+    executable = True,
+)
+
+def _rustdoc_tool_impl(ctx):
+    toolchain = ctx.toolchains[str(Label("//rust:toolchain"))]
+
+    # Executables must be produced within the rule marked executable. To
+    # satisfy this, a symlink is created.
+    rustdoc = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.symlink(
+        output = rustdoc,
+        target_file = toolchain.rust_doc,
+        is_executable = True,
+    )
+
+    return [DefaultInfo(
+        files = depset([toolchain.rust_doc]),
+        executable = rustdoc,
+    )]
+
+_rustdoc_tool = rule(
+    doc = "A rule for fetching a `rustdoc` binary from a rust toolchain.",
+    implementation = _rustdoc_tool_impl,
+    toolchains = [
+        str(Label("//rust:toolchain")),
+    ],
+    incompatible_use_toolchain_transition = True,
+    executable = True,
+)
+
+toolchain_tool = struct(
+    cargo = _cargo_tool,
+    clippy = _clippy_tool,
+    rustc_srcs = _rustc_srcs_tool,
+    rustc = _rustc_tool,
+    rustdoc = _rustdoc_tool,
+    rustfmt = _rustfmt_tool,
+)
