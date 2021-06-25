@@ -35,6 +35,7 @@
 * [rust_wasm_bindgen_toolchain](#rust_wasm_bindgen_toolchain)
 * [rustfmt_aspect](#rustfmt_aspect)
 * [rustfmt_test](#rustfmt_test)
+* [toolchain_tool](#toolchain_tool)
 
 
 <a id="#crate_universe"></a>

@@ -6,6 +6,7 @@
 * [rust_toolchain](#rust_toolchain)
 * [rust_toolchain_repository](#rust_toolchain_repository)
 * [rust_toolchain_repository_proxy](#rust_toolchain_repository_proxy)
+* [toolchain_tool](#toolchain_tool)
 
 <a id="#rust_toolchain"></a>
 
