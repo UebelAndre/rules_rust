@@ -95,3 +95,32 @@ def get_host_info(repository_ctx):
         fail("Could not locate resolver for OS " + repository_ctx.os.name)
 
     return (resolver_triple, toolchain_repo, extension)
+
+def dedent(doc_string):
+    """Tidy excess whitespace in docstrings to not break index.md
+
+    Args:
+        doc_string (str): A docstring style string
+
+    Returns:
+        str: A string optimized for stardoc rendering
+    """
+    lines = doc_string.splitlines()
+    if not lines:
+        return doc_string
+
+    # If the first line is empty, use the second line
+    first_line = lines[0]
+    if not first_line:
+        first_line = lines[1]
+
+    # Detect how much space prepends the first line and subtract that from all lines
+    space_count = len(first_line) - len(first_line.lstrip())
+
+    # If there are no leading spaces, do not alter the docstring
+    if space_count == 0:
+        return doc_string
+    else:
+        # Remove the leading block of spaces from the current line
+        block = " " * space_count
+        return "\n".join([line.replace(block, "", 1).rstrip() for line in lines])
