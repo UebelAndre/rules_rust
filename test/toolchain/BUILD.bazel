@@ -1,0 +1,25 @@
+load("//rust:toolchain.bzl", "toolchain_tool")
+
+toolchain_tool.cargo(
+    name = "cargo",
+)
+
+toolchain_tool.clippy(
+    name = "clippy",
+)
+
+toolchain_tool.rustc_srcs(
+    name = "rustc_srcs",
+)
+
+toolchain_tool.rustc(
+    name = "rustc",
+)
+
+toolchain_tool.rustdoc(
+    name = "rustdoc",
+)
+
+toolchain_tool.rustfmt(
+    name = "rustfmt",
+)

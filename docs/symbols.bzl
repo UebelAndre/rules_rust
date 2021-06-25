@@ -63,6 +63,7 @@ load(
 load(
     "@rules_rust//rust:toolchain.bzl",
     _rust_toolchain = "rust_toolchain",
+    _toolchain_tool = "toolchain_tool",
 )
 load(
     "@rules_rust//wasm_bindgen:repositories.bzl",
@@ -96,6 +97,7 @@ rust_bindgen_repositories = _rust_bindgen_repositories
 rust_toolchain = _rust_toolchain
 rust_proto_toolchain = _rust_proto_toolchain
 rust_proto_repositories = _rust_proto_repositories
+toolchain_tool = _toolchain_tool
 
 cargo_build_script = _cargo_build_script
 
