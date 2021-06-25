@@ -2,11 +2,11 @@
 default_linux_targets: &default_linux_targets
   - "--" # Allows negative patterns; hack for https://github.com/bazelbuild/continuous-integration/pull/245
   - "..."
-  - "@examples//..."
+  - "@rules_rust_examples//..."
   # TODO: Switch manual tag to platform constraint after bazel 4.0.
   - "//test/versioned_dylib:versioned_dylib_test"
   # Bindgen currently only has a working toolchain for 18.04
-  - "-@examples//ffi/rust_calling_c/simple/..."
+  - "-@rules_rust_examples//ffi/rust_calling_c/simple/..."
 tasks:
   ubuntu1604:
     build_targets: *default_linux_targets
@@ -17,7 +17,7 @@ tasks:
     build_targets: *default_linux_targets
     test_targets:
       - "..."
-      - "@examples//..."
+      - "@rules_rust_examples//..."
       # TODO: Switch manual tag to platform constraint after bazel 4.0.
       - "//test/versioned_dylib:versioned_dylib_test"
     build_flags:
@@ -33,11 +33,11 @@ tasks:
     osx_targets: &osx_targets
       - "--" # Allows negative patterns; hack for https://github.com/bazelbuild/continuous-integration/pull/245
       - "..."
-      - "@examples//..."
+      - "@rules_rust_examples//..."
       # Skip tests for dylib support on osx, since we don't support it yet.
-      - "-@examples//ffi/rust_calling_c:matrix_dylib_test"
-      - "-@examples//ffi/rust_calling_c:matrix_dynamically_linked"
-      - "-@examples//ffi/rust_calling_c/simple/..."
+      - "-@rules_rust_examples//ffi/rust_calling_c:matrix_dylib_test"
+      - "-@rules_rust_examples//ffi/rust_calling_c:matrix_dynamically_linked"
+      - "-@rules_rust_examples//ffi/rust_calling_c/simple/..."
     build_targets: *osx_targets
     test_targets: *osx_targets
     build_flags:
@@ -47,15 +47,15 @@ tasks:
       - "--" # Allows negative patterns; hack for https://github.com/bazelbuild/continuous-integration/pull/245
       - "..."
       - "//test/..."
-      - "@examples//..."
+      - "@rules_rust_examples//..."
       - "-//test/conflicting_deps:conflicting_deps_test"
       # rust_doc_test is likely not fully sandboxed
       - "-//test/chained_direct_deps:mod3_doc_test"
-      - "-@examples//fibonacci:fibonacci_doc_test"
-      - "-@examples//hello_lib:hello_lib_doc_test"
-      - "-@examples//ffi/rust_calling_c/simple/..."
+      - "-@rules_rust_examples//fibonacci:fibonacci_doc_test"
+      - "-@rules_rust_examples//hello_lib:hello_lib_doc_test"
+      - "-@rules_rust_examples//ffi/rust_calling_c/simple/..."
       # See https://github.com/bazelbuild/bazel/issues/9987
-      - "-@examples//ffi/rust_calling_c:matrix_dylib_test"
+      - "-@rules_rust_examples//ffi/rust_calling_c:matrix_dylib_test"
     build_flags:
       - "--config=rustfmt"
   windows:
@@ -71,14 +71,14 @@ tasks:
       - "-//test/proto/..."
       - "-//tools/rust_analyzer/..."
       - "-//test/rustfmt/..."
-      - "@examples//..."
-      - "-@examples//ffi/rust_calling_c:matrix_dylib_test"
-      - "-@examples//ffi/rust_calling_c:matrix_dynamically_linked"
-      - "-@examples//ffi/rust_calling_c/simple/..."
-      - "-@examples//hello_sys/..."
-      - "-@examples//complex_sys/..."
-      - "-@examples//proto/..."
-      - "-@examples//wasm/..."
+      - "@rules_rust_examples//..."
+      - "-@rules_rust_examples//ffi/rust_calling_c:matrix_dylib_test"
+      - "-@rules_rust_examples//ffi/rust_calling_c:matrix_dynamically_linked"
+      - "-@rules_rust_examples//ffi/rust_calling_c/simple/..."
+      - "-@rules_rust_examples//hello_sys/..."
+      - "-@rules_rust_examples//complex_sys/..."
+      - "-@rules_rust_examples//proto/..."
+      - "-@rules_rust_examples//wasm/..."
     build_targets: *windows_targets
     test_targets: *windows_targets
   examples:
