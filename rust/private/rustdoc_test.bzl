@@ -15,6 +15,7 @@
 # buildifier: disable=module-docstring
 load("//rust/private:common.bzl", "rust_common")
 load("//rust/private:utils.bzl", "find_toolchain", "get_lib_name", "get_preferred_artifact")
+load("//util/launcher:launcher.bzl", "create_launcher")
 
 def _rust_doc_test_impl(ctx):
     """The implementation for the `rust_doc_test` rule
@@ -36,11 +37,7 @@ def _rust_doc_test_impl(ctx):
 
     # Construct rustdoc test command, which will be written to a shell script
     # to be executed to run the test.
-    flags = _build_rustdoc_flags(dep_info, crate)
-    if toolchain.os != "windows":
-        rust_doc_test = _build_rustdoc_test_bash_script(ctx, toolchain, flags, crate)
-    else:
-        rust_doc_test = _build_rustdoc_test_batch_script(ctx, toolchain, flags, crate)
+    flags = _build_rustdoc_flags(dep_info, crate, toolchain)
 
     # The test script compiles the crate and runs it, so it needs both compile and runtime inputs.
     compile_inputs = depset(
@@ -56,13 +53,26 @@ def _rust_doc_test_impl(ctx):
         ],
     )
 
-    return [DefaultInfo(
-        runfiles = ctx.runfiles(
-            files = compile_inputs.to_list(),
-            collect_data = True,
-        ),
-        executable = rust_doc_test,
-    )]
+    rustdoc = ctx.actions.declare_file(ctx.label.name + toolchain.binary_ext)
+    ctx.actions.symlink(
+        output = rustdoc,
+        target_file = toolchain.rust_doc,
+        is_executable = True,
+    )
+
+    return create_launcher(
+        ctx = ctx,
+        args = [
+            "--test",
+            crate.root.path,
+            "--crate-name={}".format(crate.name),
+        ] + flags,
+        toolchain = toolchain,
+        providers = [DefaultInfo(
+            runfiles = ctx.runfiles(transitive_files = compile_inputs),
+        )],
+        executable = rustdoc,
+    )
 
 # TODO: Replace with bazel-skylib's `path.dirname`. This requires addressing some dependency issues or
 # generating docs will break.
@@ -77,7 +87,7 @@ def _dirname(path_str):
     """
     return "/".join(path_str.split("/")[:-1])
 
-def _build_rustdoc_flags(dep_info, crate):
+def _build_rustdoc_flags(dep_info, crate, toolchain):
     """Constructs the rustdoc script used to test `crate`.
 
     Args:
@@ -98,6 +108,13 @@ def _build_rustdoc_flags(dep_info, crate):
     link_flags += ["--extern=" + c.name + "=" + c.dep.output.short_path for c in d.direct_crates.to_list()]
     link_search_flags += ["-Ldependency={}".format(_dirname(c.output.short_path)) for c in d.transitive_crates.to_list()]
 
+    # Gets the paths to the folders containing the standard library (or libcore)
+    rust_lib_files = depset(transitive = [toolchain.rust_lib.files, toolchain.rustc_lib.files])
+    rust_lib_paths = depset([file.dirname for file in rust_lib_files.to_list()]).to_list()
+
+    # Tell Rustc where to find the standard library
+    link_search_flags.extend(["-L {}".format(lib) for lib in rust_lib_paths])
+
     # TODO(hlopko): use the more robust logic from rustc.bzl also here, through a reasonable API.
     for lib_to_link in dep_info.transitive_noncrates.to_list():
         is_static = bool(lib_to_link.static_library or lib_to_link.pic_static_library)
@@ -113,80 +130,6 @@ def _build_rustdoc_flags(dep_info, crate):
 
     return link_search_flags + link_flags + edition_flags
 
-_rustdoc_test_bash_script = """\
-#!/usr/bin/env bash
-
-set -e;
-
-{rust_doc} --test \\
-    {crate_root} \\
-    --crate-name={crate_name} \\
-    {flags}
-"""
-
-def _build_rustdoc_test_bash_script(ctx, toolchain, flags, crate):
-    """Generates a helper script for executing a rustdoc test for unix systems
-
-    Args:
-        ctx (ctx): The `rust_doc_test` rule's context object
-        toolchain (ToolchainInfo): A rustdoc toolchain
-        flags (list): A list of rustdoc flags (str)
-        crate (CrateInfo): The CrateInfo provider
-
-    Returns:
-        File: An executable containing information for a rustdoc test
-    """
-    rust_doc_test = ctx.actions.declare_file(
-        ctx.label.name + ".sh",
-    )
-    ctx.actions.write(
-        output = rust_doc_test,
-        content = _rustdoc_test_bash_script.format(
-            rust_doc = toolchain.rust_doc.short_path,
-            crate_root = crate.root.path,
-            crate_name = crate.name,
-            # TODO: Should be possible to do this with ctx.actions.Args, but can't seem to get them as a str and into the template.
-            flags = " \\\n    ".join(flags),
-        ),
-        is_executable = True,
-    )
-    return rust_doc_test
-
-_rustdoc_test_batch_script = """\
-{rust_doc} --test ^
-    {crate_root} ^
-    --crate-name={crate_name} ^
-    {flags}
-"""
-
-def _build_rustdoc_test_batch_script(ctx, toolchain, flags, crate):
-    """Generates a helper script for executing a rustdoc test for windows systems
-
-    Args:
-        ctx (ctx): The `rust_doc_test` rule's context object
-        toolchain (ToolchainInfo): A rustdoc toolchain
-        flags (list): A list of rustdoc flags (str)
-        crate (CrateInfo): The CrateInfo provider
-
-    Returns:
-        File: An executable containing information for a rustdoc test
-    """
-    rust_doc_test = ctx.actions.declare_file(
-        ctx.label.name + ".bat",
-    )
-    ctx.actions.write(
-        output = rust_doc_test,
-        content = _rustdoc_test_batch_script.format(
-            rust_doc = toolchain.rust_doc.short_path.replace("/", "\\"),
-            crate_root = crate.root.path,
-            crate_name = crate.name,
-            # TODO: Should be possible to do this with ctx.actions.Args, but can't seem to get them as a str and into the template.
-            flags = " ^\n    ".join(flags),
-        ),
-        is_executable = True,
-    )
-    return rust_doc_test
-
 rust_doc_test = rule(
     implementation = _rust_doc_test_impl,
     attrs = {
@@ -200,10 +143,20 @@ rust_doc_test = rule(
             mandatory = True,
             providers = [rust_common.crate_info],
         ),
+        "_launcher": attr.label(
+            executable = True,
+            default = Label("//util/launcher:launcher"),
+            cfg = "exec",
+            doc = (
+                "A launcher executable for loading environment and argument files passed in via the " +
+                "`env` attribute and ensuring the variables are set for the underlying test executable."
+            ),
+        ),
     },
-    executable = True,
     test = True,
-    toolchains = [str(Label("//rust:toolchain"))],
+    toolchains = [
+        str(Label("//rust:toolchain")),
+    ],
     incompatible_use_toolchain_transition = True,
     doc = """Runs Rust documentation tests.
 

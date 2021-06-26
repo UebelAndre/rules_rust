@@ -190,6 +190,7 @@ mod test {
     #[test]
     fn test_can_read_data_from_runfiles() {
         let r = Runfiles::create().unwrap();
+        println!("{:?}", std::env::current_dir());
 
         let mut f = File::open(r.rlocation("rules_rust/tools/runfiles/data/sample.txt")).unwrap();
 
