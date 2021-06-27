@@ -11,3 +11,7 @@ deps()
 load(":examples_transitive_deps.bzl", "transitive_deps")
 
 transitive_deps()
+
+load(":examples_transitive_deps_final.bzl", "transitive_deps_final")
+
+transitive_deps_final()

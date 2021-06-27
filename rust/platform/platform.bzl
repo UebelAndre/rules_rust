@@ -41,7 +41,7 @@ def declare_config_settings():
 
     all_supported_triples = SUPPORTED_PLATFORM_TRIPLES
     for triple in all_supported_triples:
-        native.config_setting(
+        native.platform(
             name = triple,
             constraint_values = triple_to_constraint_set(triple),
         )

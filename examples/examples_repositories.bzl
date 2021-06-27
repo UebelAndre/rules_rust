@@ -29,3 +29,23 @@ def repositories():
         url = "https://github.com/bazelbuild/rules_foreign_cc/archive/d54c78ab86b40770ee19f0949db9d74a831ab9f0.zip",
         sha256 = "3c6445404e9e5d17fa0ecdef61be00dd93b20222c11f45e146a98c0a3f67defa",
     )
+
+    maybe(
+        http_archive,
+        name = "io_bazel_rules_docker",
+        # https://github.com/bazelbuild/bazel-gazelle/issues/678
+        patch_args = ["-p1"],
+        patches = [
+            "@examples//cross_compilation:rules_docker-gazelle.patch",
+        ],
+        sha256 = "15bc512232dafd3d6e2203b3df257356ecadb91d6c9a686c968ca40f90e6de31",
+        strip_prefix = "rules_docker-d3956263883f702eb9723cd8352f7a164e628277",
+        urls = ["https://github.com/bazelbuild/rules_docker/archive/d3956263883f702eb9723cd8352f7a164e628277.zip"],
+    )
+
+    maybe(
+        http_archive,
+        name = "rules_python",
+        url = "https://github.com/bazelbuild/rules_python/releases/download/0.3.0/rules_python-0.3.0.tar.gz",
+        sha256 = "934c9ceb552e84577b0faf1e5a2f0450314985b4d8712b2b70717dc679fdc01b",
+    )

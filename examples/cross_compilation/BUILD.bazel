@@ -1,0 +1,34 @@
+load("@io_bazel_rules_docker//container:container.bzl", "container_image")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load(":container_binary.bzl", "rust_container_binary")
+
+exports_files(
+    [
+        "rules_docker-gazelle.patch",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+rust_binary(
+    name = "cross_binary",
+    srcs = glob(["src/**/*.rs"]),
+    edition = "2018",
+)
+
+# rust_container_binary(
+#     name = "cross_container_binary",
+#     crate = ":cross_binary",
+#     platform = "@rules_rust//rust/platform:x86_64-unknown-linux-gnu"
+# )
+
+container_image(
+    name = "cross_container",
+    base = "@alpine//image",
+    cmd = ["./cross_binary"],
+    files = [":cross_binary"],
+)
+
+# container_test(
+#     name = "container_test",
+#     image = ":cross_container",
+# )
