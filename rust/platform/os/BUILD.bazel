@@ -1,3 +1,5 @@
+"""Additional os configurations not commonly defined by Bazel"""
+
 constraint_value(
     name = "unknown",
     constraint_setting = "@platforms//os",

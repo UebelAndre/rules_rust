@@ -16,6 +16,7 @@ load(
     "system_to_dylib_ext",
     "system_to_staticlib_ext",
     "system_to_stdlib_linkflags",
+    "triple_to_abi",
     "triple_to_constraint_set",
     "triple_to_system",
 )
@@ -440,7 +441,10 @@ def rust_target_toolchain_repository(
 
     stdlib_opts = stdlib_linkflags
     if stdlib_opts == None:
-        stdlib_opts = system_to_stdlib_linkflags(triple_to_system(triple))
+        stdlib_opts = system_to_stdlib_linkflags(
+            system = triple_to_system(triple),
+            abi = triple_to_abi(triple),
+        )
 
     toolchain_name = "{}_target_toolchain_{}".format(prefix, repo_id)
     _rust_target_toolchain_repository(

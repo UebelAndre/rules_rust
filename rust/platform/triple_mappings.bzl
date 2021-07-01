@@ -1,4 +1,8 @@
-"""Helpers for constructing supported Rust platform triples"""
+"""Helpers for constructing supported Rust platform triples
+
+Triples can be described at the following link: 
+https://clang.llvm.org/docs/CrossCompilation.html#target-triple
+"""
 
 # All T1 Platforms should be supported, but aren't, see inline notes.
 SUPPORTED_T1_PLATFORM_TRIPLES = [
@@ -116,8 +120,11 @@ _SYSTEM_TO_DYLIB_EXT = {
     "windows": ".dll",
 }
 
-# See https://github.com/rust-lang/rust/blob/master/src/libstd/build.rs
-_SYSTEM_TO_STDLIB_LINKFLAGS = {
+# See the following links to find potential link flags in use:
+# - https://github.com/rust-lang/rust/blob/master/library/std/build.rs
+# - https://github.com/rust-lang/rust/blob/master/library/std/src/sys/unix/mod.rs
+# - https://github.com/rust-lang/rust/blob/master/library/std/src/sys/windows/mod.rs
+_SYSTEM_ABI_TO_STDLIB_LINKFLAGS = {
     # NOTE: Rust stdlib `build.rs` treats android as a subset of linux, rust rules treat android
     # as its own system.
     "android": ["-ldl", "-llog", "-lgcc"],
@@ -145,8 +152,9 @@ _SYSTEM_TO_STDLIB_LINKFLAGS = {
     "fuchsia": ["-lzircon", "-lfdio"],
     "illumos": ["-lsocket", "-lposix4", "-lpthread", "-lresolv", "-lnsl", "-lumem"],
     "ios": ["-lSystem", "-lobjc", "-framework Security", "-framework Foundation", "-lresolv"],
-    # TODO: This ignores musl. Longer term what does Bazel think about musl?
-    "linux": ["-ldl", "-lpthread"],
+    "linux-gnu": ["-ldl", "-lpthread"],
+    "linux-gnueabi": ["-ldl", "-lpthread"],
+    "linux-musl": ["-ldl", "-lpthread"],
     "nacl": [],
     "netbsd": ["-lpthread", "-lrt"],
     "openbsd": ["-lpthread"],
@@ -154,7 +162,8 @@ _SYSTEM_TO_STDLIB_LINKFLAGS = {
     "unknown": [],
     "uwp": ["ws2_32.lib"],
     "wasi": [],
-    "windows": ["advapi32.lib", "ws2_32.lib", "userenv.lib"],
+    "windows-gnu": ["advapi32.lib", "ws2_32.lib", "userenv.lib"],
+    "windows-msvc": ["advapi32.lib", "ws2_32.lib", "userenv.lib"],
 }
 
 def cpu_arch_to_constraints(cpu_arch):
@@ -180,10 +189,58 @@ def system_to_constraints(system):
 
     return ["@platforms//os:{}".format(sys_suffix)]
 
+def abi_to_env(abi):
+    """Return the appropriate `target_env` value as expected in the output of `rustc --print=cfg`
+
+    Args:
+        abi (str): The api section of a platform triple
+
+    Returns:
+        str: The environment representing the abi
+    """
+    if not abi:
+        return ""
+
+    if abi.startswith("gnu"):
+        return "gnu"
+
+    if abi.startswith("musl"):
+        return "musl"
+
+    if abi.startswith("msvc"):
+        return "msvc"
+
+    if abi.startswith("sgx"):
+        return "sgx"
+
+    return ""
+
 def abi_to_constraints(abi):
-    # TODO(acmcarther): Implement when C++ toolchain is more mature and we
-    # figure out how they're doing this
-    return []
+    """Return a list of constraint values for the requested abi string
+
+    Note the abi is the entire 4th set of a triple.
+
+    Args:
+        abi (str): The abi section of a platform triple
+
+    Returns:
+        list: A list of constriant values
+    """
+    constraints = []
+
+    if not abi:
+        return constraints
+
+    env = abi_to_env(abi)
+    if env:
+        constraints.append("@rules_rust//rust/platform/env:{}".format(env))
+
+    # Grab the root abi if one is available
+    split = abi.split(env, 1)
+    if len(split) > 1 and split[1]:
+        constraints.append("@rules_rust//rust/platform/abi:{}".format(split[1]))
+
+    return constraints
 
 def triple_to_system(triple):
     """Returns a system name for a given platform triple
@@ -202,6 +259,27 @@ def triple_to_system(triple):
         fail("Expected target triple to contain at least three sections separated by '-'")
 
     return component_parts[2]
+
+def triple_to_abi(triple):
+    """Returns a system and abi name for a given platform triple
+
+    Args:
+        triple (str): A platform triple. eg: `x86_64-unknown-linux-gnu`
+
+    Returns:
+        str: A system and abi name (`gnu`)
+    """
+    if triple == "wasm32-wasi":
+        return None
+
+    component_parts = triple.split("-")
+    if len(component_parts) < 3:
+        fail("Expected target triple to contain at least three sections separated by '-'")
+
+    if len(component_parts) == 4:
+        return component_parts[3]
+
+    return None
 
 def triple_to_arch(triple):
     """Returns a system architecture name for a given platform triple
@@ -230,14 +308,35 @@ def system_to_staticlib_ext(system):
 def system_to_binary_ext(system):
     return _SYSTEM_TO_BINARY_EXT[system]
 
-def system_to_stdlib_linkflags(system):
-    return _SYSTEM_TO_STDLIB_LINKFLAGS[system]
+def system_to_stdlib_linkflags(system, abi = None):
+    """Return a list of linker flags for the requested system
 
-def triple_to_constraint_set(triple):
+    Args:
+        system (str): The system section of a platform triple
+        abi (str, optional): The abi section of a platform triple or None if
+            one is not present
+
+    Returns:
+        list: A list of linker flags
+    """
+    if abi:
+        return _SYSTEM_ABI_TO_STDLIB_LINKFLAGS["{}-{}".format(system, abi)]
+    else:
+        # Allow some systems to instead be treated as specific `system-abi` combos
+        # to maintain legacy behavior
+        if system == "linux":
+            return _SYSTEM_ABI_TO_STDLIB_LINKFLAGS["linux-gnu"]
+        if system == "windows":
+            return _SYSTEM_ABI_TO_STDLIB_LINKFLAGS["windows-msvc"]
+
+    return _SYSTEM_ABI_TO_STDLIB_LINKFLAGS[system]
+
+def triple_to_constraint_set(triple, apply_abi_constraints = False):
     """Returns a set of constraints for a given platform triple
 
     Args:
         triple (str): A platform triple. eg: `x86_64-unknown-linux-gnu`
+        apply_abi_constraints (bool): Whether or not to include abi constraints
 
     Returns:
         list: A list of constraints (each represented by a list of strings)
@@ -269,6 +368,8 @@ def triple_to_constraint_set(triple):
     constraint_set += cpu_arch_to_constraints(cpu_arch)
     constraint_set += vendor_to_constraints(vendor)
     constraint_set += system_to_constraints(system)
-    constraint_set += abi_to_constraints(abi)
+    
+    if apply_abi_constraints:
+        constraint_set += abi_to_constraints(abi)
 
     return constraint_set

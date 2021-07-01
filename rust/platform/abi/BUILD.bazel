@@ -1,0 +1,22 @@
+package(default_visibility = ["//visibility:public"])
+
+# The `abi` config setting is expected to map to the possible values of
+# `target_abi` from the `rustc --print=cfg` output. This can be useful when
+# authoring code which utalizes conditional compilation:
+# https://doc.rust-lang.org/reference/conditional-compilation.html
+constraint_setting(name = "abi")
+
+constraint_value(
+    name = "eabi",
+    constraint_setting = ":abi",
+)
+
+constraint_value(
+    name = "eabihf",
+    constraint_setting = ":abi",
+)
+
+constraint_value(
+    name = "abi64",
+    constraint_setting = ":abi",
+)

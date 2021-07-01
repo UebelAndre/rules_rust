@@ -1,0 +1,27 @@
+package(default_visibility = ["//visibility:public"])
+
+# The `env` config setting is expected to map to the possible values of
+# `target_env` from the `rustc --print=cfg` output. This can be useful when
+# authoring code which utalizes conditional compilation:
+# https://doc.rust-lang.org/reference/conditional-compilation.html#target_env
+constraint_setting(name = "env")
+
+constraint_value(
+    name = "gnu",
+    constraint_setting = ":env",
+)
+
+constraint_value(
+    name = "musl",
+    constraint_setting = ":env",
+)
+
+constraint_value(
+    name = "msvc",
+    constraint_setting = ":env",
+)
+
+constraint_value(
+    name = "sgx",
+    constraint_setting = ":env",
+)

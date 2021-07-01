@@ -1,3 +1,5 @@
+"""Additional cpu configurations not commonly defined by Bazel"""
+
 constraint_value(
     name = "wasm32",
     constraint_setting = "@platforms//cpu",
