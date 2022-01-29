@@ -277,7 +277,7 @@ cargo_bootstrap_repository = repository_rule(
                 "`{system}` (eg. 'darwin'), `{tool}` (eg. 'cargo'), and `{ext}` (eg. '.exe') will be replaced in " +
                 "the string if present."
             ),
-            default = "@rust_{system}_{arch}//:bin/{tool}",
+            default = "@rust__{triple}__{tool}//:bin/{tool}{ext}",
         ),
         "rust_toolchain_repository_template": attr.string(
             doc = "**Deprecated**: Please use `rust_toolchain_cargo_template` and `rust_toolchain_rustc_template`",
@@ -289,7 +289,7 @@ cargo_bootstrap_repository = repository_rule(
                 "`{system}` (eg. 'darwin'), `{tool}` (eg. 'rustc'), and `{ext}` (eg. '.exe') will be replaced in " +
                 "the string if present."
             ),
-            default = "@rust_{system}_{arch}//:bin/{tool}",
+            default = "@rust__{triple}__{tool}//:bin/{tool}{ext}",
         ),
         "rust_toolchain_sysroot_anchor_template": attr.string(
             doc = (
@@ -297,7 +297,7 @@ cargo_bootstrap_repository = repository_rule(
                 "`{triple}` (eg. 'x86_64-unknown-linux-gnu'), `{arch}` (eg. 'aarch64'), `{vendor}` (eg. 'unknown'), " +
                 "and `{system}` (eg. 'darwin') will be replaced in the string if present."
             ),
-            default = "@rust_{system}_{arch}//:BUILD.bazel",
+            default = "@rust__{triple}__stdlib//:BUILD.bazel",
         ),
         "rust_toolchain_sysroot_path": attr.string(
             doc = (

@@ -225,7 +225,7 @@ Dict of registry_name: index_url.
                 "`{system}` (eg. 'darwin'), `{cfg}` (eg. 'exec'), and `{tool}` (eg. 'rustc') will be replaced in the " +
                 "string if present."
             ),
-            default = "rust_{system}_{arch}",
+            default = "rust__{triple}__{tool}",
         ),
         "rust_toolchain_repository_tool_path": attr.string_dict(
             doc = "The relative path of the tools in the repository",

@@ -70,7 +70,7 @@ def rules_rust_dependencies():
 def rust_register_toolchains(
         dev_components = False,
         edition = None,
-        experimental_individual_tool_repositories = False,
+        experimental_individual_tool_repositories = True,
         include_rustc_srcs = False,
         iso_date = None,
         register_toolchains = True,
