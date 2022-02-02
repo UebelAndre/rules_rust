@@ -221,8 +221,9 @@ Dict of registry_name: index_url.
         "rust_toolchain_repository_template": attr.string(
             doc = (
                 "The template to use for finding the host `rust_toolchain` repository. `{version}` (eg. '1.53.0'), " +
-                "`{triple}` (eg. 'x86_64-unknown-linux-gnu'), `{system}` (eg. 'darwin'), and `{arch}` (eg. 'aarch64') " +
-                "will be replaced in the string if present."
+                "`{triple}` (eg. 'x86_64-unknown-linux-gnu'), `{arch}` (eg. 'aarch64'), `{vendor}` (eg. 'unknown'), " +
+                "`{system}` (eg. 'darwin'), `{cfg}` (eg. 'exec'), and `{tool}` (eg. 'rustc') will be replaced in the " +
+                "string if present."
             ),
             default = "rust_{system}_{arch}",
         ),

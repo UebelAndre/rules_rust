@@ -106,57 +106,104 @@ def get_host_triple(repository_ctx, abi = None):
 
 def _resolve_repository_template(
         template,
-        version = None,
-        triple = None,
-        arch = None,
-        vendor = None,
-        system = None,
         abi = None,
-        tool = None):
+        arch = None,
+        ext = None,
+        system = None,
+        tool = None,
+        triple = None,
+        vendor = None,
+        version = None):
     """Render values into a repository template string
 
     Args:
         template (str): The template to use for rendering
-        version (str, optional): The Rust version used in the toolchain.
-        triple (str, optional): The host triple
-        arch (str, optional): The host CPU architecture
-        vendor (str, optional): The host vendor name
-        system (str, optional): The host system name
         abi (str, optional): The host ABI
+        arch (str, optional): The host CPU architecture
+        ext (str, optional): The file extensions used by binaries on the host system.
+        system (str, optional): The host system name
         tool (str, optional): The tool to expect in the particular repository.
             Eg. `cargo`, `rustc`, `stdlib`.
+        triple (str, optional): The host triple
+        vendor (str, optional): The host vendor name
+        version (str, optional): The Rust version used in the toolchain.
     Returns:
         string: The resolved template string based on the given parameters
     """
-    if version:
-        template = template.replace("{version}", version)
-
-    if triple:
-        template = template.replace("{triple}", triple)
+    if abi:
+        template = template.replace("{abi}", abi)
 
     if arch:
         template = template.replace("{arch}", arch)
 
-    if vendor:
-        template = template.replace("{vendor}", vendor)
+    if ext:
+        template = template.replace("{ext}", ext)
 
     if system:
         template = template.replace("{system}", system)
 
-    if abi:
-        template = template.replace("{abi}", abi)
-
     if tool:
         template = template.replace("{tool}", tool)
 
+    if triple:
+        template = template.replace("{triple}", triple)
+
+    if vendor:
+        template = template.replace("{vendor}", vendor)
+
+    if version:
+        template = template.replace("{version}", version)
+
     return template
 
-def get_rust_tools(cargo_template, rustc_template, host_triple, version):
+def sysroot_pair(anchor, path):
+    """A constructor for producing a struct capable of locating a Rust sysroot
+
+    Args:
+        anchor (Label): The label of a file in a workspace that contains a Rust sysroot
+        path (str): The relative path from the directory of `anchor` to the sysroot
+
+    Returns:
+        struct: A struct used to locate Rust sysroots
+    """
+    return struct(
+        anchor = anchor,
+        path = path,
+    )
+
+def resolve_sysroot_path(repository_ctx, sysroot_pair):
+    """Parse a `sysroot_pair` to produce the path to a Rust sysroot
+
+    Args:
+        repository_ctx (repository_ctx): The rule's context object.
+        sysroot_pair (struct): See the `sysroot_pair` macro.
+
+    Returns:
+        str: The value of `rustc --sysroot`
+    """
+    anchor = repository_ctx.path(sysroot_pair.anchor).dirname
+
+    path = ""
+    for part in sysroot_pair.path.split("/"):
+        if part == "..":
+            # Sanity check
+            if path:
+                fail("`../` can only exist at the beginning of the path. Please normalize")
+            anchor = anchor.dirname
+        else:
+            path += "/{}".format(part)
+
+    return "{}{}".format(anchor, path)
+
+def get_rust_tools(cargo_template, rustc_template, sysroot_anchor_template, sysroot_path, host_triple, version):
     """Retrieve `cargo` and `rustc` labels based on the host triple.
 
     Args:
         cargo_template (str): A template used to identify the label of the host `cargo` binary.
         rustc_template (str): A template used to identify the label of the host `rustc` binary.
+        sysroot_anchor_template (str): A template used to identify the label of a file relative to the sysroot.
+        sysroot_path (str): The path relative to the directory of `sysroot_anchor_template` where the sysroot
+            is located.
         host_triple (struct): The host's triple. See `@rules_rust//rust/platform:triple.bzl`.
         version (str): The version of Cargo+Rustc to use.
 
@@ -173,7 +220,8 @@ def get_rust_tools(cargo_template, rustc_template, host_triple, version):
         vendor = host_triple.vendor,
         system = host_triple.system,
         abi = host_triple.abi,
-        tool = "cargo" + extension,
+        tool = "cargo",
+        ext = extension,
     ))
 
     rustc_label = Label(_resolve_repository_template(
@@ -184,10 +232,27 @@ def get_rust_tools(cargo_template, rustc_template, host_triple, version):
         vendor = host_triple.vendor,
         system = host_triple.system,
         abi = host_triple.abi,
-        tool = "rustc" + extension,
+        tool = "rustc",
+        ext = extension,
+    ))
+
+    sysroot_label = Label(_resolve_repository_template(
+        template = sysroot_anchor_template,
+        version = version,
+        triple = host_triple.triple,
+        arch = host_triple.arch,
+        vendor = host_triple.vendor,
+        system = host_triple.system,
+        abi = host_triple.abi,
+        tool = "rust-std",
+        ext = extension,
     ))
 
     return struct(
         cargo = cargo_label,
         rustc = rustc_label,
+        sysroot = sysroot_pair(
+            anchor = sysroot_label,
+            path = sysroot_path,
+        ),
     )
