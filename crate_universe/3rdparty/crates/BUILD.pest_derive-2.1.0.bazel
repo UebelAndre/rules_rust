@@ -11,7 +11,7 @@ load(
 )
 
 # buildifier: disable=bzl-visibility
-load("@cargo_bazel//private:selects.bzl", "select_with_or")
+load("@rules_rust//crate_universe/private:selects.bzl", "select_with_or")
 load(
     "@rules_rust//rust:defs.bzl",
     "rust_proc_macro",

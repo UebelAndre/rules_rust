@@ -9,13 +9,13 @@ load(
     "@bazel_skylib//lib:selects.bzl",
     "selects",
 )
-
-# buildifier: disable=bzl-visibility
-load("@cargo_bazel//private:selects.bzl", "select_with_or")
 load(
     "@rules_rust//cargo:defs.bzl",
     "cargo_build_script",
 )
+
+# buildifier: disable=bzl-visibility
+load("@rules_rust//crate_universe/private:selects.bzl", "select_with_or")
 load(
     "@rules_rust//rust:defs.bzl",
     "rust_library",

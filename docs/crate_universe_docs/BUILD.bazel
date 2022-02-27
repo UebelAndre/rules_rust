@@ -21,7 +21,7 @@ bzl_library(
 stardoc(
     name = "rules_docs",
     out = "rules.md",
-    input = "@cargo_bazel//:defs.bzl",
+    input = "//crate_universe:defs.bzl",
     # TODO: For some reason, docs do not build on windows
     target_compatible_with = select({
         "@platforms//os:linux": [],

@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "tools/cross_installer",
-    "tools/examples_runner",
     "tools/urls_generator",
 ]
 
@@ -12,6 +11,10 @@ authors = [
     "Andre Brisco - andre.brisco@protonmail.com",
 ]
 edition = "2018"
+
+[features]
+cargo = []
+default = ["cargo"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

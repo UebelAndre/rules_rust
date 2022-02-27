@@ -15,7 +15,7 @@ http_archive(
     urls = ["https://github.com/abrisco/cargo-bazel/releases/download/{version}/cargo_bazel.tar.gz"],
 )
 
-load("@cargo_bazel//:deps.bzl", "cargo_bazel_deps")
+load("//crate_universe:deps.bzl", "cargo_bazel_deps")
 
 cargo_bazel_deps()
 
@@ -40,7 +40,7 @@ One of the simpler ways to wire up dependencies would be to first structure your
 The `crates_repository` rule can ingest a the root `Cargo.toml` file and generate dependencies from there.
 
 ```python
-load("@cargo_bazel//:defs.bzl", "crate", "crates_repository")
+load("//crate_universe:defs.bzl", "crate", "crates_repository")
 
 crates_repository(
     name = "crate_index",
@@ -97,7 +97,7 @@ about missing targets or environment variables defined only in Bazel. In workspa
 to have a "Cargo free" setup. `crates_repository` supports this through the `packages` attribute.
 
 ```python
-load("@cargo_bazel//:defs.bzl", "crate", "crates_repository", "render_config")
+load("//crate_universe:defs.bzl", "crate", "crates_repository", "render_config")
 
 crates_repository(
     name = "crate_index",

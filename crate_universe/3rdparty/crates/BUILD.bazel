@@ -75,12 +75,6 @@ alias(
 )
 
 alias(
-    name = "flate2",
-    actual = "@crate_index__flate2-1.0.22//:flate2",
-    tags = ["manual"],
-)
-
-alias(
     name = "hex",
     actual = "@crate_index__hex-0.4.3//:hex",
     tags = ["manual"],
@@ -129,12 +123,6 @@ alias(
 )
 
 alias(
-    name = "tar",
-    actual = "@crate_index__tar-0.4.38//:tar",
-    tags = ["manual"],
-)
-
-alias(
     name = "tempfile",
     actual = "@crate_index__tempfile-3.3.0//:tempfile",
     tags = ["manual"],
@@ -155,12 +143,6 @@ alias(
 alias(
     name = "toml",
     actual = "@crate_index__toml-0.5.8//:toml",
-    tags = ["manual"],
-)
-
-alias(
-    name = "url",
-    actual = "@crate_index__url-2.2.2//:url",
     tags = ["manual"],
 )
 
