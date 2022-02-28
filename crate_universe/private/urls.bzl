@@ -22,4 +22,4 @@ CARGO_BAZEL_SHA256S = {}
 
 # Example:
 # Label("//crate_universe:cargo_bazel_bin")
-CARGO_BAZEL_LABEL = Label("@cargo_bazel_bootstrap//:cargo-bazel")
+CARGO_BAZEL_LABEL = Label("@cargo_bazel_bootstrap//:binary")
