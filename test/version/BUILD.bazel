@@ -1,0 +1,17 @@
+load("//:version.bzl", "VERSION")
+load("//rust:defs.bzl", "rust_test")
+
+rust_test(
+    name = "repository_version_test",
+    srcs = ["repository_verison_test.rs"],
+    data = [
+        "//:MODULE.bazel",
+    ],
+    edition = "2018",
+    rustc_env = {
+        "MODULE_BAZEL_ROOTPATH": "$(rootpath //:MODULE.bazel)",
+        "REPO_VERSION": VERSION,
+    },
+    use_libtest_harness = False,
+    deps = ["//tools/runfiles"],
+)

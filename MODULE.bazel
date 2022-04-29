@@ -1,0 +1,29 @@
+# https://bazel.build/docs/bzlmod#module-bazel
+
+module(
+    name = "rules_rust",
+    version = "0.3.1",
+)
+
+bazel_dep(name = "rules_cc", version = "0.0.1")
+bazel_dep(name = "bazel_skylib", version = "1.2.0")
+bazel_dep(name = "rules_nodejs", version = "4.5.1")
+bazel_dep(name = "rules_proto", version = "3.19.2")
+
+# Dev dependencies
+bazel_dep(name = "rules_python", dev_dependency = True, version = "0.4.0")
+bazel_dep(name = "rules_pkg", dev_dependency = True, version = "0.5.1")
+
+toolchains = use_extension("//rust:extensions.bzl", "toolchains")
+
+use_repo(toolchains, "rust_darwin_x86_64")
+
+crate_universe_dependencies = use_extension("//crate_universe:extensions.bzl", "dependencies")
+
+use_repo(crate_universe_dependencies, "crate_universe_crate_index")
+
+proto_toolchains = use_extension("//proto:extensions.bzl", "toolchains")
+# use_repo(proto_dependencies, "crate_universe_crate_index")
+
+wasm_bindgen_toolchains = use_extension("//wasm_bindgen:extensions.bzl", "toolchains")
+# use_repo(proto_dependencies, "crate_universe_crate_index")

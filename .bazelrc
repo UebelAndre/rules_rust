@@ -12,6 +12,13 @@ build:clippy --output_groups=+clippy_checks
 # https://bazel.build/docs/windows#symlink
 startup --windows_enable_symlinks
 
+build:bzlmod --experimental_enable_bzlmod
+# @local_config_cc and @local_config_xcode are no longer available as canonical repo name,
+# therefore we have to override the default value of the following flags.
+# TODO: Remove after fixing https://github.com/bazelbuild/bazel/issues/14279
+build:bzlmod --crosstool_top=@rules_cc.0.0.1.cc_configure.local_config_cc//:toolchain
+build:bzlmod --xcode_version_config=@rules_cc.0.0.1.cc_configure.local_config_xcode//:host_xcodes
+
 # This import should always be last to allow users to override
 # settings for local development.
 try-import %workspace%/user.bazelrc
