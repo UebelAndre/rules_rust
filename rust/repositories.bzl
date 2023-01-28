@@ -94,6 +94,15 @@ def rules_rust_dependencies():
         build_file = "@rules_rust//util/process_wrapper:BUILD.tinyjson.bazel",
     )
 
+    maybe(
+        http_archive,
+        name = "rules_rust_patchelf",
+        sha256 = "039f755bd3533f92cc07b8034419117c763d8a97a909aefbef6a6ecf86e679fc",
+        urls = ["https://github.com/NixOS/patchelf/archive/refs/tags/0.17.2.tar.gz"],
+        build_file = Label("//util/patchelf:BUILD.patchelf.bazel"),
+        strip_prefix = "patchelf-0.17.2",
+    )
+
 _DEFAULT_NIGHTLY_VERSION = "nightly/{}".format(DEFAULT_NIGHTLY_ISO_DATE)
 
 _RUST_TOOLCHAIN_VERSIONS = [

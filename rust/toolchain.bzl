@@ -309,6 +309,25 @@ def _symlink_sysroot_bin(ctx, name, directory, target):
 
     return symlink
 
+def _patchelf_binary(ctx, name, directory, target, patchelf, sysroot):
+    binary = ctx.actions.declare_file("{}/{}/{}".format(
+        name,
+        directory,
+        target.basename,
+    ))
+
+    args = ctx.actions.args()
+    args.add("--output", binary)
+
+    ctx.actions.run(
+        executable = patchelf,
+        outputs = [binary],
+        inputs = [target],
+        mnemonic = "RustToolchainPatchelf",
+    )
+
+    return binary
+
 def _generate_sysroot(
         ctx,
         rustc,
@@ -318,7 +337,9 @@ def _generate_sysroot(
         clippy = None,
         llvm_tools = None,
         rust_std = None,
-        rustfmt = None):
+        rustfmt = None,
+        cc_sysroot = None,
+        patchelf = None):
     """Generate a rust sysroot from collection of toolchain components
 
     Args:
@@ -331,6 +352,9 @@ def _generate_sysroot(
         llvm_tools (Target, optional): A collection of llvm tools used by `rustc`.
         rust_std (Target, optional): A collection of Files containing Rust standard library components.
         rustfmt (File, optional): The path to a `rustfmt` executable.
+        cc_sysroot (str, optional): The path to a C++ sysroot relative to an execroot.
+        patchelf (File, optional): The path to a `patchelf` executable used to update `rustc` bianries
+            to load libraries from `cc_sysroot`.
 
     Returns:
         struct: A struct of generated files representing the new sysroot
@@ -341,9 +365,15 @@ def _generate_sysroot(
     direct_files = []
     transitive_file_sets = []
 
-    # Rustc
-    sysroot_rustc = _symlink_sysroot_bin(ctx, name, "bin", rustc)
-    direct_files.extend([sysroot_rustc])
+    if "rust_patchelf_compiler" in ctx.features and cc_sysroot:
+        if not patchelf:
+            fail("No patchelf binary was provided to use in patching rustc")
+        
+        sysroot_rustc = _patchelf_binary(ctx, name, "bin", rustc, patchelf, cc_sysroot)
+        direct_files.extend([sysroot_rustc])
+    else:
+        sysroot_rustc = _symlink_sysroot_bin(ctx, name, "bin", rustc)
+        direct_files.extend([sysroot_rustc])
 
     # Rustc dependencies
     sysroot_rustc_lib = None
@@ -697,6 +727,12 @@ rust_toolchain = rule(
                 "The platform triple for the toolchains target environment. " +
                 "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
             ),
+        ),
+        "_patchelf": attr.label(
+            doc = "TODO",
+            cfg = "exec",
+            executable = True,
+            default = Label("//rust/util/patchelf"),
         ),
         "_cc_toolchain": attr.label(
             default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),

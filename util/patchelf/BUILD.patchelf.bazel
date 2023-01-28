@@ -1,0 +1,21 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_binary(
+    name = "patchelf",
+    srcs = [
+        "src/elf.h",
+        "src/patchelf.cc",
+        "src/patchelf.h",
+    ],
+    copts = select({
+        "@rules_cc//cc/private/toolchain:msvc": ["/std:c++17"],
+        "//conditions:default": ["-std=c++17"],
+    }),
+)
+
+alias(
+    name = "rules_rust_patchelf",
+    actual = ":patchelf",
+)

@@ -1,0 +1,5 @@
+alias(
+    name = "patchelf",
+    actial = "@rules_rust_patchelf//:patchelf",
+    visibility = ["//visibility:public"],
+)
