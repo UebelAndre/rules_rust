@@ -3,9 +3,3 @@ sh_binary(
     srcs = ["fetch_shas.sh"],
     tags = ["manual"],
 )
-
-filegroup(
-    name = "collect_coverage",
-    srcs = ["collect_coverage.sh"],
-    visibility = ["//visibility:public"],
-)
