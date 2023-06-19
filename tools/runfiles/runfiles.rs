@@ -111,6 +111,26 @@ impl Runfiles {
         }
     }
 
+    /// Returns the runtime path of a runfile.
+    ///
+    /// Runfiles are data-dependencies of Bazel-built binaries and tests. In
+    /// comparison to `rlocation`, this method will ensure the requested
+    /// runfile exists before returning it.
+    pub fn try_rlocation(&self, path: impl AsRef<Path>) -> Option<PathBuf> {
+        let path = path.as_ref();
+        if path.is_absolute() {
+            if path.exists() {
+                return Some(path.to_path_buf());
+            }
+            return None;
+        }
+        let runfile = match &self.mode {
+            Mode::DirectoryBased(runfiles_dir) => Some(runfiles_dir.join(path)),
+            Mode::ManifestBased(path_mapping) => path_mapping.get(path).cloned(),
+        };
+        runfile.and_then(|path| if path.exists() { Some(path) } else { None })
+    }
+
     /// Returns the canonical name of the caller's Bazel repository.
     pub fn current_repository(&self) -> &str {
         // This value must match the value of `_RULES_RUST_RUNFILES_WORKSPACE_NAME`
