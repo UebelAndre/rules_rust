@@ -6,8 +6,10 @@ rust_library(
         "label.rs",
         "label_error.rs",
     ],
-    edition = "2018",
+    crate_name = "bazel_label",
+    edition = "2021",
     visibility = ["//:__subpackages__"],
+    version = "0.1.0",
 )
 
 rust_test(

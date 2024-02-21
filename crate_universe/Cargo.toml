@@ -21,7 +21,7 @@ default = ["cargo"]
 
 [dependencies]
 anyhow = "1.0.75"
-camino = "1.1.6"
+bazel-label = { path = "../util/label" }
 cargo_metadata = "0.18.1"
 cargo_toml = "0.19.2"
 cargo-lock = "9.0.0"
