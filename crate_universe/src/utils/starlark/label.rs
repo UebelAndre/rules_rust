@@ -2,10 +2,8 @@ use std::fmt::{self, Display};
 use std::path::Path;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Result};
-use camino::Utf8Path;
-use once_cell::sync::OnceCell;
-use regex::Regex;
+use anyhow::{anyhow, bail, Result};
+use bazel_label;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -64,102 +62,64 @@ impl FromStr for Label {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        static RE: OnceCell<Regex> = OnceCell::new();
-        let re = RE.get_or_try_init(|| {
-            Regex::new(r"^(@@?[\w\d\-_\.~]*)?(//)?([\w\d\-_\./+]+)?(:([\+\w\d\-_\./]+))?$")
-        });
+        let result = bazel_label::analyze(s)?;
 
-        let cap = re?
-            .captures(s)
-            .with_context(|| format!("Failed to parse label from string: {s}"))?;
+        if result.is_relative() {
+            return Ok(Label::Relative {
+                target: result.name().to_owned(),
+            });
+        }
 
-        let (repository, is_absolute) = match (cap.get(1), cap.get(2).is_some()) {
-            (Some(repository), is_absolute) => match *repository.as_str().as_bytes() {
-                [b'@', b'@', ..] => (
-                    Some(Repository::Canonical(repository.as_str()[2..].to_owned())),
-                    is_absolute,
-                ),
-                [b'@', ..] => (
-                    Some(Repository::Explicit(repository.as_str()[1..].to_owned())),
-                    is_absolute,
-                ),
-                _ => bail!("Invalid Label: {}", s),
-            },
-            (None, true) => (Some(Repository::Local), true),
-            (None, false) => (None, false),
-        };
-
-        let package = cap.get(3).map(|package| package.as_str().to_owned());
-
-        let target = cap.get(5).map(|target| target.as_str().to_owned());
-
-        match repository {
-            None => match (package, target) {
-                // Relative
-                (None, Some(target)) => Ok(Label::Relative { target }),
-
-                // Relative (Implicit Target which regex identifies as Package)
-                (Some(package), None) => Ok(Label::Relative { target: package }),
-
-                // Invalid (Empty)
-                (None, None) => bail!("Invalid Label: {}", s),
-
-                // Invalid (Relative Package + Target)
-                (Some(_), Some(_)) => bail!("Invalid Label: {}", s),
-            },
-            Some(repository) => match (is_absolute, package, target) {
-                // Absolute (Full)
-                (true, Some(package), Some(target)) => Ok(Label::Absolute {
-                    repository,
-                    package,
-                    target,
+        match result.repo() {
+            Some(repo) => match repo {
+                bazel_label::Repository::Canonical(..) => Ok(Label::Absolute {
+                    repository: Repository::Canonical(
+                        result
+                            .repo_name()
+                            .map(|repo| repo.to_owned())
+                            .unwrap_or_default(),
+                    ),
+                    package: result
+                        .package()
+                        .map(|pkg| pkg.to_owned())
+                        .unwrap_or_default(),
+                    target: result.name().to_owned(),
                 }),
-
-                // Absolute (Repository)
-                (_, None, None) => match &repository {
-                    Repository::Canonical(target) | Repository::Explicit(target) => {
-                        let target = match target.is_empty() {
-                            false => target.clone(),
-                            true => bail!("Invalid Label: {}", s),
-                        };
+                bazel_label::Repository::Apparent(..) => {
+                    if repo.repo_name().is_empty() {
                         Ok(Label::Absolute {
-                            repository,
-                            package: String::new(),
-                            target,
+                            repository: Repository::Local,
+                            package: result
+                                .package()
+                                .map(|pkg| pkg.to_owned())
+                                .unwrap_or_default(),
+                            target: result.name().to_owned(),
+                        })
+                    } else {
+                        Ok(Label::Absolute {
+                            repository: Repository::Explicit(
+                                result
+                                    .repo_name()
+                                    .map(|repo| repo.to_owned())
+                                    .unwrap_or_default(),
+                            ),
+                            package: result
+                                .package()
+                                .map(|pkg| pkg.to_owned())
+                                .unwrap_or_default(),
+                            target: result.name().to_owned(),
                         })
                     }
-                    Repository::Local => bail!("Invalid Label: {}", s),
-                },
-
-                // Absolute (Package)
-                (true, Some(package), None) => {
-                    let target = Utf8Path::new(&package)
-                        .file_name()
-                        .with_context(|| format!("Invalid Label: {}", s))?
-                        .to_owned();
-                    Ok(Label::Absolute {
-                        repository,
-                        package,
-                        target,
-                    })
                 }
-
-                // Absolute (Target)
-                (true, None, Some(target)) => Ok(Label::Absolute {
-                    repository,
-                    package: String::new(),
-                    target,
-                }),
-
-                // Invalid (Relative Repository + Package + Target)
-                (false, Some(_), Some(_)) => bail!("Invalid Label: {}", s),
-
-                // Invalid (Relative Repository + Package)
-                (false, Some(_), None) => bail!("Invalid Label: {}", s),
-
-                // Invalid (Relative Repository + Target)
-                (false, None, Some(_)) => bail!("Invalid Label: {}", s),
             },
+            None => Ok(Label::Absolute {
+                repository: Repository::Local,
+                package: result
+                    .package()
+                    .map(|pkg| pkg.to_owned())
+                    .unwrap_or_default(),
+                target: result.name().to_owned(),
+            }),
         }
     }
 }
@@ -317,7 +277,8 @@ mod test {
 
     #[test]
     fn relative_implicit() {
-        let label = Label::from_str("target").unwrap();
+        Label::from_str("target").unwrap_err();
+        let label = Label::from_str(":target").unwrap();
         assert_eq!(label.to_string(), ":target");
         assert!(!label.is_absolute());
         assert_eq!(label.repository(), None);

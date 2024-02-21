@@ -1,0 +1,17 @@
+[package]
+name = "bazel-label"
+version = "0.1.0"
+authors = [
+    "Andre Brisco - andre.brisco@protonmail.com",
+]
+categories = ["development-tools"]
+description = "Bazel label parsing library."
+edition = "2021"
+keywords = ["bazel"]
+license = "Apache-2.0"
+repository = "https://github.com/bazelbuild/rules_rust"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "label.rs"
