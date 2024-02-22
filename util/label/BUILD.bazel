@@ -1,5 +1,11 @@
 load("//rust:defs.bzl", "rust_library", "rust_test")
 
+exports_files([
+    "label.rs",
+    "label_error.rs",
+    "Cargo.toml",
+])
+
 rust_library(
     name = "label",
     srcs = [
