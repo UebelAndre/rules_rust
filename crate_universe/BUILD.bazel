@@ -65,7 +65,9 @@ rust_library(
     stamp = -1,
     version = VERSION,
     visibility = ["//visibility:public"],
-    deps = all_crate_deps(normal = True),
+    deps = all_crate_deps(normal = True) + [
+        "//util/label",
+    ],
 )
 
 rust_binary(
