@@ -4,6 +4,13 @@ package(default_visibility = ["//:__subpackages__"])
 
 exports_files(glob(["**"]))
 
+filegroup(
+    name = "rust_srcs",
+    srcs = [
+        "//crate_universe:rust_srcs",
+    ],
+)
+
 srcs_module(
     name = "srcs_module",
     srcs = "//crate_universe:rust_srcs",
