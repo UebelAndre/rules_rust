@@ -6,6 +6,16 @@ exports_files([
     "Cargo.toml",
 ])
 
+filegroup(
+    name = "rust_srcs",
+    srcs = [
+        "label.rs",
+        "label_error.rs",
+        "Cargo.toml",
+    ],
+    visibility = ["//:__subpackages__"],
+)
+
 rust_library(
     name = "label",
     srcs = [
