@@ -25,7 +25,10 @@ load(
     _rust_clippy = "rust_clippy",
     _rust_clippy_aspect = "rust_clippy_aspect",
 )
-load("//rust/private:common.bzl", _rust_common = "rust_common")
+load(
+    "//rust/private:common.bzl",
+    _rust_common = "rust_common",
+)
 load(
     "//rust/private:rust.bzl",
     _rust_binary = "rust_binary",

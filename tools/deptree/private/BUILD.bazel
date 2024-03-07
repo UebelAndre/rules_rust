@@ -1,0 +1,14 @@
+load("//rust:defs.bzl", "rust_binary")
+
+rust_binary(
+    name = "rust_deptree",
+    srcs = ["rust_deptree.rs"],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/deptree/3rdparty/crates:clap",
+    ],
+    rustc_flags = [
+        "-Dunused-crate-dependencies",
+    ],
+)

@@ -21,6 +21,10 @@ load("@rules_rust//proto/prost:transitive_repositories.bzl", "rust_prost_transit
 
 rust_prost_transitive_repositories()
 
+load("@rules_rust//tools/deptree:deps.bzl", "rust_deptree_dependencies")
+
+rust_deptree_dependencies()
+
 load("@rules_rust//proto/protobuf:repositories.bzl", "rust_proto_protobuf_dependencies", "rust_proto_protobuf_register_toolchains")
 
 rust_proto_protobuf_dependencies()
