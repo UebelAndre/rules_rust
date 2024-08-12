@@ -15,11 +15,12 @@
 """Rust rule implementations"""
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//rust/private:common.bzl", "COMMON_PROVIDERS", "rust_common")
-load("//rust/private:providers.bzl", "BuildInfo")
-load("//rust/private:rustc.bzl", "rustc_compile_action")
+load(":common.bzl", "COMMON_PROVIDERS", "rust_common")
+load(":providers.bzl", "BuildInfo")
+load(":rustc.bzl", "rustc_compile_action")
+load(":toolchain_utils.bzl", "get_coverage_env")
 load(
-    "//rust/private:utils.bzl",
+    ":utils.bzl",
     "can_build_metadata",
     "compute_crate_name",
     "crate_root_src",
@@ -419,26 +420,13 @@ def _rust_test_impl(ctx):
         getattr(ctx.attr, "env", {}),
         data,
     )
-    if toolchain.llvm_cov and ctx.configuration.coverage_enabled:
-        if not toolchain.llvm_profdata:
-            fail("toolchain.llvm_profdata is required if toolchain.llvm_cov is set.")
 
-        if toolchain._experimental_use_coverage_metadata_files:
-            llvm_cov_path = toolchain.llvm_cov.path
-            llvm_profdata_path = toolchain.llvm_profdata.path
-        else:
-            llvm_cov_path = toolchain.llvm_cov.short_path
-            if llvm_cov_path.startswith("../"):
-                llvm_cov_path = llvm_cov_path[len("../"):]
+    if ctx.configuration.coverage_enabled:
+        env.update(get_coverage_env(toolchain))
 
-            llvm_profdata_path = toolchain.llvm_profdata.short_path
-            if llvm_profdata_path.startswith("../"):
-                llvm_profdata_path = llvm_profdata_path[len("../"):]
-
-        env["RUST_LLVM_COV"] = llvm_cov_path
-        env["RUST_LLVM_PROFDATA"] = llvm_profdata_path
     components = "{}/{}".format(ctx.label.workspace_root, ctx.label.package).split("/")
     env["CARGO_MANIFEST_DIR"] = "/".join([c for c in components if c])
+
     providers.append(testing.TestEnvironment(env))
 
     return providers

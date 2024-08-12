@@ -1532,8 +1532,6 @@ def rustc_compile_action(
         output_group_info["dsym_folder"] = depset([dsym_folder])
     if build_metadata:
         output_group_info["build_metadata"] = depset([build_metadata])
-    if build_metadata:
-        output_group_info["build_metadata"] = depset([build_metadata])
         if rustc_rmeta_output:
             output_group_info["rustc_rmeta_output"] = depset([rustc_rmeta_output])
     if rustc_output:
@@ -2251,7 +2249,9 @@ no_std = rule(
         "No std; we need this so that we can distinguish between host and exec"
     ),
     attrs = {
-        "_no_std": attr.label(default = "//:no_std"),
+        "_no_std": attr.label(
+            default = Label("//:no_std"),
+        ),
     },
     implementation = _no_std_impl,
 )

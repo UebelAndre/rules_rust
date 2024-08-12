@@ -1,10 +1,20 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("//wasm_bindgen:defs.bzl", "rust_wasm_bindgen_toolchain")
 
 package(default_visibility = ["//visibility:public"])
 
 toolchain_type(
     name = "toolchain_type",
+)
+
+string_flag(
+    name = "test_browser",
+    build_setting_default = "firefox",
+    values = [
+        "firefox",
+        "chrome",
+    ],
 )
 
 bzl_library(
@@ -19,7 +29,9 @@ bzl_library(
 
 rust_wasm_bindgen_toolchain(
     name = "default_wasm_bindgen_toolchain_impl",
-    bindgen = "@rules_rust//wasm_bindgen/3rdparty:wasm_bindgen_cli",
+    wasm_bindgen_cli = "@rules_rust//wasm_bindgen/3rdparty:wasm_bindgen_cli",
+    wasm_bindgen_test = "@rules_rust//wasm_bindgen/3rdparty:wasm_bindgen_test",
+    webdriver = "@geckodriver",
 )
 
 toolchain(

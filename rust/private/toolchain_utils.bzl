@@ -135,3 +135,34 @@ toolchain_files_for_target = rule(
         ),
     },
 )
+
+def get_coverage_env(toolchain):
+    """_summary_
+
+    Args:
+        toolchain (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    env = {}
+    if toolchain.llvm_cov:
+        if not toolchain.llvm_profdata:
+            fail("toolchain.llvm_profdata is required if toolchain.llvm_cov is set.")
+
+        if toolchain._experimental_use_coverage_metadata_files:
+            llvm_cov_path = toolchain.llvm_cov.path
+            llvm_profdata_path = toolchain.llvm_profdata.path
+        else:
+            llvm_cov_path = toolchain.llvm_cov.short_path
+            if llvm_cov_path.startswith("../"):
+                llvm_cov_path = llvm_cov_path[len("../"):]
+
+            llvm_profdata_path = toolchain.llvm_profdata.short_path
+            if llvm_profdata_path.startswith("../"):
+                llvm_profdata_path = llvm_profdata_path[len("../"):]
+
+        env["RUST_LLVM_COV"] = llvm_cov_path
+        env["RUST_LLVM_PROFDATA"] = llvm_profdata_path
+
+    return env

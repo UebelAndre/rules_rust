@@ -910,3 +910,18 @@ def is_std_dylib(file):
         # for windows
         basename.startswith("std-") and basename.endswith(".dll")
     )
+
+def rlocationpath(ctx, file):
+    """Determine the `rlocationpath` of a given file.
+
+    Args:
+        ctx (ctx): The rule's context object.
+        file (File): The file generate the ID for.
+
+    Returns:
+        str: The `rlocationpath` value of `file`.
+    """
+    if file.short_path.startswith("../"):
+        return file.short_path[len("../"):]
+
+    return "{}/{}".format(ctx.workspace_name, file.short_path)
