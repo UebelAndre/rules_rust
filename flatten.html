@@ -991,9 +991,7 @@ rust_test(
     deps = ["//some/dev/dep"],
 )
 </code></pre>
-<p>Run the test with <code>bazel test //hello_lib:hello_lib_test</code>. The crate
-will be built using the same crate name as the underlying ":hello_lib"
-crate.</p>
+<p>Run the test with <code>bazel test //hello_lib:hello_lib_test</code>.</p>
 <h3 id="example-test-directory"><a class="header" href="#example-test-directory">Example: <code>test</code> directory</a></h3>
 <p>Integration tests that live in the <a href="http://doc.rust-lang.org/book/testing.html#the-tests-directory"><code>tests</code> directory</a>, they are         essentially built as separate crates. Suppose you have the following directory         structure where <code>greeting.rs</code> is an integration test for the <code>hello_lib</code>         library crate:</p>
 <pre><code class="language-output">[workspace]/
