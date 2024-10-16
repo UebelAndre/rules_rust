@@ -325,7 +325,7 @@ simply use <a href="./crate_universe.html">crate_universe</a> in a more
 complex scenario (with more dependencies), you must redefine those
 dependencies.</p>
 <p>To do this, once you've imported the needed dependencies (see our
-<a href="https://github.com/bazelbuild/rules_rust/blob/main/proto/3rdparty/BUILD.bazel">@rules_rust//proto/3rdparty/BUILD.bazel</a>
+<a href="https://github.com/bazelbuild/rules_rust/blob/main/proto/protobuf/3rdparty/BUILD.bazel">@rules_rust//proto/protobuf/3rdparty/BUILD.bazel</a>
 file to see the default dependencies), you need to create your own toolchain.
 To do so you can create a BUILD file with your toolchain definition, for example:</p>
 <pre><code class="language-python">load("@rules_rust//proto:toolchain.bzl", "rust_proto_toolchain")
