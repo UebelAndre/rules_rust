@@ -30,15 +30,17 @@
 
         <!-- Custom theme stylesheets -->
 
-    </head>
-    <body>
-    <div id="body-container">
+
         <!-- Provide site root to javascript -->
         <script>
             var path_to_root = "";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
-
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
@@ -85,7 +87,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <!-- populated by js -->
-            <div class="sidebar-scrollbox"></div>
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
                 <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
             </noscript>
@@ -93,8 +95,6 @@
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
-
-        <script async src="toc.js"></script>
 
         <div id="page-wrapper" class="page-wrapper">
 
@@ -189,7 +189,8 @@ toolchains following the instructions for <a href="#rust_bindgen_toolchain">rust
 <p><a id="rust_bindgen"></a></p>
 <h2 id="rust_bindgen"><a class="header" href="#rust_bindgen">rust_bindgen</a></h2>
 <pre>
-rust_bindgen(<a href="#rust_bindgen-name">name</a>, <a href="#rust_bindgen-bindgen_flags">bindgen_flags</a>, <a href="#rust_bindgen-cc_lib">cc_lib</a>, <a href="#rust_bindgen-clang_flags">clang_flags</a>, <a href="#rust_bindgen-header">header</a>, <a href="#rust_bindgen-wrap_static_fns">wrap_static_fns</a>)
+rust_bindgen(<a href="#rust_bindgen-name">name</a>, <a href="#rust_bindgen-bindgen_flags">bindgen_flags</a>, <a href="#rust_bindgen-cc_lib">cc_lib</a>, <a href="#rust_bindgen-clang_flags">clang_flags</a>, <a href="#rust_bindgen-header">header</a>, <a href="#rust_bindgen-merge_cc_lib_objects_into_rlib">merge_cc_lib_objects_into_rlib</a>,
+             <a href="#rust_bindgen-wrap_static_fns">wrap_static_fns</a>)
 </pre>
 <p>Generates a rust source file from a cc_library and a header.</p>
 <p><strong>ATTRIBUTES</strong></p>
@@ -199,6 +200,7 @@ rust_bindgen(<a href="#rust_bindgen-name">name</a>, <a href="#rust_bindgen-bindg
 <tr><td style="text-align: left"><a id="rust_bindgen-cc_lib"></a>cc_lib</td><td style="text-align: left">The cc_library that contains the <code>.h</code> file. This is used to find the transitive includes.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="rust_bindgen-clang_flags"></a>clang_flags</td><td style="text-align: left">Flags to pass directly to the clang executable.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_bindgen-header"></a>header</td><td style="text-align: left">The <code>.h</code> file to generate bindings for.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="rust_bindgen-merge_cc_lib_objects_into_rlib"></a>merge_cc_lib_objects_into_rlib</td><td style="text-align: left">When True, objects from <code>cc_lib</code> will be copied into the <code>rlib</code> archive produced by the rust_library that depends on this <code>rust_bindgen</code> rule (using <code>BuildInfo</code> provider)</td><td style="text-align: left">Boolean</td><td style="text-align: left">optional</td><td style="text-align: left"><code>True</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_bindgen-wrap_static_fns"></a>wrap_static_fns</td><td style="text-align: left">Whether to create a separate .c file for static fns. Requires nightly toolchain, and a header that actually needs this feature (otherwise bindgen won't generate the file and Bazel complains).</td><td style="text-align: left">Boolean</td><td style="text-align: left">optional</td><td style="text-align: left"><code>False</code></td></tr>
 </tbody></table>
 </div>
