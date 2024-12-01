@@ -33,6 +33,9 @@ crates_vendor(
         "wasm-bindgen": crate.spec(
             version = WASM_BINDGEN_VERSION,
         ),
+        "wasm-bindgen-test": crate.spec(
+            version = "0.3.37",
+        ),
     },
     repository_name = "rules_rust_wasm_bindgen_deps",
     tags = ["manual"],
@@ -48,6 +51,12 @@ alias(
 alias(
     name = "wasm_bindgen",
     actual = "//3rdparty/crates:wasm-bindgen",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "wasm_bindgen_test",
+    actual = "//3rdparty/crates:wasm-bindgen-test",
     visibility = ["//visibility:public"],
 )
 

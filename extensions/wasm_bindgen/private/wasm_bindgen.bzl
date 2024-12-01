@@ -8,16 +8,16 @@ def rust_wasm_bindgen_action(ctx, toolchain, wasm_file, target_output, bindgen_f
     """Spawn a `RustWasmBindgen` action.
 
     Args:
-        ctx (ctx): _description_
-        toolchain (ToolchainInfo): _description_
-        wasm_file (Target): _description_
-        target_output (str): _description_
-        bindgen_flags (list, optional): _description_. Defaults to [].
+        ctx (ctx): The rule's context object
+        toolchain (ToolchainInfo): The current `rust_wasm_bindgen_toolchain`.
+        wasm_file (Target): The Rust wasm target.
+        target_output (str): The requested output type of the bindgen rule.
+        bindgen_flags (list, optional): Additional flags to pass to wasm-bindgen
 
     Returns:
-        RustWasmBindgenInfo: _description_
+        RustWasmBindgenInfo: The wasm-bindgen provider.
     """
-    bindgen_bin = toolchain.bindgen
+    bindgen_bin = toolchain.wasm_bindgen_cli
 
     # Since the `wasm_file` attribute is behind a transition, it will be converted
     # to a list.
@@ -169,8 +169,37 @@ An example of this rule in use can be seen at [@rules_rust//examples/wasm](../ex
 )
 
 def _rust_wasm_bindgen_toolchain_impl(ctx):
+    if ctx.attr.webdriver and ctx.attr.browser:
+        all_files = depset(
+            [ctx.executable.webdriver, ctx.executable.browser],
+            transitive = [
+                ctx.attr.webdriver[DefaultInfo].default_runfiles.files,
+                ctx.attr.browser[DefaultInfo].default_runfiles.files,
+            ],
+        )
+    else:
+        all_files = depset()
+
+    wasm_bindgen_cli = ctx.attr.wasm_bindgen_cli
+    if ctx.attr.bindgen:
+        # buildifier: disable=print
+        print("The `wasm_bindgen_toolchain.bindgen` attribute is deprecated in favor of `wasm_bindgen_cli`. Please update {}".format(
+            ctx.label,
+        ))
+
+    if not wasm_bindgen_cli:
+        fail("`wasm_bindgen_toolchain.wasm_bindgen_cli` is a mandatory attribute. Please update {}".format(
+            ctx.label,
+        ))
+
     return platform_common.ToolchainInfo(
-        bindgen = ctx.executable.bindgen,
+        bindgen = wasm_bindgen_cli,
+        wasm_bindgen_cli = wasm_bindgen_cli,
+        wasm_bindgen_test = ctx.attr.wasm_bindgen_test,
+        webdriver = ctx.executable.webdriver,
+        browser = ctx.executable.browser,
+        browser_type = ctx.attr.browser_type,
+        all_files = all_files,
     )
 
 rust_wasm_bindgen_toolchain = rule(
@@ -191,7 +220,7 @@ rust_bindgen_toolchain(
 toolchain(
     name = "wasm_bindgen_toolchain",
     toolchain = "wasm_bindgen_toolchain_impl",
-    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
+    toolchain_type = "@rules_rust//wasm_bindgen:toolchain_type",
 )
 ```
 
@@ -210,6 +239,35 @@ For additional information, see the [Bazel toolchains documentation][toolchains]
         "bindgen": attr.label(
             doc = "The label of a `wasm-bindgen-cli` executable.",
             executable = True,
+            cfg = "exec",
+        ),
+        "browser": attr.label(
+            doc = "TODO",
+            executable = True,
+            allow_files = True,
+            cfg = "exec",
+        ),
+        "browser_type": attr.string(
+            doc = "TODO",
+            values = [
+                "chrome",
+                "firefox",
+                "safari",
+            ],
+        ),
+        "wasm_bindgen_cli": attr.label(
+            doc = "The label of a `wasm-bindgen-cli` executable.",
+            executable = True,
+            cfg = "exec",
+        ),
+        "wasm_bindgen_test": attr.label(
+            doc = "TODO",
+            providers = [rust_common.crate_info],
+        ),
+        "webdriver": attr.label(
+            doc = "TODO",
+            executable = True,
+            allow_files = True,
             cfg = "exec",
         ),
     },
