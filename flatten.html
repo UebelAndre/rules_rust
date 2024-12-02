@@ -227,7 +227,7 @@ cargo_dep_env(<a href="#cargo_dep_env-name">name</a>, <a href="#cargo_dep_env-sr
 <pre>
 error_format(<a href="#error_format-name">name</a>)
 </pre>
-<p>Change the <a href="https://doc.rust-lang.org/rustc/command-line-arguments.html#option-error-format">--error-format</a> flag from the command line with <code>--@rules_rust//:error_format</code>. See rustc documentation for valid values.</p>
+<p>Change the <a href="https://doc.rust-lang.org/rustc/command-line-arguments.html#option-error-format">--error-format</a> flag from the command line with <code>--@rules_rust//rust/settings:error_format</code>. See rustc documentation for valid values.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="error_format-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
@@ -238,7 +238,7 @@ error_format(<a href="#error_format-name">name</a>)
 <pre>
 extra_rustc_flag(<a href="#extra_rustc_flag-name">name</a>)
 </pre>
-<p>Add additional rustc_flag from the command line with <code>--@rules_rust//:extra_rustc_flag</code>. Multiple uses are accumulated and appended after the extra_rustc_flags.</p>
+<p>Add additional rustc_flag from the command line with <code>--@rules_rust//rust/settings:extra_rustc_flag</code>. Multiple uses are accumulated and appended after the extra_rustc_flags.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="extra_rustc_flag-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
@@ -249,7 +249,7 @@ extra_rustc_flag(<a href="#extra_rustc_flag-name">name</a>)
 <pre>
 extra_rustc_flags(<a href="#extra_rustc_flags-name">name</a>)
 </pre>
-<p>Add additional rustc_flags from the command line with <code>--@rules_rust//:extra_rustc_flags</code>. This flag should only be used for flags that need to be applied across the entire build. For options that apply to individual crates, use the rustc_flags attribute on the individual crate's rule instead. NOTE: These flags not applied to the exec configuration (proc-macros, cargo_build_script, etc); use <code>--@rules_rust//:extra_exec_rustc_flags</code> to apply flags to the exec configuration.</p>
+<p>Add additional rustc_flags from the command line with <code>--@rules_rust//rust/settings:extra_rustc_flags</code>. This flag should only be used for flags that need to be applied across the entire build. For options that apply to individual crates, use the rustc_flags attribute on the individual crate's rule instead. NOTE: These flags not applied to the exec configuration (proc-macros, cargo_build_script, etc); use <code>--@rules_rust//rust/settings:extra_exec_rustc_flags</code> to apply flags to the exec configuration.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="extra_rustc_flags-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
@@ -1245,7 +1245,7 @@ rust_register_toolchains(<a href="#rust_register_toolchains-dev_components">dev_
 <tr><td style="text-align: left"><a id="rust_register_toolchains-extra_rustc_flags"></a>extra_rustc_flags</td><td style="text-align: left">Dictionary of target triples to list of extra flags to pass to rustc in non-exec configuration.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_register_toolchains-extra_exec_rustc_flags"></a>extra_exec_rustc_flags</td><td style="text-align: left">Extra flags to pass to rustc in exec configuration.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_register_toolchains-urls"></a>urls</td><td style="text-align: left">A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).</td><td style="text-align: left"><code>["https://static.rust-lang.org/dist/{}.tar.xz"]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_register_toolchains-versions"></a>versions</td><td style="text-align: left">A list of toolchain versions to download. This parameter only accepts one versions per channel. E.g. <code>["1.65.0", "nightly/2022-11-02", "beta/2020-12-30"]</code>.</td><td style="text-align: left"><code>["1.82.0", "nightly/2024-10-17"]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_register_toolchains-versions"></a>versions</td><td style="text-align: left">A list of toolchain versions to download. This parameter only accepts one versions per channel. E.g. <code>["1.65.0", "nightly/2022-11-02", "beta/2020-12-30"]</code>.</td><td style="text-align: left"><code>["1.83.0", "nightly/2024-11-28"]</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_register_toolchains-aliases"></a>aliases</td><td style="text-align: left">A mapping of "full" repository name to another name to use instead.</td><td style="text-align: left"><code>{}</code></td></tr>
 </tbody></table>
 </div>
@@ -1444,7 +1444,7 @@ rustfmt_aspect(<a href="#rustfmt_aspect-name">name</a>)
 <ul>
 <li><code>rustfmt_checks</code>: Executes <code>rustfmt --check</code> on the specified target.</li>
 </ul>
-<p>The build setting <code>@rules_rust//:rustfmt.toml</code> is used to control the Rustfmt <a href="https://rust-lang.github.io/rustfmt/">configuration settings</a>
+<p>The build setting <code>@rules_rust//rust/settings:rustfmt.toml</code> is used to control the Rustfmt <a href="https://rust-lang.github.io/rustfmt/">configuration settings</a>
 used at runtime.</p>
 <p>This aspect is executed on any target which provides the <code>CrateInfo</code> provider. However
 users may tag a target with <code>no-rustfmt</code> or <code>no-format</code> to have it skipped. Additionally,
@@ -1478,7 +1478,7 @@ cargo_bootstrap_repository(<a href="#cargo_bootstrap_repository-name">name</a>, 
 <tr><td style="text-align: left"><a id="cargo_bootstrap_repository-rust_toolchain_cargo_template"></a>rust_toolchain_cargo_template</td><td style="text-align: left">The template to use for finding the host <code>cargo</code> binary. <code>{version}</code> (eg. '1.53.0'), <code>{triple}</code> (eg. 'x86_64-unknown-linux-gnu'), <code>{arch}</code> (eg. 'aarch64'), <code>{vendor}</code> (eg. 'unknown'), <code>{system}</code> (eg. 'darwin'), <code>{channel}</code> (eg. 'stable'), and <code>{tool}</code> (eg. 'rustc.exe') will be replaced in the string if present.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rust_{system}_{arch}__{triple}__{channel}_tools//:bin/{tool}"</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_bootstrap_repository-rust_toolchain_rustc_template"></a>rust_toolchain_rustc_template</td><td style="text-align: left">The template to use for finding the host <code>rustc</code> binary. <code>{version}</code> (eg. '1.53.0'), <code>{triple}</code> (eg. 'x86_64-unknown-linux-gnu'), <code>{arch}</code> (eg. 'aarch64'), <code>{vendor}</code> (eg. 'unknown'), <code>{system}</code> (eg. 'darwin'), <code>{channel}</code> (eg. 'stable'), and <code>{tool}</code> (eg. 'rustc.exe') will be replaced in the string if present.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rust_{system}_{arch}__{triple}__{channel}_tools//:bin/{tool}"</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_bootstrap_repository-timeout"></a>timeout</td><td style="text-align: left">Maximum duration of the Cargo build command in seconds</td><td style="text-align: left">Integer</td><td style="text-align: left">optional</td><td style="text-align: left"><code>600</code></td></tr>
-<tr><td style="text-align: left"><a id="cargo_bootstrap_repository-version"></a>version</td><td style="text-align: left">The version of Rust the currently registered toolchain is using. Eg. <code>1.56.0</code>, or <code>nightly/2021-09-08</code></td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"1.82.0"</code></td></tr>
+<tr><td style="text-align: left"><a id="cargo_bootstrap_repository-version"></a>version</td><td style="text-align: left">The version of Rust the currently registered toolchain is using. Eg. <code>1.56.0</code>, or <code>nightly/2021-09-08</code></td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"1.83.0"</code></td></tr>
 </tbody></table>
 </div>
 <p><a id="rust_toolchain_repository_proxy"></a></p>
