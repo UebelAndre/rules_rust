@@ -4208,6 +4208,11 @@ rust_binary(
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <h1 id="rules_rust_wasm_bindgen"><a class="header" href="#rules_rust_wasm_bindgen">rules_rust_wasm_bindgen</a></h1>
 <p>Bazel rules for generating wasm modules for Javascript using <a href="https://github.com/rustwasm/wasm-bindgen">wasm-bindgen</a>.</p>
+<h2 id="rules-4"><a class="header" href="#rules-4">Rules</a></h2>
+<ul>
+<li><a href="rust_wasm_bindgen.html#rust_wasm_bindgen">rust_wasm_bindgen</a></li>
+<li><a href="rust_wasm_bindgen.html#rust_wasm_bindgen_toolchain">rust_wasm_bindgen_toolchain</a></li>
+</ul>
 <h2 id="setup-10"><a class="header" href="#setup-10">Setup</a></h2>
 <p>To begin using the <code>wasm-bindgen</code> rules, users can load the necessary dependencies
 in their workspace by adding the following to their <code>WORKSPACE.bazel</code> file.</p>
@@ -4223,14 +4228,14 @@ workspace instead of relying on the one provided by <code>rules_rust</code>. In 
 should avoid calling <code>rust_wasm_bindgen_register_toolchains</code> and instead use the
 <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_toolchain">rust_wasm_bindgen_toolchain</a> rule to define their own
 toolchains to register in the workspace.</p>
-<h3 id="interfacing-with-javascript-rules"><a class="header" href="#interfacing-with-javascript-rules">Interfacing with Javascript rules</a></h3>
+<h2 id="interfacing-with-javascript-rules"><a class="header" href="#interfacing-with-javascript-rules">Interfacing with Javascript rules</a></h2>
 <p>While it's recommended for users to mantain their own , in the
 <code>@rules_rust_wasm_bindgen</code> package there exists interface sub-packages for various
-Javascript Bazel rules. E.g. <code>build_bazel_rules_nodejs</code> or <code>aspect_rules_js</code>. The
-rules defined there are a more convenient way to use <code>rust_wasm_bindgen</code> with the
-associated javascript rules due to the inclusion of additional providers. Each
-directory contains a <code>defs.bzl</code> file that defines the different variants of
-<code>rust_wasm_bindgen</code>. (e.g. <code>nodejs_rust_wasm_bindgen</code> for the <code>rules_nodejs</code> submodule).</p>
+Javascript Bazel rules. E.g. <code>aspect_rules_js</code>. The rules defined there are a more
+convenient way to use <code>rust_wasm_bindgen</code> with the associated javascript rules due
+to the inclusion of additional providers. Each directory contains a <code>defs.bzl</code> file
+that defines the different variants of <code>rust_wasm_bindgen</code>. (e.g. <code>js_rust_wasm_bindgen</code>
+for the <code>rules_js</code> submodule).</p>
 <p><a id="rust_wasm_bindgen"></a></p>
 <h2 id="rust_wasm_bindgen"><a class="header" href="#rust_wasm_bindgen">rust_wasm_bindgen</a></h2>
 <pre>
