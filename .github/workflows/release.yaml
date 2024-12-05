@@ -88,8 +88,7 @@ jobs:
           TARGET: "${{ matrix.env.TARGET }}"
       - name: Setup macos build tooling
         run: |
-          ls /Applications/
-          sudo xcode-select -s /Applications/Xcode_13.1.app/Contents/Developer/
+          sudo xcode-select -s /Applications/Xcode_15.2.0.app/Contents/Developer/
           # Set SDK environment variables
           echo "SDKROOT=$(xcrun -sdk macosx13.0 --show-sdk-path)" >> $GITHUB_ENV
           echo "MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx13.0 --show-sdk-platform-version)" >> $GITHUB_ENV
