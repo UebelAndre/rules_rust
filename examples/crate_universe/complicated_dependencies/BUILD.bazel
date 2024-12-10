@@ -1,7 +1,7 @@
-load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@bazel_skylib//rules:build_test.bzl", "build_test")
 
 # This target lays out the output needed from boringssl in the directory structure needed by the boring-sys build script.
+# TODO
 copy_to_directory(
     name = "boringssl_gen_dir",
     srcs = [
