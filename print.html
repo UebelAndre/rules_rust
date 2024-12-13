@@ -1096,9 +1096,9 @@ cargo_dep_env(<a href="cargo.html#cargo_dep_env-name">name</a>, <a href="cargo.h
 <h2 id="cargo_build_script"><a class="header" href="#cargo_build_script">cargo_build_script</a></h2>
 <pre>
 cargo_build_script(<a href="cargo.html#cargo_build_script-name">name</a>, <a href="cargo.html#cargo_build_script-edition">edition</a>, <a href="cargo.html#cargo_build_script-crate_name">crate_name</a>, <a href="cargo.html#cargo_build_script-crate_root">crate_root</a>, <a href="cargo.html#cargo_build_script-srcs">srcs</a>, <a href="cargo.html#cargo_build_script-crate_features">crate_features</a>, <a href="cargo.html#cargo_build_script-version">version</a>, <a href="cargo.html#cargo_build_script-deps">deps</a>,
-                   <a href="cargo.html#cargo_build_script-link_deps">link_deps</a>, <a href="cargo.html#cargo_build_script-proc_macro_deps">proc_macro_deps</a>, <a href="cargo.html#cargo_build_script-build_script_env">build_script_env</a>, <a href="cargo.html#cargo_build_script-data">data</a>, <a href="cargo.html#cargo_build_script-compile_data">compile_data</a>, <a href="cargo.html#cargo_build_script-tools">tools</a>, <a href="cargo.html#cargo_build_script-links">links</a>,
-                   <a href="cargo.html#cargo_build_script-rundir">rundir</a>, <a href="cargo.html#cargo_build_script-rustc_env">rustc_env</a>, <a href="cargo.html#cargo_build_script-rustc_env_files">rustc_env_files</a>, <a href="cargo.html#cargo_build_script-rustc_flags">rustc_flags</a>, <a href="cargo.html#cargo_build_script-visibility">visibility</a>, <a href="cargo.html#cargo_build_script-tags">tags</a>, <a href="cargo.html#cargo_build_script-aliases">aliases</a>,
-                   <a href="cargo.html#cargo_build_script-pkg_name">pkg_name</a>, <a href="cargo.html#cargo_build_script-kwargs">kwargs</a>)
+                   <a href="cargo.html#cargo_build_script-link_deps">link_deps</a>, <a href="cargo.html#cargo_build_script-proc_macro_deps">proc_macro_deps</a>, <a href="cargo.html#cargo_build_script-build_script_env">build_script_env</a>, <a href="cargo.html#cargo_build_script-use_default_shell_env">use_default_shell_env</a>, <a href="cargo.html#cargo_build_script-data">data</a>,
+                   <a href="cargo.html#cargo_build_script-compile_data">compile_data</a>, <a href="cargo.html#cargo_build_script-tools">tools</a>, <a href="cargo.html#cargo_build_script-links">links</a>, <a href="cargo.html#cargo_build_script-rundir">rundir</a>, <a href="cargo.html#cargo_build_script-rustc_env">rustc_env</a>, <a href="cargo.html#cargo_build_script-rustc_env_files">rustc_env_files</a>, <a href="cargo.html#cargo_build_script-rustc_flags">rustc_flags</a>,
+                   <a href="cargo.html#cargo_build_script-visibility">visibility</a>, <a href="cargo.html#cargo_build_script-tags">tags</a>, <a href="cargo.html#cargo_build_script-aliases">aliases</a>, <a href="cargo.html#cargo_build_script-pkg_name">pkg_name</a>, <a href="cargo.html#cargo_build_script-kwargs">kwargs</a>)
 </pre>
 <p>Compile and execute a rust build script to generate build attributes</p>
 <p>This rules take the same arguments as rust_binary.</p>
@@ -1160,6 +1160,7 @@ rust_library(
 <tr><td style="text-align: left"><a id="cargo_build_script-link_deps"></a>link_deps</td><td style="text-align: left">The subset of the (normal) dependencies of the crate that have the links attribute and therefore provide environment variables to this build script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-proc_macro_deps"></a>proc_macro_deps</td><td style="text-align: left">List of rust_proc_macro targets used to build the script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-build_script_env"></a>build_script_env</td><td style="text-align: left">Environment variables for build scripts.</td><td style="text-align: left"><code>{}</code></td></tr>
+<tr><td style="text-align: left"><a id="cargo_build_script-use_default_shell_env"></a>use_default_shell_env</td><td style="text-align: left">Whether or not to include the default shell environment for the build script action. If unset the global setting <code>@rules_rust//cargo/settings:use_default_shell_env</code> will be used to determine this value.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-data"></a>data</td><td style="text-align: left">Files needed by the build script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-compile_data"></a>compile_data</td><td style="text-align: left">Files needed for the compilation of the build script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-tools"></a>tools</td><td style="text-align: left">Tools (executables) needed by the build script.</td><td style="text-align: left"><code>[]</code></td></tr>
@@ -2257,9 +2258,9 @@ StdLibInfo(<a href="flatten.html#StdLibInfo-alloc_files">alloc_files</a>, <a hre
 <h2 id="cargo_build_script-1"><a class="header" href="#cargo_build_script-1">cargo_build_script</a></h2>
 <pre>
 cargo_build_script(<a href="flatten.html#cargo_build_script-name">name</a>, <a href="flatten.html#cargo_build_script-edition">edition</a>, <a href="flatten.html#cargo_build_script-crate_name">crate_name</a>, <a href="flatten.html#cargo_build_script-crate_root">crate_root</a>, <a href="flatten.html#cargo_build_script-srcs">srcs</a>, <a href="flatten.html#cargo_build_script-crate_features">crate_features</a>, <a href="flatten.html#cargo_build_script-version">version</a>, <a href="flatten.html#cargo_build_script-deps">deps</a>,
-                   <a href="flatten.html#cargo_build_script-link_deps">link_deps</a>, <a href="flatten.html#cargo_build_script-proc_macro_deps">proc_macro_deps</a>, <a href="flatten.html#cargo_build_script-build_script_env">build_script_env</a>, <a href="flatten.html#cargo_build_script-data">data</a>, <a href="flatten.html#cargo_build_script-compile_data">compile_data</a>, <a href="flatten.html#cargo_build_script-tools">tools</a>, <a href="flatten.html#cargo_build_script-links">links</a>,
-                   <a href="flatten.html#cargo_build_script-rundir">rundir</a>, <a href="flatten.html#cargo_build_script-rustc_env">rustc_env</a>, <a href="flatten.html#cargo_build_script-rustc_env_files">rustc_env_files</a>, <a href="flatten.html#cargo_build_script-rustc_flags">rustc_flags</a>, <a href="flatten.html#cargo_build_script-visibility">visibility</a>, <a href="flatten.html#cargo_build_script-tags">tags</a>, <a href="flatten.html#cargo_build_script-aliases">aliases</a>,
-                   <a href="flatten.html#cargo_build_script-pkg_name">pkg_name</a>, <a href="flatten.html#cargo_build_script-kwargs">kwargs</a>)
+                   <a href="flatten.html#cargo_build_script-link_deps">link_deps</a>, <a href="flatten.html#cargo_build_script-proc_macro_deps">proc_macro_deps</a>, <a href="flatten.html#cargo_build_script-build_script_env">build_script_env</a>, <a href="flatten.html#cargo_build_script-use_default_shell_env">use_default_shell_env</a>, <a href="flatten.html#cargo_build_script-data">data</a>,
+                   <a href="flatten.html#cargo_build_script-compile_data">compile_data</a>, <a href="flatten.html#cargo_build_script-tools">tools</a>, <a href="flatten.html#cargo_build_script-links">links</a>, <a href="flatten.html#cargo_build_script-rundir">rundir</a>, <a href="flatten.html#cargo_build_script-rustc_env">rustc_env</a>, <a href="flatten.html#cargo_build_script-rustc_env_files">rustc_env_files</a>, <a href="flatten.html#cargo_build_script-rustc_flags">rustc_flags</a>,
+                   <a href="flatten.html#cargo_build_script-visibility">visibility</a>, <a href="flatten.html#cargo_build_script-tags">tags</a>, <a href="flatten.html#cargo_build_script-aliases">aliases</a>, <a href="flatten.html#cargo_build_script-pkg_name">pkg_name</a>, <a href="flatten.html#cargo_build_script-kwargs">kwargs</a>)
 </pre>
 <p>Compile and execute a rust build script to generate build attributes</p>
 <p>This rules take the same arguments as rust_binary.</p>
@@ -2321,6 +2322,7 @@ rust_library(
 <tr><td style="text-align: left"><a id="cargo_build_script-link_deps"></a>link_deps</td><td style="text-align: left">The subset of the (normal) dependencies of the crate that have the links attribute and therefore provide environment variables to this build script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-proc_macro_deps"></a>proc_macro_deps</td><td style="text-align: left">List of rust_proc_macro targets used to build the script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-build_script_env"></a>build_script_env</td><td style="text-align: left">Environment variables for build scripts.</td><td style="text-align: left"><code>{}</code></td></tr>
+<tr><td style="text-align: left"><a id="cargo_build_script-use_default_shell_env"></a>use_default_shell_env</td><td style="text-align: left">Whether or not to include the default shell environment for the build script action. If unset the global setting <code>@rules_rust//cargo/settings:use_default_shell_env</code> will be used to determine this value.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-data"></a>data</td><td style="text-align: left">Files needed by the build script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-compile_data"></a>compile_data</td><td style="text-align: left">Files needed for the compilation of the build script.</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cargo_build_script-tools"></a>tools</td><td style="text-align: left">Tools (executables) needed by the build script.</td><td style="text-align: left"><code>[]</code></td></tr>
@@ -2749,11 +2751,11 @@ rust_toolchain_tools_repository(<a href="flatten.html#rust_toolchain_tools_repos
 </ol>
 <h2 id="setup-4"><a class="header" href="#setup-4">Setup</a></h2>
 <p>To use rules_rust in a project using bzlmod, add the following to your MODULE.bazel file:</p>
-<pre><code class="language-starlark">bazel_dep(name = "rules_rust", version = "0.49.3")
+<pre><code class="language-python">bazel_dep(name = "rules_rust", version = "0.49.3")
 </code></pre>
 <p>You find the latest version on the <a href="https://github.com/bazelbuild/rules_rust/releases">release page</a>.</p>
 <p>After adding <code>rules_rust</code> in your MODULE.bazel, set the following to begin using <code>crate_universe</code>:</p>
-<pre><code class="language-starlark">crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+<pre><code class="language-python">crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 //  # ... Dependencies
 use_repo(crate, "crates")
 </code></pre>
@@ -2768,7 +2770,7 @@ use_repo(crate, "crates")
 <p>One of the simpler ways to wire up dependencies would be to first structure your project into a Cargo workspace.
 The crates_repository rule can ingest a root Cargo.toml file and generate Bazel dependencies from there.
 You find a complete example in the in the <a href="../examples/bzlmod/all_crate_deps">example folder</a>.</p>
-<pre><code class="language-starlark">crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+<pre><code class="language-python">crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 
 crate.from_cargo(
     name = "crates",
@@ -2784,7 +2786,7 @@ Cargo.toml files to be the single source of truth for dependencies.
 Since these macros come from the generated repository, the dependencies and alias definitions
 they return will automatically update BUILD targets. In your BUILD files,
 you use these macros for a Rust library as shown below:</p>
-<pre><code class="language-starlark">load("@crate_index//:defs.bzl", "aliases", "all_crate_deps")
+<pre><code class="language-python">load("@crate_index//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 rust_library(
@@ -2815,7 +2817,7 @@ rust_test(
 </code></pre>
 <p>For a Rust binary that does not depend on any macro, use the following configuration
 in your build file:</p>
-<pre><code class="language-starlark">rust_binary(
+<pre><code class="language-python">rust_binary(
     name = "bin",
     srcs = ["src/main.rs"],
     deps = all_crate_deps(normal = True),
@@ -2840,7 +2842,7 @@ begin to be confused about missing targets or environment variables defined only
 In situations like this, it may be desirable to have a âCargo freeâ setup. You find an example in the in the <a href="../examples/bzlmod/hello_world_no_cargo">example folder</a>.</p>
 <p>crates_repository supports this through the packages attribute,
 as shown below.</p>
-<pre><code class="language-starlark">crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+<pre><code class="language-python">crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 
 crate.spec(package = "serde", features = ["derive"], version = "1.0")
 crate.spec(package = "serde_json", version = "1.0")
@@ -2851,7 +2853,7 @@ use_repo(crate, "crates")
 </code></pre>
 <p>Consuming dependencies may be more ergonomic in this case through the aliases defined in the new repository.
 In your BUILD files, you use direct dependencies as shown below:</p>
-<pre><code class="language-starlark">rust_binary(
+<pre><code class="language-python">rust_binary(
     name = "bin",
     crate_root = "src/main.rs",
     srcs = glob([
@@ -2874,7 +2876,7 @@ and stored in the workspace. This helps, for example, to conduct licence scans, 
 or to ensure full build reproducibility since no download error could possibly occur.
 You find a complete example in the in the <a href="../examples/bzlmod/all_deps_vendor">example folder</a>.</p>
 <p>For the setup, you need to add the skylib in addition to the rust rules to your MODUE.bazel.</p>
-<pre><code class="language-starlark">module(
+<pre><code class="language-python">module(
     name = "deps_vendored",
     version = "0.0.0"
 )
@@ -2915,7 +2917,7 @@ then you create a folder <code>basic/3rdparty</code>. The folder name can be arb
 but by convention, its either thirdparty or 3rdparty to indicate vendored dependencies.
 In the 3rdparty folder, you add a target crates_vendor to declare your dependencies to vendor.
 In the example, we vendor a specific version of bzip2.</p>
-<pre><code class="language-starlark">load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_vendor")
+<pre><code class="language-python">load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_vendor")
 
 crates_vendor(
     name = "crates_vendor",
@@ -2957,7 +2959,7 @@ Then, you rename Cargo.lock to Cargo.Bazel.lock and place it inside the <code>ba
 that depends on a vendored dependency. You find a list of all available vendored dependencies
 in the BUILD file of the generated folder: <code>basic/3rdparty/crates/BUILD.bazel</code>
 You declare a vendored dependency in you target as following:</p>
-<pre><code class="language-starlark">load("@rules_rust//rust:defs.bzl", "rust_binary")
+<pre><code class="language-python">load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 rust_binary(
     name = "hello_sys",
@@ -2969,7 +2971,7 @@ rust_binary(
 <p>Note, the vendored dependency is not yet accessible because you have to define first
 how to load the vendored dependencies. For that, you first create a file <code>sys_deps.bzl</code>
 and add the following content:</p>
-<pre><code class="language-starlark"># rename the default name "crate_repositories" in case you import multiple vendored folders.
+<pre><code class="language-python"># rename the default name "crate_repositories" in case you import multiple vendored folders.
 load("//basic/3rdparty/crates:defs.bzl", basic_crate_repositories = "crate_repositories")
 
 def sys_deps():
@@ -2981,7 +2983,7 @@ rename it to avoid name clashes in case you import from multiple vendored folder
 just load the vendored dependencies.</p>
 <p>In a WORKSPACE configuration, you would just load and call sys_deps(), but in a MODULE configuration, you cannot do that.
 Instead, you create a new file <code>WORKSPACE.bzlmod</code> and add the following content.</p>
-<pre><code class="language-starlark">load("//:sys_deps.bzl", "sys_deps")
+<pre><code class="language-python">load("//:sys_deps.bzl", "sys_deps")
 sys_deps()
 </code></pre>
 <p>Now, you can build the project as usual.</p>
@@ -3467,10 +3469,11 @@ crate.annotation(<a href="crate_universe.html#crate.annotation-version">version<
                  <a href="crate_universe.html#crate.annotation-build_script_compile_data">build_script_compile_data</a>, <a href="crate_universe.html#crate.annotation-build_script_data">build_script_data</a>, <a href="crate_universe.html#crate.annotation-build_script_tools">build_script_tools</a>,
                  <a href="crate_universe.html#crate.annotation-build_script_data_glob">build_script_data_glob</a>, <a href="crate_universe.html#crate.annotation-build_script_deps">build_script_deps</a>, <a href="crate_universe.html#crate.annotation-build_script_env">build_script_env</a>,
                  <a href="crate_universe.html#crate.annotation-build_script_proc_macro_deps">build_script_proc_macro_deps</a>, <a href="crate_universe.html#crate.annotation-build_script_rundir">build_script_rundir</a>, <a href="crate_universe.html#crate.annotation-build_script_rustc_env">build_script_rustc_env</a>,
-                 <a href="crate_universe.html#crate.annotation-build_script_toolchains">build_script_toolchains</a>, <a href="crate_universe.html#crate.annotation-compile_data">compile_data</a>, <a href="crate_universe.html#crate.annotation-compile_data_glob">compile_data_glob</a>, <a href="crate_universe.html#crate.annotation-crate_features">crate_features</a>, <a href="crate_universe.html#crate.annotation-data">data</a>,
-                 <a href="crate_universe.html#crate.annotation-data_glob">data_glob</a>, <a href="crate_universe.html#crate.annotation-deps">deps</a>, <a href="crate_universe.html#crate.annotation-extra_aliased_targets">extra_aliased_targets</a>, <a href="crate_universe.html#crate.annotation-gen_binaries">gen_binaries</a>, <a href="crate_universe.html#crate.annotation-disable_pipelining">disable_pipelining</a>,
-                 <a href="crate_universe.html#crate.annotation-gen_build_script">gen_build_script</a>, <a href="crate_universe.html#crate.annotation-patch_args">patch_args</a>, <a href="crate_universe.html#crate.annotation-patch_tool">patch_tool</a>, <a href="crate_universe.html#crate.annotation-patches">patches</a>, <a href="crate_universe.html#crate.annotation-proc_macro_deps">proc_macro_deps</a>, <a href="crate_universe.html#crate.annotation-rustc_env">rustc_env</a>,
-                 <a href="crate_universe.html#crate.annotation-rustc_env_files">rustc_env_files</a>, <a href="crate_universe.html#crate.annotation-rustc_flags">rustc_flags</a>, <a href="crate_universe.html#crate.annotation-shallow_since">shallow_since</a>, <a href="crate_universe.html#crate.annotation-override_targets">override_targets</a>)
+                 <a href="crate_universe.html#crate.annotation-build_script_toolchains">build_script_toolchains</a>, <a href="crate_universe.html#crate.annotation-build_script_use_default_shell_env">build_script_use_default_shell_env</a>, <a href="crate_universe.html#crate.annotation-compile_data">compile_data</a>,
+                 <a href="crate_universe.html#crate.annotation-compile_data_glob">compile_data_glob</a>, <a href="crate_universe.html#crate.annotation-crate_features">crate_features</a>, <a href="crate_universe.html#crate.annotation-data">data</a>, <a href="crate_universe.html#crate.annotation-data_glob">data_glob</a>, <a href="crate_universe.html#crate.annotation-deps">deps</a>, <a href="crate_universe.html#crate.annotation-extra_aliased_targets">extra_aliased_targets</a>,
+                 <a href="crate_universe.html#crate.annotation-gen_binaries">gen_binaries</a>, <a href="crate_universe.html#crate.annotation-disable_pipelining">disable_pipelining</a>, <a href="crate_universe.html#crate.annotation-gen_build_script">gen_build_script</a>, <a href="crate_universe.html#crate.annotation-patch_args">patch_args</a>, <a href="crate_universe.html#crate.annotation-patch_tool">patch_tool</a>, <a href="crate_universe.html#crate.annotation-patches">patches</a>,
+                 <a href="crate_universe.html#crate.annotation-proc_macro_deps">proc_macro_deps</a>, <a href="crate_universe.html#crate.annotation-rustc_env">rustc_env</a>, <a href="crate_universe.html#crate.annotation-rustc_env_files">rustc_env_files</a>, <a href="crate_universe.html#crate.annotation-rustc_flags">rustc_flags</a>, <a href="crate_universe.html#crate.annotation-shallow_since">shallow_since</a>,
+                 <a href="crate_universe.html#crate.annotation-override_targets">override_targets</a>)
 </pre>
 <p>A collection of extra attributes and settings for a particular crate</p>
 <p><strong>PARAMETERS</strong></p>
@@ -3489,6 +3492,7 @@ crate.annotation(<a href="crate_universe.html#crate.annotation-version">version<
 <tr><td style="text-align: left"><a id="crate.annotation-build_script_rundir"></a>build_script_rundir</td><td style="text-align: left">An override for the build script's rundir attribute.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.annotation-build_script_rustc_env"></a>build_script_rustc_env</td><td style="text-align: left">Additional environment variables to set on a crate's <code>cargo_build_script::env</code> attribute.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.annotation-build_script_toolchains"></a>build_script_toolchains</td><td style="text-align: left">A list of labels to set on a crates's <code>cargo_build_script::toolchains</code> attribute.</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="crate.annotation-build_script_use_default_shell_env"></a>build_script_use_default_shell_env</td><td style="text-align: left">Whether or not to include the default shell environment for the build script action.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.annotation-compile_data"></a>compile_data</td><td style="text-align: left">A list of labels to add to a crate's <code>rust_library::compile_data</code> attribute.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.annotation-compile_data_glob"></a>compile_data_glob</td><td style="text-align: left">A list of glob patterns to add to a crate's <code>rust_library::compile_data</code> attribute.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.annotation-crate_features"></a>crate_features</td><td style="text-align: left">A list of strings to add to a crate's <code>rust_library::crate_features</code> attribute.</td><td style="text-align: left"><code>None</code></td></tr>
