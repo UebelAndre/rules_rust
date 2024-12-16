@@ -3913,15 +3913,86 @@ rust_bindgen_library(<a href="rust_bindgen.html#rust_bindgen_library-name">name<
 <tr><td style="text-align: left"><a id="rust_bindgen_library-kwargs"></a>kwargs</td><td style="text-align: left">Arguments to forward to the underlying <code>rust_library</code> rule.</td><td style="text-align: left">none</td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<h1 id="rules_rust_mdbook"><a class="header" href="#rules_rust_mdbook">rules_rust_mdbook</a></h1>
+<p>Bazel rules for <a href="https://github.com/rust-lang/mdBook">mdBook</a>.</p>
+<h2 id="rules-3"><a class="header" href="#rules-3">Rules</a></h2>
+<ul>
+<li><a href="rust_mdbook.html#mdbook">mdbook</a></li>
+<li><a href="rust_mdbook.html#mdbook_server">mdbook_server</a></li>
+<li><a href="rust_mdbook.html#mdbook_toolchain">mdbook_toolchain</a></li>
+</ul>
+<h2 id="setup-8"><a class="header" href="#setup-8">Setup</a></h2>
+<pre><code class="language-python">load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# See releases for urls and checksums
+http_archive(
+    name = "rules_mdbook",
+    integrity = "{integrity}",
+    urls = ["https://github.com/abrisco/rules_mdbook/releases/download/{version}/rules_mdbook-{version}.tar.gz"],
+)
+
+load("@rules_rust_mdbook//:repositories.bzl", "mdbook_register_toolchains", "rules_mdbook_dependencies")
+
+rules_mdbook_dependencies()
+
+mdbook_register_toolchains()
+
+load("@rules_rust_mdbook//:repositories_transitive.bzl", "rules_mdbook_transitive_deps")
+
+rules_mdbook_transitive_deps()
+</code></pre>
+<hr />
+<hr />
+<p><a id="mdbook"></a></p>
+<h2 id="mdbook"><a class="header" href="#mdbook">mdbook</a></h2>
+<pre>
+mdbook(<a href="rust_mdbook.html#mdbook-name">name</a>, <a href="rust_mdbook.html#mdbook-srcs">srcs</a>, <a href="rust_mdbook.html#mdbook-book">book</a>, <a href="rust_mdbook.html#mdbook-plugins">plugins</a>)
+</pre>
+<p>Rules to create book from markdown files using <code>mdBook</code>.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="mdbook-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook-srcs"></a>srcs</td><td style="text-align: left">All inputs to the book.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="mdbook-book"></a>book</td><td style="text-align: left">The <code>book.toml</code> file.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook-plugins"></a>plugins</td><td style="text-align: left">Executables to inject into <code>PATH</code> for use in <a href="https://rust-lang.github.io/mdBook/format/configuration/preprocessors.html#provide-your-own-command">preprocessor commands</a>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+</tbody></table>
+</div>
+<p><a id="mdbook_server"></a></p>
+<h2 id="mdbook_server"><a class="header" href="#mdbook_server">mdbook_server</a></h2>
+<pre>
+mdbook_server(<a href="rust_mdbook.html#mdbook_server-name">name</a>, <a href="rust_mdbook.html#mdbook_server-book">book</a>, <a href="rust_mdbook.html#mdbook_server-hostname">hostname</a>, <a href="rust_mdbook.html#mdbook_server-port">port</a>)
+</pre>
+<p>Spawn an mdbook server for a given <code>mdbook</code> target.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="mdbook_server-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_server-book"></a>book</td><td style="text-align: left">The <code>mdbook</code> target to serve.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_server-hostname"></a>hostname</td><td style="text-align: left">The default hostname to use (Can be overridden on the command line).</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"localhost"</code></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_server-port"></a>port</td><td style="text-align: left">The default port to use (Can be overridden on the command line).</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"3000"</code></td></tr>
+</tbody></table>
+</div>
+<p><a id="mdbook_toolchain"></a></p>
+<h2 id="mdbook_toolchain"><a class="header" href="#mdbook_toolchain">mdbook_toolchain</a></h2>
+<pre>
+mdbook_toolchain(<a href="rust_mdbook.html#mdbook_toolchain-name">name</a>, <a href="rust_mdbook.html#mdbook_toolchain-mdbook">mdbook</a>, <a href="rust_mdbook.html#mdbook_toolchain-plugins">plugins</a>)
+</pre>
+<p>A <a href="https://rust-lang.github.io/mdBook/">mdBook</a> toolchain.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="mdbook_toolchain-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_toolchain-mdbook"></a>mdbook</td><td style="text-align: left">A <code>mdBook</code> binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_toolchain-plugins"></a>plugins</td><td style="text-align: left">Executables to inject into <code>PATH</code> for use in <a href="https://rust-lang.github.io/mdBook/format/configuration/preprocessors.html#provide-your-own-command">preprocessor commands</a>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <h1 id="rules_rust_prost"><a class="header" href="#rules_rust_prost">rules_rust_prost</a></h1>
 <p>These build rules are used for building <a href="https://developers.google.com/protocol-buffers/">protobufs</a>/<a href="https://grpc.io">gRPC</a> in <a href="http://www.rust-lang.org/">Rust</a> with Bazel
 using <a href="https://github.com/tokio-rs/prost">Prost</a> and <a href="https://github.com/tokio-rs/tonic">Tonic</a></p>
-<h2 id="rules-3"><a class="header" href="#rules-3">Rules</a></h2>
+<h2 id="rules-4"><a class="header" href="#rules-4">Rules</a></h2>
 <ul>
 <li><a href="rust_prost.html#rust_prost_library">rust_prost_library</a></li>
 <li><a href="rust_prost.html#rust_prost_toolchain">rust_prost_toolchain</a></li>
 </ul>
-<h2 id="setup-8"><a class="header" href="#setup-8">Setup</a></h2>
+<h2 id="setup-9"><a class="header" href="#setup-9">Setup</a></h2>
 <pre><code class="language-python">load("@rules_rust//proto/prost:repositories.bzl", "rust_prost_dependencies")
 
 rust_prost_dependencies()
@@ -4106,7 +4177,7 @@ actions with minimal impact to other consumers.</p>
 <h1 id="rules_rust_protobuf"><a class="header" href="#rules_rust_protobuf">rules_rust_protobuf</a></h1>
 <p>These build rules are used for building <a href="https://developers.google.com/protocol-buffers/">protobufs</a>/<a href="https://grpc.io">gRPC</a> in <a href="http://www.rust-lang.org/">Rust</a> with Bazel
 using <a href="https://github.com/stepancheg/rust-protobuf/"><code>rust-protobuf</code></a>.</p>
-<h2 id="setup-9"><a class="header" href="#setup-9">Setup</a></h2>
+<h2 id="setup-10"><a class="header" href="#setup-10">Setup</a></h2>
 <p>To use the Rust proto rules, add the following to your <code>WORKSPACE</code> file to add the
 external repositories for the Rust proto toolchain (in addition to the <a href="..">rust rules setup</a>):</p>
 <pre><code class="language-python">load("@rules_rust//proto/protobuf:repositories.bzl", "rust_proto_protobuf_dependencies", "rust_proto_protobuf_register_toolchains")
@@ -4256,12 +4327,12 @@ rust_binary(
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <h1 id="rules_rust_wasm_bindgen"><a class="header" href="#rules_rust_wasm_bindgen">rules_rust_wasm_bindgen</a></h1>
 <p>Bazel rules for generating wasm modules for Javascript using <a href="https://github.com/rustwasm/wasm-bindgen">wasm-bindgen</a>.</p>
-<h2 id="rules-4"><a class="header" href="#rules-4">Rules</a></h2>
+<h2 id="rules-5"><a class="header" href="#rules-5">Rules</a></h2>
 <ul>
 <li><a href="rust_wasm_bindgen.html#rust_wasm_bindgen">rust_wasm_bindgen</a></li>
 <li><a href="rust_wasm_bindgen.html#rust_wasm_bindgen_toolchain">rust_wasm_bindgen_toolchain</a></li>
 </ul>
-<h2 id="setup-10"><a class="header" href="#setup-10">Setup</a></h2>
+<h2 id="setup-11"><a class="header" href="#setup-11">Setup</a></h2>
 <p>To begin using the <code>wasm-bindgen</code> rules, users can load the necessary dependencies
 in their workspace by adding the following to their <code>WORKSPACE.bazel</code> file.</p>
 <pre><code class="language-python">load("@rules_rust_wasm_bindgen//:repositories.bzl", "rust_wasm_bindgen_dependencies", "rust_wasm_bindgen_register_toolchains")

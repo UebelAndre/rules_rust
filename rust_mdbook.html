@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>rust_analyzer - rules_rust</title>
+        <title>mdbook - rules_rust</title>
 
 
         <!-- Custom HTML head -->
@@ -156,120 +156,86 @@
                 <div id="content" class="content">
                     <main>
                         <!-- Generated with Stardoc: http://skydoc.bazel.build -->
-<h1 id="rust-analyzer"><a class="header" href="#rust-analyzer">Rust Analyzer</a></h1>
+<h1 id="rules_rust_mdbook"><a class="header" href="#rules_rust_mdbook">rules_rust_mdbook</a></h1>
+<p>Bazel rules for <a href="https://github.com/rust-lang/mdBook">mdBook</a>.</p>
+<h2 id="rules"><a class="header" href="#rules">Rules</a></h2>
 <ul>
-<li><a href="#rust_analyzer_aspect">rust_analyzer_aspect</a></li>
-<li><a href="#rust_analyzer_toolchain">rust_analyzer_toolchain</a></li>
+<li><a href="#mdbook">mdbook</a></li>
+<li><a href="#mdbook_server">mdbook_server</a></li>
+<li><a href="#mdbook_toolchain">mdbook_toolchain</a></li>
 </ul>
-<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>For <a href="https://rust-analyzer.github.io/manual.html#non-cargo-based-projects">non-Cargo projects</a>,
-<a href="https://rust-analyzer.github.io/">rust-analyzer</a> depends on a <code>rust-project.json</code> file at the
-root of the project that describes its structure. The <code>rust_analyzer</code> rule facilitates generating
-such a file.</p>
-<h3 id="setup"><a class="header" href="#setup">Setup</a></h3>
-<p>First, ensure <code>rules_rust</code> is setup in your workspace. By default, <code>rust_register_toolchains</code> will
-ensure a <a href="#rust_analyzer_toolchain">rust_analyzer_toolchain</a> is registered within the WORKSPACE.</p>
-<p>Next, load the dependencies for the <code>rust-project.json</code> generator tool:</p>
-<pre><code class="language-python">load("@rules_rust//tools/rust_analyzer:deps.bzl", "rust_analyzer_dependencies")
+<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
+<pre><code class="language-python">load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-rust_analyzer_dependencies()
-</code></pre>
-<p>Finally, run <code>bazel run @rules_rust//tools/rust_analyzer:gen_rust_project</code>
-whenever dependencies change to regenerate the <code>rust-project.json</code> file. It
-should be added to <code>.gitignore</code> because it is effectively a build artifact.
-Once the <code>rust-project.json</code> has been generated in the project root,
-rust-analyzer can pick it up upon restart.</p>
-<p>For users who do not use <code>rust_register_toolchains</code> to register toolchains, the following can be added
-to their WORKSPACE to register a <code>rust_analyzer_toolchain</code>. Please make sure the Rust version used in
-this toolchain matches the version used by the currently registered toolchain or the sources/documentation
-will not match what's being compiled with and can lead to confusing results.</p>
-<pre><code class="language-python">load("@rules_rust//rust:repositories.bzl", "rust_analyzer_toolchain_repository")
+# See releases for urls and checksums
+http_archive(
+    name = "rules_mdbook",
+    integrity = "{integrity}",
+    urls = ["https://github.com/abrisco/rules_mdbook/releases/download/{version}/rules_mdbook-{version}.tar.gz"],
+)
 
-register_toolchains(rust_analyzer_toolchain_repository(
-    name = "rust_analyzer_toolchain",
-    # This should match the currently registered toolchain.
-    version = "1.63.0",
-))
+load("@rules_rust_mdbook//:repositories.bzl", "mdbook_register_toolchains", "rules_mdbook_dependencies")
+
+rules_mdbook_dependencies()
+
+mdbook_register_toolchains()
+
+load("@rules_rust_mdbook//:repositories_transitive.bzl", "rules_mdbook_transitive_deps")
+
+rules_mdbook_transitive_deps()
 </code></pre>
-<h4 id="vscode"><a class="header" href="#vscode">VSCode</a></h4>
-<p>To set this up using <a href="https://code.visualstudio.com/">VSCode</a>, users should first install the
-<a href="https://marketplace.visualstudio.com/items?itemName=matklad.rust-analyzer">rust_analyzer plugin</a>.
-With that in place, the following task can be added to the <code>.vscode/tasks.json</code> file of the workspace
-to ensure a <code>rust-project.json</code> file is created and up to date when the editor is opened.</p>
-<pre><code class="language-json">{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Generate rust-project.json",
-            "command": "bazel",
-            "args": [
-                "run",
-                "//tools/rust_analyzer:gen_rust_project"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "group": "build",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "never",
-                "panel": "dedicated",
-            },
-            "runOptions": {
-                "runOn": "folderOpen"
-            }
-        },
-    ]
-}
-</code></pre>
-<h4 id="alternative-vscode-option-prototype"><a class="header" href="#alternative-vscode-option-prototype">Alternative vscode option (prototype)</a></h4>
-<p>Add the following to your bazelrc:</p>
-<pre><code>build --@rules_rust//rust/settings:rustc_output_diagnostics=true --output_groups=+rust_lib_rustc_output,+rust_metadata_rustc_output
-</code></pre>
-<p>Then you can use a prototype <a href="https://marketplace.visualstudio.com/items?itemName=MattStark.bazel-rust-analyzer">rust-analyzer plugin</a> that automatically collects the outputs whenever you recompile.</p>
-<p><a id="rust_analyzer_toolchain"></a></p>
-<h2 id="rust_analyzer_toolchain"><a class="header" href="#rust_analyzer_toolchain">rust_analyzer_toolchain</a></h2>
+<hr />
+<hr />
+<p><a id="mdbook"></a></p>
+<h2 id="mdbook"><a class="header" href="#mdbook">mdbook</a></h2>
 <pre>
-rust_analyzer_toolchain(<a href="#rust_analyzer_toolchain-name">name</a>, <a href="#rust_analyzer_toolchain-proc_macro_srv">proc_macro_srv</a>, <a href="#rust_analyzer_toolchain-rustc">rustc</a>, <a href="#rust_analyzer_toolchain-rustc_srcs">rustc_srcs</a>)
+mdbook(<a href="#mdbook-name">name</a>, <a href="#mdbook-srcs">srcs</a>, <a href="#mdbook-book">book</a>, <a href="#mdbook-plugins">plugins</a>)
 </pre>
-<p>A toolchain for <a href="https://rust-analyzer.github.io/">rust-analyzer</a>.</p>
+<p>Rules to create book from markdown files using <code>mdBook</code>.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="rust_analyzer_toolchain-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-<tr><td style="text-align: left"><a id="rust_analyzer_toolchain-proc_macro_srv"></a>proc_macro_srv</td><td style="text-align: left">The path to a <code>rust_analyzer_proc_macro_srv</code> binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_analyzer_toolchain-rustc"></a>rustc</td><td style="text-align: left">The path to a <code>rustc</code> binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-<tr><td style="text-align: left"><a id="rust_analyzer_toolchain-rustc_srcs"></a>rustc_srcs</td><td style="text-align: left">The source code of rustc.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook-srcs"></a>srcs</td><td style="text-align: left">All inputs to the book.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="mdbook-book"></a>book</td><td style="text-align: left">The <code>book.toml</code> file.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook-plugins"></a>plugins</td><td style="text-align: left">Executables to inject into <code>PATH</code> for use in <a href="https://rust-lang.github.io/mdBook/format/configuration/preprocessors.html#provide-your-own-command">preprocessor commands</a>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 </tbody></table>
 </div>
-<p><a id="rust_analyzer_aspect"></a></p>
-<h2 id="rust_analyzer_aspect"><a class="header" href="#rust_analyzer_aspect">rust_analyzer_aspect</a></h2>
+<p><a id="mdbook_server"></a></p>
+<h2 id="mdbook_server"><a class="header" href="#mdbook_server">mdbook_server</a></h2>
 <pre>
-rust_analyzer_aspect(<a href="#rust_analyzer_aspect-name">name</a>)
+mdbook_server(<a href="#mdbook_server-name">name</a>, <a href="#mdbook_server-book">book</a>, <a href="#mdbook_server-hostname">hostname</a>, <a href="#mdbook_server-port">port</a>)
 </pre>
-<p>Annotates rust rules with RustAnalyzerInfo later used to build a rust-project.json</p>
-<p><strong>ASPECT ATTRIBUTES</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Type</th></tr></thead><tbody>
-<tr><td style="text-align: left">deps</td><td style="text-align: left">String</td></tr>
-<tr><td style="text-align: left">proc_macro_deps</td><td style="text-align: left">String</td></tr>
-<tr><td style="text-align: left">crate</td><td style="text-align: left">String</td></tr>
-<tr><td style="text-align: left">actual</td><td style="text-align: left">String</td></tr>
-<tr><td style="text-align: left">proto</td><td style="text-align: left">String</td></tr>
-</tbody></table>
-</div>
+<p>Spawn an mdbook server for a given <code>mdbook</code> target.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="rust_analyzer_aspect-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_server-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_server-book"></a>book</td><td style="text-align: left">The <code>mdbook</code> target to serve.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_server-hostname"></a>hostname</td><td style="text-align: left">The default hostname to use (Can be overridden on the command line).</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"localhost"</code></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_server-port"></a>port</td><td style="text-align: left">The default port to use (Can be overridden on the command line).</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"3000"</code></td></tr>
+</tbody></table>
+</div>
+<p><a id="mdbook_toolchain"></a></p>
+<h2 id="mdbook_toolchain"><a class="header" href="#mdbook_toolchain">mdbook_toolchain</a></h2>
+<pre>
+mdbook_toolchain(<a href="#mdbook_toolchain-name">name</a>, <a href="#mdbook_toolchain-mdbook">mdbook</a>, <a href="#mdbook_toolchain-plugins">plugins</a>)
+</pre>
+<p>A <a href="https://rust-lang.github.io/mdBook/">mdBook</a> toolchain.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="mdbook_toolchain-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_toolchain-mdbook"></a>mdbook</td><td style="text-align: left">A <code>mdBook</code> binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="mdbook_toolchain-plugins"></a>plugins</td><td style="text-align: left">Executables to inject into <code>PATH</code> for use in <a href="https://rust-lang.github.io/mdBook/format/configuration/preprocessors.html#provide-your-own-command">preprocessor commands</a>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 </tbody></table>
 </div>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="cargo.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="rust_bindgen.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="flatten.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="rust_prost.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -279,11 +245,11 @@ rust_analyzer_aspect(<a href="#rust_analyzer_aspect-name">name</a>)
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="cargo.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="rust_bindgen.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="flatten.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="rust_prost.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
