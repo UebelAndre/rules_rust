@@ -2407,7 +2407,8 @@ rust_analyzer_toolchain_repository(<a href="flatten.html#rust_analyzer_toolchain
 rust_register_toolchains(<a href="flatten.html#rust_register_toolchains-dev_components">dev_components</a>, <a href="flatten.html#rust_register_toolchains-edition">edition</a>, <a href="flatten.html#rust_register_toolchains-allocator_library">allocator_library</a>, <a href="flatten.html#rust_register_toolchains-global_allocator_library">global_allocator_library</a>,
                          <a href="flatten.html#rust_register_toolchains-register_toolchains">register_toolchains</a>, <a href="flatten.html#rust_register_toolchains-rustfmt_version">rustfmt_version</a>, <a href="flatten.html#rust_register_toolchains-rust_analyzer_version">rust_analyzer_version</a>, <a href="flatten.html#rust_register_toolchains-sha256s">sha256s</a>,
                          <a href="flatten.html#rust_register_toolchains-extra_target_triples">extra_target_triples</a>, <a href="flatten.html#rust_register_toolchains-extra_rustc_flags">extra_rustc_flags</a>, <a href="flatten.html#rust_register_toolchains-extra_exec_rustc_flags">extra_exec_rustc_flags</a>, <a href="flatten.html#rust_register_toolchains-urls">urls</a>,
-                         <a href="flatten.html#rust_register_toolchains-versions">versions</a>, <a href="flatten.html#rust_register_toolchains-aliases">aliases</a>, <a href="flatten.html#rust_register_toolchains-hub_name">hub_name</a>, <a href="flatten.html#rust_register_toolchains-compact_windows_names">compact_windows_names</a>)
+                         <a href="flatten.html#rust_register_toolchains-versions">versions</a>, <a href="flatten.html#rust_register_toolchains-aliases">aliases</a>, <a href="flatten.html#rust_register_toolchains-hub_name">hub_name</a>, <a href="flatten.html#rust_register_toolchains-compact_windows_names">compact_windows_names</a>, <a href="flatten.html#rust_register_toolchains-toolchain_triples">toolchain_triples</a>,
+                         <a href="flatten.html#rust_register_toolchains-rustfmt_toolchain_triples">rustfmt_toolchain_triples</a>, <a href="flatten.html#rust_register_toolchains-extra_toolchain_infos">extra_toolchain_infos</a>)
 </pre>
 <p>Emits a default set of toolchains for Linux, MacOS, and Freebsd</p>
 <p>Skip this macro and call the <code>rust_repository_set</code> macros directly if you need a compiler for     other hosts or for additional target triples.</p>
@@ -2438,6 +2439,9 @@ rust_register_toolchains(<a href="flatten.html#rust_register_toolchains-dev_comp
 <tr><td style="text-align: left"><a id="rust_register_toolchains-aliases"></a>aliases</td><td style="text-align: left">A mapping of "full" repository name to another name to use instead.</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_register_toolchains-hub_name"></a>hub_name</td><td style="text-align: left">The name of the bzlmod hub repository for toolchains.</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_register_toolchains-compact_windows_names"></a>compact_windows_names</td><td style="text-align: left">Whether or not to produce compact repository names for windows toolchains. This is to avoid MAX_PATH issues.</td><td style="text-align: left"><code>True</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_register_toolchains-toolchain_triples"></a>toolchain_triples</td><td style="text-align: left">Mapping of rust target triple -&gt; repository name to create.</td><td style="text-align: left"><code>{"aarch64-apple-darwin": "rust_darwin_aarch64", "aarch64-pc-windows-msvc": "rust_windows_aarch64", "aarch64-unknown-linux-gnu": "rust_linux_aarch64", "s390x-unknown-linux-gnu": "rust_linux_s390x", "x86_64-apple-darwin": "rust_darwin_x86_64", "x86_64-pc-windows-msvc": "rust_windows_x86_64", "x86_64-unknown-freebsd": "rust_freebsd_x86_64", "x86_64-unknown-linux-gnu": "rust_linux_x86_64"}</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_register_toolchains-rustfmt_toolchain_triples"></a>rustfmt_toolchain_triples</td><td style="text-align: left">Like toolchain_triples, but for rustfmt toolchains.</td><td style="text-align: left"><code>{"aarch64-apple-darwin": "rust_darwin_aarch64", "aarch64-pc-windows-msvc": "rust_windows_aarch64", "aarch64-unknown-linux-gnu": "rust_linux_aarch64", "s390x-unknown-linux-gnu": "rust_linux_s390x", "x86_64-apple-darwin": "rust_darwin_x86_64", "x86_64-pc-windows-msvc": "rust_windows_x86_64", "x86_64-unknown-freebsd": "rust_freebsd_x86_64", "x86_64-unknown-linux-gnu": "rust_linux_x86_64"}</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_register_toolchains-extra_toolchain_infos"></a>extra_toolchain_infos</td><td style="text-align: left">(dict[str, dict], optional): Mapping of information about extra toolchains which were created outside of this call, which should be added to the hub repo.</td><td style="text-align: left"><code>None</code></td></tr>
 </tbody></table>
 </div>
 <p><a id="rust_repositories"></a></p>
@@ -2488,6 +2492,8 @@ rust_repository_set(<a href="flatten.html#rust_repository_set-name">name</a>, <a
 <tr><td style="text-align: left"><a id="rust_repository_set-compact_windows_names"></a>compact_windows_names</td><td style="text-align: left">Whether or not to produce compact repository names for windows toolchains. This is to avoid MAX_PATH issues.</td><td style="text-align: left"><code>True</code></td></tr>
 </tbody></table>
 </div>
+<p><strong>RETURNS</strong></p>
+<p>dict[str, dict]: A dict of informations about all generated toolchains.</p>
 <p><a id="rust_test_suite"></a></p>
 <h2 id="rust_test_suite-1"><a class="header" href="#rust_test_suite-1">rust_test_suite</a></h2>
 <pre>
@@ -2575,7 +2581,7 @@ rust_toolchain_repository(<a href="flatten.html#rust_toolchain_repository-name">
 </tbody></table>
 </div>
 <p><strong>RETURNS</strong></p>
-<p>str: The name of the registerable toolchain created by this rule.</p>
+<p>dict[str, str]: Information about the registerable toolchain created by this rule.</p>
 <p><a id="rust_analyzer_aspect"></a></p>
 <h2 id="rust_analyzer_aspect-1"><a class="header" href="#rust_analyzer_aspect-1">rust_analyzer_aspect</a></h2>
 <pre>
