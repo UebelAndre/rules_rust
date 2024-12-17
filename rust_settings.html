@@ -185,6 +185,15 @@
 </pre>
 <p>This setting is used by the clippy rules. See https://bazelbuild.github.io/rules_rust/rust_clippy.html</p>
 <p>Note that this setting is actually called <code>clippy.toml</code>.</p>
+<p><a id="codegen_units"></a></p>
+<h2 id="codegen_units"><a class="header" href="#codegen_units">codegen_units</a></h2>
+<pre>
+--@rules_rust//rust/settings:codegen_units
+</pre>
+<p>The default value for <code>--codegen-units</code> which also affects resource allocation for rustc actions.</p>
+<p>Note that any value 0 or less will prevent this flag from being passed by Bazel and allow rustc to
+perform it's default behavior.</p>
+<p>https://doc.rust-lang.org/rustc/codegen-options/index.html#codegen-units</p>
 <p><a id="error_format"></a></p>
 <h2 id="error_format"><a class="header" href="#error_format">error_format</a></h2>
 <pre>
