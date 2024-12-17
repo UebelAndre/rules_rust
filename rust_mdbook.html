@@ -184,6 +184,8 @@ rules_mdbook_transitive_deps()
 <p><a id="mdbook"></a></p>
 <h2 id="mdbook"><a class="header" href="#mdbook">mdbook</a></h2>
 <pre>
+load("@rules_rust_mdbook//:defs.bzl", "mdbook")
+
 mdbook(<a href="#mdbook-name">name</a>, <a href="#mdbook-srcs">srcs</a>, <a href="#mdbook-book">book</a>, <a href="#mdbook-plugins">plugins</a>)
 </pre>
 <p>Rules to create book from markdown files using <code>mdBook</code>.</p>
@@ -198,6 +200,8 @@ mdbook(<a href="#mdbook-name">name</a>, <a href="#mdbook-srcs">srcs</a>, <a href
 <p><a id="mdbook_server"></a></p>
 <h2 id="mdbook_server"><a class="header" href="#mdbook_server">mdbook_server</a></h2>
 <pre>
+load("@rules_rust_mdbook//:defs.bzl", "mdbook_server")
+
 mdbook_server(<a href="#mdbook_server-name">name</a>, <a href="#mdbook_server-book">book</a>, <a href="#mdbook_server-hostname">hostname</a>, <a href="#mdbook_server-port">port</a>)
 </pre>
 <p>Spawn an mdbook server for a given <code>mdbook</code> target.</p>
@@ -212,6 +216,8 @@ mdbook_server(<a href="#mdbook_server-name">name</a>, <a href="#mdbook_server-bo
 <p><a id="mdbook_toolchain"></a></p>
 <h2 id="mdbook_toolchain"><a class="header" href="#mdbook_toolchain">mdbook_toolchain</a></h2>
 <pre>
+load("@rules_rust_mdbook//:defs.bzl", "mdbook_toolchain")
+
 mdbook_toolchain(<a href="#mdbook_toolchain-name">name</a>, <a href="#mdbook_toolchain-mdbook">mdbook</a>, <a href="#mdbook_toolchain-plugins">plugins</a>)
 </pre>
 <p>A <a href="https://rust-lang.github.io/mdBook/">mdBook</a> toolchain.</p>
