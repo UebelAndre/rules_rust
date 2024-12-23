@@ -116,12 +116,14 @@ def _write_splicing_manifest(ctx):
     # Manifests are required to be single files
     manifests = {_prepare_manifest_path(m): str(m.label) for m in ctx.attr.manifests}
 
+    splicing_config = json.decode(ctx.attr.splicing_config) if ctx.attr.splicing_config else generate_splicing_config()
+
     manifest = _write_data_file(
         ctx = ctx,
         name = "cargo-bazel-splicing-manifest.json",
         data = generate_splicing_manifest(
             packages = ctx.attr.packages,
-            splicing_config = ctx.attr.splicing_config,
+            splicing_config = splicing_config,
             cargo_config = ctx.attr.cargo_config,
             manifests = manifests,
             manifest_to_path = _prepare_manifest_path,
@@ -142,7 +144,6 @@ def generate_splicing_manifest(packages, splicing_config, cargo_config, manifest
         for (pkg, data) in packages.items()
     }
 
-    config = json.decode(splicing_config or generate_splicing_config())
     splicing_manifest_content = {
         "cargo_config": str(manifest_to_path(cargo_config)) if cargo_config else None,
         "direct_packages": direct_packages_info,
@@ -150,7 +151,7 @@ def generate_splicing_manifest(packages, splicing_config, cargo_config, manifest
     }
 
     return json.encode_indent(
-        dict(dict(config).items() + splicing_manifest_content.items()),
+        dict(dict(splicing_config).items() + splicing_manifest_content.items()),
         indent = " " * 4,
     )
 
@@ -255,9 +256,14 @@ def generate_config_file(
 
     for key in updates:
         if (render_config[key] != default_render_config[key]) and key not in excluded_from_key_check:
+            if hasattr(ctx, "label"):
+                label = ctx.label
+            else:
+                # Suggests bzlmod
+                label = "UNKNOWN"
             fail("The `crates_vendor.render_config` attribute does not support the `{}` parameter. Please update {} to remove this value.".format(
                 key,
-                ctx.label,
+                label,
             ))
 
     render_config.update(updates)
