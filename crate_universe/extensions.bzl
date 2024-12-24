@@ -820,7 +820,7 @@ can be found below where the supported keys for each template can be found in th
             default = False,
         ),
         "generate_target_compatible_with": attr.bool(
-            doc = "Whether to generate `target_compatible_with` annotations on the generated BUILD files.  This catches a `target_triple`being targeted that isn't declared in `supported_platform_triples`.",
+            doc = "Whether to generate `target_compatible_with` annotations on the generated BUILD files.  This catches a `target_triple` being targeted that isn't declared in `supported_platform_triples`.",
             default = True,
         ),
         "platforms_template": attr.string(
