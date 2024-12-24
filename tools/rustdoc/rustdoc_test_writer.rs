@@ -1,6 +1,9 @@
 //! A utility for writing scripts for use as test executables intended to match the
 //! subcommands of Bazel build actions so `rustdoc --test`, which builds and tests
 //! code in a single call, can be run as a test target in a hermetic manner.
+//!
+//! Note that this script should be deletable once the following is addressed:
+//! https://github.com/bazelbuild/rules_rust/issues/1431
 
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
