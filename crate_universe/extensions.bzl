@@ -832,7 +832,7 @@ can be found below where the supported keys for each template can be found in th
             default = "",
         ),
         "vendor_mode": attr.string(
-            doc = "An optional configuration for rendirng content to be rendered into repositories.",
+            doc = "An optional configuration for rendering content to be rendered into repositories.",
             default = "",
         ),
     },
