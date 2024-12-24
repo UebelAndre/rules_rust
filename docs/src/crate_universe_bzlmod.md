@@ -468,10 +468,10 @@ can be found below where the supported keys for each template can be found in th
 | <a id="crate.render_config-default_alias_rule"></a>default_alias_rule |  Alias rule to use when generating aliases for all crates.  Acceptable values are 'alias', 'dbg'/'fastbuild'/'opt' (transitions each crate's `compilation_mode`)  or a string representing a rule in the form '<label to .bzl>:<rule>' that takes a single label parameter 'actual'. See '@crate_index//:alias_rules.bzl' for an example.   | String | optional |  `"alias"`  |
 | <a id="crate.render_config-default_package_name"></a>default_package_name |  The default package name to use in the rendered macros. This affects the auto package detection of things like `all_crate_deps`.   | String | optional |  `""`  |
 | <a id="crate.render_config-generate_rules_license_metadata"></a>generate_rules_license_metadata |  Whether to generate rules license metedata.   | Boolean | optional |  `False`  |
-| <a id="crate.render_config-generate_target_compatible_with"></a>generate_target_compatible_with |  Whether to generate `target_compatible_with` annotations on the generated BUILD files.  This catches a `target_triple`being targeted that isn't declared in `supported_platform_triples`.   | Boolean | optional |  `True`  |
+| <a id="crate.render_config-generate_target_compatible_with"></a>generate_target_compatible_with |  Whether to generate `target_compatible_with` annotations on the generated BUILD files.  This catches a `target_triple` being targeted that isn't declared in `supported_platform_triples`.   | Boolean | optional |  `True`  |
 | <a id="crate.render_config-platforms_template"></a>platforms_template |  The base template to use for platform names. See [platforms documentation](https://docs.bazel.build/versions/main/platforms.html). The available format keys are [`{triple}`].   | String | optional |  `"@rules_rust//rust/platform:{triple}"`  |
 | <a id="crate.render_config-regen_command"></a>regen_command |  An optional command to demonstrate how generated files should be regenerated.   | String | optional |  `""`  |
-| <a id="crate.render_config-vendor_mode"></a>vendor_mode |  An optional configuration for rendirng content to be rendered into repositories.   | String | optional |  `""`  |
+| <a id="crate.render_config-vendor_mode"></a>vendor_mode |  An optional configuration for rendering content to be rendered into repositories.   | String | optional |  `""`  |
 
 <a id="crate.spec"></a>
 
