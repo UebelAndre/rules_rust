@@ -443,25 +443,26 @@ def _get_generator(module_ctx):
     module_ctx.download(**download_kwargs)
     return output
 
-def _get_host_cargo_rustc(module_ctx):
+def _get_host_cargo_rustc(module_ctx, host_triple, host_tools_repo):
     """A helper function to get the path to the host cargo and rustc binaries.
 
     Args:
         module_ctx: The module extension's context.
+        host_triple: The platform triple for the machine executing this extension.
+        host_tools_repo: The `rust_host_tools` repository to use.
     Returns:
         A tuple of path to cargo, path to rustc.
     """
-    host_triple = get_host_triple(module_ctx)
     binary_ext = system_to_binary_ext(host_triple.system)
 
-    cargo_path = str(module_ctx.path(Label("@rust_host_tools//:bin/cargo{}".format(binary_ext))))
-    rustc_path = str(module_ctx.path(Label("@rust_host_tools//:bin/rustc{}".format(binary_ext))))
+    cargo_path = str(module_ctx.path(Label("@{}//:bin/cargo{}".format(host_tools_repo, binary_ext))))
+    rustc_path = str(module_ctx.path(Label("@{}//:bin/rustc{}".format(host_tools_repo, binary_ext))))
     return cargo_path, rustc_path
 
 def _crate_impl(module_ctx):
     reproducible = True
     generator = _get_generator(module_ctx)
-    cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx)
+    host_triple = get_host_triple(module_ctx)
 
     all_repos = []
 
@@ -559,6 +560,7 @@ def _crate_impl(module_ctx):
                 for m in cfg.manifests:
                     module_ctx.path(m)
 
+            cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx, host_triple, cfg.host_tools_repo)
             cargo_bazel_fn = new_cargo_bazel_fn(
                 repository_ctx = module_ctx,
                 cargo_bazel_path = generator,
@@ -631,6 +633,10 @@ _FROM_COMMON_ATTRS = {
     "cargo_lockfile": CRATES_VENDOR_ATTRS["cargo_lockfile"],
     "generate_binaries": CRATES_VENDOR_ATTRS["generate_binaries"],
     "generate_build_scripts": CRATES_VENDOR_ATTRS["generate_build_scripts"],
+    "host_tools_repo": attr.string(
+        doc = "The name of the `rust_host_tools` repository to use.",
+        default = "rust_host_tools",
+    ),
     "isolated": attr.bool(
         doc = (
             "If true, `CARGO_HOME` will be overwritten to a directory within the generated repository in " +
@@ -738,21 +744,21 @@ _annotation = tag_class(
             doc = "As a list, the subset of the crate's bins that should get `rust_binary` targets produced.",
         ),
         "gen_build_script": attr.string(
-            doc = "An authorative flag to determine whether or not to produce `cargo_build_script` targets for the current crate. Supported values are 'on', 'off', and 'auto'.",
+            doc = "An authoritative flag to determine whether or not to produce `cargo_build_script` targets for the current crate. Supported values are 'on', 'off', and 'auto'.",
             values = _OPT_BOOL_VALUES.keys(),
             default = "auto",
         ),
         "override_target_bin": attr.label(
-            doc = "An optional alternate taget to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
+            doc = "An optional alternate target to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
         ),
         "override_target_build_script": attr.label(
-            doc = "An optional alternate taget to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
+            doc = "An optional alternate target to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
         ),
         "override_target_lib": attr.label(
-            doc = "An optional alternate taget to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
+            doc = "An optional alternate target to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
         ),
         "override_target_proc_macro": attr.label(
-            doc = "An optional alternate taget to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
+            doc = "An optional alternate target to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
         ),
         "patch_args": attr.string_list(
             doc = "The `patch_args` attribute of a Bazel repository rule. See [http_archive.patch_args](https://docs.bazel.build/versions/main/repo/http.html#http_archive-patch_args)",
