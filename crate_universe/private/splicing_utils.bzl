@@ -121,6 +121,7 @@ def splice_workspace_manifest(
         cargo_lockfile,
         splicing_manifest,
         config_path,
+        output_dir,
         nonhermetic_root_bazel_workspace_dir):
     """Splice together a Cargo workspace from various other manifests and package definitions
 
@@ -129,22 +130,19 @@ def splice_workspace_manifest(
         cargo_bazel_fn (callable): A callback for invoking the `cargo-bazel` binary.
         cargo_lockfile (path): The path to a "Cargo.lock" file.
         splicing_manifest (path): The path to a splicing manifest.
-        config_path: The path to the config file (containing `cargo_bazel::config::Config`.)
+        config_path (path): The path to the config file (containing `cargo_bazel::config::Config`.)
+        output_dir (path): THe location in which to write splicing outputs.
         nonhermetic_root_bazel_workspace_dir (path): The path to the current workspace root
 
     Returns:
         path: The path to a Cargo metadata json file found in the spliced workspace root.
     """
-    repository_ctx.report_progress("Splicing Cargo workspace.")
-
-    splicing_output_dir = repository_ctx.path("splicing-output")
 
     # Generate a workspace root which contains all workspace members
-
     arguments = [
         "splice",
         "--output-dir",
-        splicing_output_dir,
+        output_dir,
         "--splicing-manifest",
         splicing_manifest,
         "--config",
@@ -179,10 +177,10 @@ def splice_workspace_manifest(
     )
 
     # This file must have been produced by the execution above.
-    spliced_lockfile = repository_ctx.path(splicing_output_dir.get_child("Cargo.lock"))
+    spliced_lockfile = repository_ctx.path(output_dir.get_child("Cargo.lock"))
     if not spliced_lockfile.exists:
         fail("Lockfile file does not exist: " + str(spliced_lockfile))
-    spliced_metadata = repository_ctx.path(splicing_output_dir.get_child("metadata.json"))
+    spliced_metadata = repository_ctx.path(output_dir.get_child("metadata.json"))
     if not spliced_metadata.exists:
         fail("Metadata file does not exist: " + str(spliced_metadata))
 

@@ -245,6 +245,10 @@ def _generate_hub_and_spokes(
     # If re-pinning is enabled, gather additional inputs for the generator
     kwargs = dict()
     if repin:
+        module_ctx.report_progress("Splicing Cargo workspace for `{}`".format(cfg.name))
+
+        splice_output_dir = module_ctx.path("splicing-output/{}".format(cfg.name))
+
         # Generate a top level Cargo workspace and manifest for use in generation
         splice_outputs = splice_workspace_manifest(
             repository_ctx = module_ctx,
@@ -252,6 +256,7 @@ def _generate_hub_and_spokes(
             cargo_lockfile = cargo_lockfile,
             splicing_manifest = splicing_manifest,
             config_path = config_file,
+            output_dir = splice_output_dir,
             nonhermetic_root_bazel_workspace_dir = nonhermetic_root_bazel_workspace_dir,
         )
 
@@ -272,8 +277,8 @@ def _generate_hub_and_spokes(
     warnings_output_file = module_ctx.path("warnings_output.json")
 
     # Run the generator
+    module_ctx.report_progress("Generating crate BUILD files for `{}`".format(cfg.name))
     execute_generator(
-        repository_ctx = module_ctx,
         cargo_bazel_fn = cargo_bazel_fn,
         config = config_file,
         splicing_manifest = splicing_manifest,
@@ -304,6 +309,7 @@ def _generate_hub_and_spokes(
         name = cfg.name,
         contents = {
             "BUILD.bazel": module_ctx.read(crates_dir.get_child("BUILD.bazel")),
+            "alias_rules.bzl": module_ctx.read(crates_dir.get_child("alias_rules.bzl")),
             "defs.bzl": module_ctx.read(crates_dir.get_child("defs.bzl")),
         },
     )
@@ -460,10 +466,75 @@ def _crate_impl(module_ctx):
     all_repos = []
 
     for mod in module_ctx.modules:
-        local_repos = []
-
         if not mod.tags.from_cargo and not mod.tags.from_specs:
             fail("`.from_cargo` or `.from_specs` are required. Please update {}", mod.name)
+
+        local_repos = []
+        module_annotations = {}
+        repo_specific_annotations = {}
+        for annotation_tag in mod.tags.annotation:
+            annotation_dict = structs.to_dict(annotation_tag)
+            repositories = annotation_dict.pop("repositories")
+            crate = annotation_dict.pop("crate")
+
+            # The crate.annotation function can take in either a list or a bool.
+            # For the tag-based method, because it has type safety, we have to
+            # split it into two parameters.
+            if annotation_dict.pop("gen_all_binaries"):
+                annotation_dict["gen_binaries"] = True
+            annotation_dict["gen_build_script"] = _OPT_BOOL_VALUES[annotation_dict["gen_build_script"]]
+
+            # Process the override targets for the annotation.
+            # In the non-bzlmod approach, this is given as a dict
+            # with the possible keys "`proc_macro`, `build_script`, `lib`, `bin`".
+            # With the tag-based approach used in Bzlmod, we run into an issue
+            # where there is no dict type that takes a string as a key and a Label as the value.
+            # To work around this, we split the override option into four, and reconstruct the
+            # dictionary here during processing
+            annotation_dict["override_targets"] = dict()
+            replacement = annotation_dict.pop("override_target_lib")
+            if replacement:
+                annotation_dict["override_targets"]["lib"] = str(replacement)
+
+            replacement = annotation_dict.pop("override_target_proc_macro")
+            if replacement:
+                annotation_dict["override_targets"]["proc_macro"] = str(replacement)
+
+            replacement = annotation_dict.pop("override_target_build_script")
+            if replacement:
+                annotation_dict["override_targets"]["build_script"] = str(replacement)
+
+            replacement = annotation_dict.pop("override_target_bin")
+            if replacement:
+                annotation_dict["override_targets"]["bin"] = str(replacement)
+
+            annotation = _crate_universe_crate.annotation(**{
+                k: v
+                for k, v in annotation_dict.items()
+                # Tag classes can't take in None, but the function requires None
+                # instead of the empty values in many cases.
+                # https://github.com/bazelbuild/bazel/issues/20744
+                if v != "" and v != [] and v != {}
+            })
+            if not repositories:
+                _get_or_insert(module_annotations, crate, []).append(annotation)
+            for repo in repositories:
+                _get_or_insert(
+                    _get_or_insert(repo_specific_annotations, repo, {}),
+                    crate,
+                    [],
+                ).append(annotation)
+
+        common_specs = []
+        repo_specific_specs = {}
+        for spec in mod.tags.spec:
+            if not spec.repositories:
+                common_specs.append(spec)
+            else:
+                for name in spec.repositories:
+                    if name not in repo_specific_specs:
+                        repo_specific_specs[name] = []
+                    repo_specific_specs[name].append(spec)
 
         for cfg in mod.tags.from_cargo + mod.tags.from_specs:
             if cfg.name in local_repos:
@@ -472,7 +543,7 @@ def _crate_impl(module_ctx):
                 ))
             if cfg.name in all_repos:
                 fail("Defined two crate universes with the same name in different MODULE.bazel files (`{}`). Either give one a different name, or use `use_extension(isolate=True)`".format(
-                    cfg.name
+                    cfg.name,
                 ))
             all_repos.append(cfg.name)
             local_repos.append(cfg.name)
@@ -496,67 +567,8 @@ def _crate_impl(module_ctx):
                 isolated = cfg.isolated,
             )
 
-            module_annotations = {}
-            repo_specific_annotations = {}
-            for annotation_tag in mod.tags.annotation:
-                annotation_dict = structs.to_dict(annotation_tag)
-                repositories = annotation_dict.pop("repositories")
-                crate = annotation_dict.pop("crate")
-
-                # The crate.annotation function can take in either a list or a bool.
-                # For the tag-based method, because it has type safety, we have to
-                # split it into two parameters.
-                if annotation_dict.pop("gen_all_binaries"):
-                    annotation_dict["gen_binaries"] = True
-                annotation_dict["gen_build_script"] = _OPT_BOOL_VALUES[annotation_dict["gen_build_script"]]
-
-                # Process the override targets for the annotation.
-                # In the non-bzlmod approach, this is given as a dict
-                # with the possible keys "`proc_macro`, `build_script`, `lib`, `bin`".
-                # With the tag-based approach used in Bzlmod, we run into an issue
-                # where there is no dict type that takes a string as a key and a Label as the value.
-                # To work around this, we split the override option into four, and reconstruct the
-                # dictionary here during processing
-                annotation_dict["override_targets"] = dict()
-                replacement = annotation_dict.pop("override_target_lib")
-                if replacement:
-                    annotation_dict["override_targets"]["lib"] = str(replacement)
-
-                replacement = annotation_dict.pop("override_target_proc_macro")
-                if replacement:
-                    annotation_dict["override_targets"]["proc_macro"] = str(replacement)
-
-                replacement = annotation_dict.pop("override_target_build_script")
-                if replacement:
-                    annotation_dict["override_targets"]["build_script"] = str(replacement)
-
-                replacement = annotation_dict.pop("override_target_bin")
-                if replacement:
-                    annotation_dict["override_targets"]["bin"] = str(replacement)
-
-                annotation = _crate_universe_crate.annotation(**{
-                    k: v
-                    for k, v in annotation_dict.items()
-                    # Tag classes can't take in None, but the function requires None
-                    # instead of the empty values in many cases.
-                    # https://github.com/bazelbuild/bazel/issues/20744
-                    if v != "" and v != [] and v != {}
-                })
-                if not repositories:
-                    _get_or_insert(module_annotations, crate, []).append(annotation)
-                for repo in repositories:
-                    _get_or_insert(
-                        _get_or_insert(repo_specific_annotations, repo, {}),
-                        crate,
-                        [],
-                    ).append(annotation)
-
-            for repo in repo_specific_annotations:
-                if repo not in local_repos:
-                    fail("Annotation specified for repo %s, but the module defined repositories %s" % (repo, local_repos))
-
-            rendering_config = _collect_render_config(module = mod)
-            splicing_config = _collect_splicing_config(module = mod)
+            rendering_config = _collect_render_config(mod, cfg.name)
+            splicing_config = _collect_splicing_config(mod, cfg.name)
 
             annotations = _annotations_for_repo(
                 module_annotations,
@@ -581,8 +593,11 @@ def _crate_impl(module_ctx):
             # Only `from_cargo` instances will have `manifests`.
             if hasattr(cfg, "manifests"):
                 manifests = {str(module_ctx.path(m)): str(m) for m in cfg.manifests}
-            else:
-                packages = {p.package: _package_to_json(p) for p in mod.tags.spec}
+
+            packages = {
+                p.package: _package_to_json(p)
+                for p in common_specs + repo_specific_specs.get(cfg.name, [])
+            }
 
             _generate_hub_and_spokes(
                 module_ctx = module_ctx,
@@ -596,6 +611,14 @@ def _crate_impl(module_ctx):
                 manifests = manifests,
                 packages = packages,
             )
+
+        for repo in repo_specific_annotations:
+            if repo not in local_repos:
+                fail("Annotation specified for repo {}, but the module defined repositories {}".format(repo, local_repos))
+
+        for repo in repo_specific_specs:
+            if repo not in local_repos:
+                fail("Spec specified for repo {}, but the module defined repositories {}".format(repo, local_repos))
 
     metadata_kwargs = {}
     if bazel_features.external_deps.extension_metadata_has_reproducible:
@@ -802,6 +825,10 @@ _spec = tag_class(
         "package": attr.string(
             doc = "The explicit name of the package.",
             mandatory = True,
+        ),
+        "repositories": attr.string_list(
+            doc = "A list of repository names specified from `crate.from_cargo(name=...)` that this spec is applied to. Defaults to all repositories.",
+            default = [],
         ),
         "rev": attr.string(
             doc = "The git revision of the remote crate. Tied with the `git` param. Only one of branch, tag or rev may be specified.",

@@ -67,6 +67,8 @@ def _crates_repository_impl(repository_ctx):
     # If re-pinning is enabled, gather additional inputs for the generator
     kwargs = dict()
     if repin:
+        repository_ctx.report_progress("Splicing Cargo workspace.")
+
         # Generate a top level Cargo workspace and manifest for use in generation
         metadata_path = splice_workspace_manifest(
             repository_ctx = repository_ctx,
@@ -74,6 +76,7 @@ def _crates_repository_impl(repository_ctx):
             cargo_lockfile = lockfiles.cargo,
             splicing_manifest = splicing_manifest,
             config_path = config_path,
+            output_dir = repository_ctx.path("splicing-output"),
             nonhermetic_root_bazel_workspace_dir = repository_ctx.workspace_root,
         )
 
@@ -85,8 +88,8 @@ def _crates_repository_impl(repository_ctx):
     warnings_output_file = repository_ctx.path("warnings-output-file")
 
     # Run the generator
+    repository_ctx.report_progress("Generating crate BUILD files.")
     execute_generator(
-        repository_ctx = repository_ctx,
         cargo_bazel_fn = cargo_bazel_fn,
         generator_label = repository_ctx.attr.generator,
         config = config_path,

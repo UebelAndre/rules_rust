@@ -414,7 +414,6 @@ def determine_repin(
 
 def execute_generator(
         *,
-        repository_ctx,
         cargo_bazel_fn,
         lockfile_path,
         cargo_lockfile_path,
@@ -429,7 +428,6 @@ def execute_generator(
     """Execute the `cargo-bazel` binary to produce `BUILD` and `.bzl` files.
 
     Args:
-        repository_ctx (repository_ctx): The rule's context object.
         cargo_bazel_fn (callable): A callback for invoking the `cargo-bazel` binary.
         lockfile_path (path): The path to a "lock" file (file used for reproducible renderings).
         cargo_lockfile_path (path): The path to a "Cargo.lock" file within the root workspace.
@@ -447,8 +445,6 @@ def execute_generator(
     Returns:
         struct: The results of `repository_ctx.execute`.
     """
-    repository_ctx.report_progress("Generating crate BUILD files.")
-
     args = [
         "generate",
         "--cargo-lockfile",
