@@ -2133,18 +2133,18 @@ crates_vendor(
 Then, you rename Cargo.lock to Cargo.Bazel.lock and place it inside the <code>basic/3rdparty</code> folder.</p>
 <p>At this point, you have the following folder and files:</p>
 <pre><code>basic
-    âââ 3rdparty
-    â   âââ BUILD.bazel
-    â   âââ Cargo.Bazel.lock
+    |-- 3rdparty
+    |   |-- BUILD.bazel
+    |   |-- Cargo.Bazel.lock
 </code></pre>
 <p>Now you can run the <code>crates_vendor</code> target:</p>
 <p><code>bazel run //basic/3rdparty:crates_vendor</code></p>
 <p>This generates a crate folders with all configurations for the vendored dependencies.</p>
 <pre><code>basic
-    âââ 3rdparty
-    â   âââ cratea
-    â   âââ BUILD.bazel
-    â   âââ Cargo.Bazel.lock
+    |-- 3rdparty
+    |   |-- cratea
+    |   |-- BUILD.bazel
+    |   |-- Cargo.Bazel.lock
 </code></pre>
 <p>Suppose you have an application in <code>basic/src</code> that is defined in <code>basic/BUILD.bazel</code> and
 that depends on a vendored dependency. You find a list of all available vendored dependencies
@@ -2182,7 +2182,7 @@ sys_deps()
 <p><a id="crate"></a></p>
 <h2 id="crate"><a class="header" href="#crate">crate</a></h2>
 <pre>
-crate = use_extension("@rules_rust//crate_universe:docs_bzlmod.bzl", "crate")
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 crate.annotation(<a href="crate_universe_bzlmod.html#crate.annotation-deps">deps</a>, <a href="crate_universe_bzlmod.html#crate.annotation-data">data</a>, <a href="crate_universe_bzlmod.html#crate.annotation-additive_build_file">additive_build_file</a>, <a href="crate_universe_bzlmod.html#crate.annotation-additive_build_file_content">additive_build_file_content</a>, <a href="crate_universe_bzlmod.html#crate.annotation-alias_rule">alias_rule</a>,
                  <a href="crate_universe_bzlmod.html#crate.annotation-build_script_data">build_script_data</a>, <a href="crate_universe_bzlmod.html#crate.annotation-build_script_data_glob">build_script_data_glob</a>, <a href="crate_universe_bzlmod.html#crate.annotation-build_script_deps">build_script_deps</a>, <a href="crate_universe_bzlmod.html#crate.annotation-build_script_env">build_script_env</a>,
                  <a href="crate_universe_bzlmod.html#crate.annotation-build_script_proc_macro_deps">build_script_proc_macro_deps</a>, <a href="crate_universe_bzlmod.html#crate.annotation-build_script_rundir">build_script_rundir</a>, <a href="crate_universe_bzlmod.html#crate.annotation-build_script_rustc_env">build_script_rustc_env</a>,
@@ -2574,7 +2574,7 @@ convenient accessors to larger sections of the dependency graph.</p>
 <p><a id="crates_vendor"></a></p>
 <h2 id="crates_vendor"><a class="header" href="#crates_vendor">crates_vendor</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crates_vendor")
+load("@rules_rust//crate_universe:defs.bzl", "crates_vendor")
 
 crates_vendor(<a href="crate_universe.html#crates_vendor-name">name</a>, <a href="crate_universe.html#crates_vendor-annotations">annotations</a>, <a href="crate_universe.html#crates_vendor-bazel">bazel</a>, <a href="crate_universe.html#crates_vendor-buildifier">buildifier</a>, <a href="crate_universe.html#crates_vendor-cargo_bazel">cargo_bazel</a>, <a href="crate_universe.html#crates_vendor-cargo_config">cargo_config</a>, <a href="crate_universe.html#crates_vendor-cargo_lockfile">cargo_lockfile</a>,
               <a href="crate_universe.html#crates_vendor-generate_binaries">generate_binaries</a>, <a href="crate_universe.html#crates_vendor-generate_build_scripts">generate_build_scripts</a>, <a href="crate_universe.html#crates_vendor-generate_target_compatible_with">generate_target_compatible_with</a>, <a href="crate_universe.html#crates_vendor-manifests">manifests</a>,
@@ -2656,57 +2656,10 @@ call against the generated workspace. The following table describes how to contr
 <tr><td style="text-align: left"><a id="crates_vendor-vendor_path"></a>vendor_path</td><td style="text-align: left">The path to a directory to write files into. Absolute paths will be treated as relative to the workspace root</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"crates"</code></td></tr>
 </tbody></table>
 </div>
-<p><a id="aliases"></a></p>
-<h2 id="aliases"><a class="header" href="#aliases">aliases</a></h2>
-<pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "aliases")
-
-aliases(<a href="crate_universe.html#aliases-normal">normal</a>, <a href="crate_universe.html#aliases-normal_dev">normal_dev</a>, <a href="crate_universe.html#aliases-proc_macro">proc_macro</a>, <a href="crate_universe.html#aliases-proc_macro_dev">proc_macro_dev</a>, <a href="crate_universe.html#aliases-build">build</a>, <a href="crate_universe.html#aliases-build_proc_macro">build_proc_macro</a>, <a href="crate_universe.html#aliases-package_name">package_name</a>)
-</pre>
-<p>Produces a map of Crate alias names to their original label</p>
-<p>If no dependency kinds are specified, <code>normal</code> and <code>proc_macro</code> are used by default.
-Setting any one flag will otherwise determine the contents of the returned dict.</p>
-<p><strong>PARAMETERS</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Default Value</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="aliases-normal"></a>normal</td><td style="text-align: left">If True, normal dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="aliases-normal_dev"></a>normal_dev</td><td style="text-align: left">If True, normal dev dependencies will be included in the output list..</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="aliases-proc_macro"></a>proc_macro</td><td style="text-align: left">If True, proc_macro dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="aliases-proc_macro_dev"></a>proc_macro_dev</td><td style="text-align: left">If True, dev proc_macro dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="aliases-build"></a>build</td><td style="text-align: left">If True, build dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="aliases-build_proc_macro"></a>build_proc_macro</td><td style="text-align: left">If True, build proc_macro dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="aliases-package_name"></a>package_name</td><td style="text-align: left">The package name of the set of dependencies to look up. Defaults to <code>native.package_name()</code> when unset.</td><td style="text-align: left"><code>None</code></td></tr>
-</tbody></table>
-</div>
-<p><strong>RETURNS</strong></p>
-<p>dict: The aliases of all associated packages</p>
-<p><a id="all_crate_deps"></a></p>
-<h2 id="all_crate_deps"><a class="header" href="#all_crate_deps">all_crate_deps</a></h2>
-<pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "all_crate_deps")
-
-all_crate_deps(<a href="crate_universe.html#all_crate_deps-normal">normal</a>, <a href="crate_universe.html#all_crate_deps-normal_dev">normal_dev</a>, <a href="crate_universe.html#all_crate_deps-proc_macro">proc_macro</a>, <a href="crate_universe.html#all_crate_deps-proc_macro_dev">proc_macro_dev</a>, <a href="crate_universe.html#all_crate_deps-build">build</a>, <a href="crate_universe.html#all_crate_deps-build_proc_macro">build_proc_macro</a>,
-               <a href="crate_universe.html#all_crate_deps-package_name">package_name</a>)
-</pre>
-<p>Finds the fully qualified label of all requested direct crate dependencies     for the package where this macro is called.</p>
-<p>If no parameters are set, all normal dependencies are returned. Setting any one flag will
-otherwise impact the contents of the returned list.</p>
-<p><strong>PARAMETERS</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Default Value</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="all_crate_deps-normal"></a>normal</td><td style="text-align: left">If True, normal dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="all_crate_deps-normal_dev"></a>normal_dev</td><td style="text-align: left">If True, normal dev dependencies will be included in the output list..</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="all_crate_deps-proc_macro"></a>proc_macro</td><td style="text-align: left">If True, proc_macro dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="all_crate_deps-proc_macro_dev"></a>proc_macro_dev</td><td style="text-align: left">If True, dev proc_macro dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="all_crate_deps-build"></a>build</td><td style="text-align: left">If True, build dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="all_crate_deps-build_proc_macro"></a>build_proc_macro</td><td style="text-align: left">If True, build proc_macro dependencies are included in the output list.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="all_crate_deps-package_name"></a>package_name</td><td style="text-align: left">The package name of the set of dependencies to look up. Defaults to <code>native.package_name()</code> when unset.</td><td style="text-align: left"><code>None</code></td></tr>
-</tbody></table>
-</div>
-<p><strong>RETURNS</strong></p>
-<p>list: A list of labels to generated rust targets (str)</p>
 <p><a id="crate.annotation"></a></p>
 <h2 id="crateannotation"><a class="header" href="#crateannotation">crate.annotation</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crate")
+load("@rules_rust//crate_universe:defs.bzl", "crate")
 
 crate.annotation(<a href="crate_universe.html#crate.annotation-version">version</a>, <a href="crate_universe.html#crate.annotation-additive_build_file">additive_build_file</a>, <a href="crate_universe.html#crate.annotation-additive_build_file_content">additive_build_file_content</a>, <a href="crate_universe.html#crate.annotation-alias_rule">alias_rule</a>,
                  <a href="crate_universe.html#crate.annotation-build_script_compile_data">build_script_compile_data</a>, <a href="crate_universe.html#crate.annotation-build_script_data">build_script_data</a>, <a href="crate_universe.html#crate.annotation-build_script_tools">build_script_tools</a>,
@@ -2762,7 +2715,7 @@ crate.annotation(<a href="crate_universe.html#crate.annotation-version">version<
 <p><a id="crate.select"></a></p>
 <h2 id="crateselect"><a class="header" href="#crateselect">crate.select</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crate")
+load("@rules_rust//crate_universe:defs.bzl", "crate")
 
 crate.select(<a href="crate_universe.html#crate.select-common">common</a>, <a href="crate_universe.html#crate.select-selects">selects</a>)
 </pre>
@@ -2778,7 +2731,7 @@ crate.select(<a href="crate_universe.html#crate.select-common">common</a>, <a hr
 <p><a id="crate.spec"></a></p>
 <h2 id="cratespec"><a class="header" href="#cratespec">crate.spec</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crate")
+load("@rules_rust//crate_universe:defs.bzl", "crate")
 
 crate.spec(<a href="crate_universe.html#crate.spec-package">package</a>, <a href="crate_universe.html#crate.spec-version">version</a>, <a href="crate_universe.html#crate.spec-artifact">artifact</a>, <a href="crate_universe.html#crate.spec-lib">lib</a>, <a href="crate_universe.html#crate.spec-default_features">default_features</a>, <a href="crate_universe.html#crate.spec-features">features</a>, <a href="crate_universe.html#crate.spec-git">git</a>, <a href="crate_universe.html#crate.spec-branch">branch</a>, <a href="crate_universe.html#crate.spec-tag">tag</a>, <a href="crate_universe.html#crate.spec-rev">rev</a>)
 </pre>
@@ -2803,7 +2756,7 @@ crate.spec(<a href="crate_universe.html#crate.spec-package">package</a>, <a href
 <p><a id="crate.workspace_member"></a></p>
 <h2 id="crateworkspace_member"><a class="header" href="#crateworkspace_member">crate.workspace_member</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crate")
+load("@rules_rust//crate_universe:defs.bzl", "crate")
 
 crate.workspace_member(<a href="crate_universe.html#crate.workspace_member-version">version</a>, <a href="crate_universe.html#crate.workspace_member-sha256">sha256</a>)
 </pre>
@@ -2816,54 +2769,10 @@ crate.workspace_member(<a href="crate_universe.html#crate.workspace_member-versi
 </div>
 <p><strong>RETURNS</strong></p>
 <p>string: A json encoded string of all inputs</p>
-<p><a id="crate_deps"></a></p>
-<h2 id="crate_deps"><a class="header" href="#crate_deps">crate_deps</a></h2>
-<pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crate_deps")
-
-crate_deps(<a href="crate_universe.html#crate_deps-deps">deps</a>, <a href="crate_universe.html#crate_deps-package_name">package_name</a>)
-</pre>
-<p>Finds the fully qualified label of the requested crates for the package where this macro is called.</p>
-<p><strong>PARAMETERS</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Default Value</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="crate_deps-deps"></a>deps</td><td style="text-align: left">The desired list of crate targets.</td><td style="text-align: left">none</td></tr>
-<tr><td style="text-align: left"><a id="crate_deps-package_name"></a>package_name</td><td style="text-align: left">The package name of the set of dependencies to look up. Defaults to <code>native.package_name()</code>.</td><td style="text-align: left"><code>None</code></td></tr>
-</tbody></table>
-</div>
-<p><strong>RETURNS</strong></p>
-<p>list: A list of labels to generated rust targets (str)</p>
-<p><a id="crate_repositories"></a></p>
-<h2 id="crate_repositories"><a class="header" href="#crate_repositories">crate_repositories</a></h2>
-<pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crate_repositories")
-
-crate_repositories()
-</pre>
-<p>A macro for defining repositories for all generated crates.</p>
-<p><strong>RETURNS</strong></p>
-<p>A list of repos visible to the module through the module extension.</p>
-<p><a id="crate_universe_dependencies"></a></p>
-<h2 id="crate_universe_dependencies"><a class="header" href="#crate_universe_dependencies">crate_universe_dependencies</a></h2>
-<pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crate_universe_dependencies")
-
-crate_universe_dependencies(<a href="crate_universe.html#crate_universe_dependencies-rust_version">rust_version</a>, <a href="crate_universe.html#crate_universe_dependencies-bootstrap">bootstrap</a>, <a href="crate_universe.html#crate_universe_dependencies-kwargs">kwargs</a>)
-</pre>
-<p>Define dependencies of the <code>cargo-bazel</code> Rust target</p>
-<p><strong>PARAMETERS</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Default Value</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="crate_universe_dependencies-rust_version"></a>rust_version</td><td style="text-align: left">The version of rust to use when generating dependencies.</td><td style="text-align: left"><code>"1.83.0"</code></td></tr>
-<tr><td style="text-align: left"><a id="crate_universe_dependencies-bootstrap"></a>bootstrap</td><td style="text-align: left">If true, a <code>cargo_bootstrap_repository</code> target will be generated.</td><td style="text-align: left"><code>False</code></td></tr>
-<tr><td style="text-align: left"><a id="crate_universe_dependencies-kwargs"></a>kwargs</td><td style="text-align: left">Arguments to pass through to cargo_bazel_bootstrap.</td><td style="text-align: left">none</td></tr>
-</tbody></table>
-</div>
-<p><strong>RETURNS</strong></p>
-<p>list[struct(repo=str, is_dev_dep=bool)]: A list of the repositories
-defined by this macro.</p>
 <p><a id="render_config"></a></p>
 <h2 id="render_config-1"><a class="header" href="#render_config-1">render_config</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "render_config")
+load("@rules_rust//crate_universe:defs.bzl", "render_config")
 
 render_config(<a href="crate_universe.html#render_config-build_file_template">build_file_template</a>, <a href="crate_universe.html#render_config-crate_label_template">crate_label_template</a>, <a href="crate_universe.html#render_config-crate_repository_template">crate_repository_template</a>,
               <a href="crate_universe.html#render_config-crates_module_template">crates_module_template</a>, <a href="crate_universe.html#render_config-default_alias_rule">default_alias_rule</a>, <a href="crate_universe.html#render_config-default_package_name">default_package_name</a>,
@@ -2902,7 +2811,7 @@ can be found below where the supported keys for each template can be found in th
 <p><a id="splicing_config"></a></p>
 <h2 id="splicing_config-1"><a class="header" href="#splicing_config-1">splicing_config</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "splicing_config")
+load("@rules_rust//crate_universe:defs.bzl", "splicing_config")
 
 splicing_config(<a href="crate_universe.html#splicing_config-resolver_version">resolver_version</a>)
 </pre>
@@ -2917,7 +2826,7 @@ splicing_config(<a href="crate_universe.html#splicing_config-resolver_version">r
 <p><a id="crates_repository"></a></p>
 <h2 id="crates_repository"><a class="header" href="#crates_repository">crates_repository</a></h2>
 <pre>
-load("@rules_rust//crate_universe:docs_workspace.bzl", "crates_repository")
+load("@rules_rust//crate_universe:defs.bzl", "crates_repository")
 
 crates_repository(<a href="crate_universe.html#crates_repository-name">name</a>, <a href="crate_universe.html#crates_repository-annotations">annotations</a>, <a href="crate_universe.html#crates_repository-cargo_config">cargo_config</a>, <a href="crate_universe.html#crates_repository-cargo_lockfile">cargo_lockfile</a>,
                   <a href="crate_universe.html#crates_repository-compressed_windows_toolchain_names">compressed_windows_toolchain_names</a>, <a href="crate_universe.html#crates_repository-generate_binaries">generate_binaries</a>, <a href="crate_universe.html#crates_repository-generate_build_scripts">generate_build_scripts</a>,
