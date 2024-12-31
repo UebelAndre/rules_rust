@@ -295,18 +295,18 @@ def aliases(
 _NORMAL_DEPENDENCIES = {
     "": {
         _COMMON_CONDITION: {
-            "anyhow": Label("@rrwbd__anyhow-1.0.71//:anyhow"),
-            "docopt": Label("@rrwbd__docopt-1.1.1//:docopt"),
-            "env_logger": Label("@rrwbd__env_logger-0.8.4//:env_logger"),
-            "log": Label("@rrwbd__log-0.4.19//:log"),
-            "rouille": Label("@rrwbd__rouille-3.6.2//:rouille"),
-            "serde": Label("@rrwbd__serde-1.0.171//:serde"),
-            "serde_json": Label("@rrwbd__serde_json-1.0.102//:serde_json"),
-            "ureq": Label("@rrwbd__ureq-2.8.0//:ureq"),
-            "walrus": Label("@rrwbd__walrus-0.20.3//:walrus"),
-            "wasm-bindgen": Label("@rrwbd__wasm-bindgen-0.2.92//:wasm_bindgen"),
-            "wasm-bindgen-cli-support": Label("@rrwbd__wasm-bindgen-cli-support-0.2.92//:wasm_bindgen_cli_support"),
-            "wasm-bindgen-shared": Label("@rrwbd__wasm-bindgen-shared-0.2.92//:wasm_bindgen_shared"),
+            "anyhow": Label("//:anyhow-1.0.71"),
+            "docopt": Label("//:docopt-1.1.1"),
+            "env_logger": Label("//:env_logger-0.8.4"),
+            "log": Label("//:log-0.4.19"),
+            "rouille": Label("//:rouille-3.6.2"),
+            "serde": Label("//:serde-1.0.171"),
+            "serde_json": Label("//:serde_json-1.0.102"),
+            "ureq": Label("//:ureq-2.8.0"),
+            "walrus": Label("//:walrus-0.20.3"),
+            "wasm-bindgen": Label("//:wasm-bindgen-0.2.92"),
+            "wasm-bindgen-cli-support": Label("//:wasm-bindgen-cli-support-0.2.92"),
+            "wasm-bindgen-shared": Label("//:wasm-bindgen-shared-0.2.92"),
         },
     },
 }
@@ -321,13 +321,13 @@ _NORMAL_ALIASES = {
 _NORMAL_DEV_DEPENDENCIES = {
     "": {
         _COMMON_CONDITION: {
-            "assert_cmd": Label("@rrwbd__assert_cmd-1.0.8//:assert_cmd"),
-            "diff": Label("@rrwbd__diff-0.1.13//:diff"),
-            "predicates": Label("@rrwbd__predicates-1.0.8//:predicates"),
-            "rayon": Label("@rrwbd__rayon-1.7.0//:rayon"),
-            "tempfile": Label("@rrwbd__tempfile-3.6.0//:tempfile"),
-            "wasmparser": Label("@rrwbd__wasmparser-0.102.0//:wasmparser"),
-            "wasmprinter": Label("@rrwbd__wasmprinter-0.2.60//:wasmprinter"),
+            "assert_cmd": Label("//:assert_cmd-1.0.8"),
+            "diff": Label("//:diff-0.1.13"),
+            "predicates": Label("//:predicates-1.0.8"),
+            "rayon": Label("//:rayon-1.7.0"),
+            "tempfile": Label("//:tempfile-3.6.0"),
+            "wasmparser": Label("//:wasmparser-0.102.0"),
+            "wasmprinter": Label("//:wasmprinter-0.2.60"),
         },
     },
 }
@@ -342,7 +342,7 @@ _NORMAL_DEV_ALIASES = {
 _PROC_MACRO_DEPENDENCIES = {
     "": {
         _COMMON_CONDITION: {
-            "serde_derive": Label("@rrwbd__serde_derive-1.0.171//:serde_derive"),
+            "serde_derive": Label("//:serde_derive-1.0.171"),
         },
     },
 }

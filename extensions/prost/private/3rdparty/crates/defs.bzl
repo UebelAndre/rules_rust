@@ -295,14 +295,14 @@ def aliases(
 _NORMAL_DEPENDENCIES = {
     "": {
         _COMMON_CONDITION: {
-            "h2": Label("@rrprd__h2-0.4.6//:h2"),
-            "prost": Label("@rrprd__prost-0.13.1//:prost"),
-            "prost-types": Label("@rrprd__prost-types-0.13.1//:prost_types"),
-            "protoc-gen-prost": Label("@rrprd__protoc-gen-prost-0.4.0//:protoc_gen_prost"),
-            "protoc-gen-tonic": Label("@rrprd__protoc-gen-tonic-0.4.1//:protoc_gen_tonic"),
-            "tokio": Label("@rrprd__tokio-1.39.3//:tokio"),
-            "tokio-stream": Label("@rrprd__tokio-stream-0.1.15//:tokio_stream"),
-            "tonic": Label("@rrprd__tonic-0.12.1//:tonic"),
+            "h2": Label("//:h2-0.4.6"),
+            "prost": Label("//:prost-0.13.1"),
+            "prost-types": Label("//:prost-types-0.13.1"),
+            "protoc-gen-prost": Label("//:protoc-gen-prost-0.4.0"),
+            "protoc-gen-tonic": Label("//:protoc-gen-tonic-0.4.1"),
+            "tokio": Label("//:tokio-1.39.3"),
+            "tokio-stream": Label("//:tokio-stream-0.1.15"),
+            "tonic": Label("//:tonic-0.12.1"),
         },
     },
 }
