@@ -200,7 +200,7 @@ use_repo(crate, "crates")
 <h3 id="cargo-workspaces"><a class="header" href="#cargo-workspaces">Cargo Workspaces</a></h3>
 <p>One of the simpler ways to wire up dependencies would be to first structure your project into a Cargo workspace.
 The crates_repository rule can ingest a root Cargo.toml file and generate Bazel dependencies from there.
-You find a complete example in the in the <a href="https://github.com/bazelbuild/rules_rust/examples/bzlmod/all_crate_deps">example folder</a>.</p>
+You find a complete example in the in the <a href="https://github.com/bazelbuild/rules_rust/tree/main/examples/all_crate_deps">example folder</a>.</p>
 <pre><code class="language-python">crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 
 crate.from_cargo(
@@ -348,7 +348,7 @@ You find a complete example in the in the <a href="https://github.com/bazelbuild
 # B A Z E L  C E N T R A L  R E G I S T R Y # https://registry.bazel.build/
 ###############################################################################
 # https://github.com/bazelbuild/bazel-skylib/releases/
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "bazel_skylib", version = "1.8.1")
 
 # https://github.com/bazelbuild/rules_rust/releases
 bazel_dep(name = "rules_rust", version = "0.63.0")
