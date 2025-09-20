@@ -259,6 +259,7 @@ rust_toolchain(
     rust_doc = "//:rustdoc",
     rust_std = "//:rust_std-{target_triple}",
     rustc = "//:rustc",
+    linker = {linker_label},
     rustfmt = {rustfmt_label},
     cargo = "//:cargo",
     clippy_driver = "//:clippy_driver_bin",
@@ -295,6 +296,7 @@ def BUILD_for_rust_toolchain(
         default_edition,
         include_rustfmt,
         include_llvm_tools,
+        include_linker,
         stdlib_linkflags = None,
         extra_rustc_flags = None,
         extra_exec_rustc_flags = None,
@@ -314,6 +316,7 @@ def BUILD_for_rust_toolchain(
         default_edition (str): Default Rust edition.
         include_rustfmt (bool): Whether rustfmt is present in the toolchain.
         include_llvm_tools (bool): Whether llvm-tools are present in the toolchain.
+        include_linker (bool): Whether a linker is available in the toolchain.
         stdlib_linkflags (list, optional): Overridden flags needed for linking to rust
                                            stdlib, akin to BAZEL_LINKLIBS. Defaults to
                                            None.
@@ -345,6 +348,10 @@ def BUILD_for_rust_toolchain(
     if global_allocator_library:
         global_allocator_library_label = "\"{global_allocator_library}\"".format(global_allocator_library = global_allocator_library)
 
+    linker_label = "None"
+    if include_linker:
+        linker_label = "\"//:linker_bin\""
+
     return _build_file_for_rust_toolchain_template.format(
         toolchain_name = name,
         binary_ext = system_to_binary_ext(target_triple.system),
@@ -360,6 +367,7 @@ def BUILD_for_rust_toolchain(
         llvm_cov_label = llvm_cov_label,
         llvm_profdata_label = llvm_profdata_label,
         llvm_lib_label = llvm_lib_label,
+        linker_label = linker_label,
         extra_rustc_flags = extra_rustc_flags,
         extra_exec_rustc_flags = extra_exec_rustc_flags,
         opt_level = opt_level,
