@@ -144,6 +144,11 @@ def _ltl(library, actions, cc_toolchain, feature_configuration):
         pic_static_library = library,
     )
 
+def _experimental_link_std_dylib(ctx):
+    return not is_exec_configuration(ctx) and \
+           ctx.attr.experimental_link_std_dylib[BuildSettingInfo].value and \
+           ctx.attr.rust_std[rust_common.stdlib_info].std_dylib != None
+
 def _make_libstd_and_allocator_ccinfo(
         cc_toolchain,
         feature_configuration,
@@ -420,7 +425,8 @@ def _generate_sysroot(
         cargo_clippy = None,
         llvm_tools = None,
         rust_std = None,
-        rustfmt = None):
+        rustfmt = None,
+        linker = None):
     """Generate a rust sysroot from collection of toolchain components
 
     Args:
@@ -434,6 +440,7 @@ def _generate_sysroot(
         llvm_tools (Target, optional): A collection of llvm tools used by `rustc`.
         rust_std (Target, optional): A collection of Files containing Rust standard library components.
         rustfmt (File, optional): The path to a `rustfmt` executable.
+        linker (File, optional): The path to a linker (e.g. `gcc-ld`) executable.
 
     Returns:
         struct: A struct of generated files representing the new sysroot
@@ -482,6 +489,12 @@ def _generate_sysroot(
         sysroot_rustfmt = _symlink_sysroot_bin(ctx, name, "bin", rustfmt)
         direct_files.extend([sysroot_rustfmt])
 
+    # Linker
+    sysroot_linker = None
+    if linker:
+        sysroot_linker = _symlink_sysroot_bin(ctx, name, "bin", linker)
+        direct_files.extend([sysroot_linker])
+
     # Llvm tools
     sysroot_llvm_tools = None
     if llvm_tools:
@@ -505,6 +518,7 @@ def _generate_sysroot(
             "cargo: {}".format(cargo),
             "clippy: {}".format(clippy),
             "cargo-clippy: {}".format(cargo_clippy),
+            "linker: {}".format(linker),
             "llvm_tools: {}".format(llvm_tools),
             "rust_std: {}".format(rust_std),
             "rustc_lib: {}".format(rustc_lib),
@@ -520,8 +534,9 @@ def _generate_sysroot(
     return struct(
         all_files = all_files,
         cargo = sysroot_cargo,
-        clippy = sysroot_clippy,
         cargo_clippy = sysroot_cargo_clippy,
+        clippy = sysroot_clippy,
+        linker = sysroot_linker,
         rust_std = sysroot_rust_std,
         rustc = sysroot_rustc,
         rustc_lib = sysroot_rustc_lib,
@@ -681,20 +696,45 @@ def _rust_toolchain_impl(ctx):
         fail("Either `target_triple` or `target_json` must be provided. Please update {}".format(
             ctx.label,
         ))
+
     cc_toolchain, feature_configuration = find_cc_toolchain(ctx)
-    experimental_link_std_dylib = _experimental_link_std_dylib(ctx)
-    make_ccinfo = lambda label, actions, allocator_library, std: (
-        _make_libstd_and_allocator_ccinfo(cc_toolchain, feature_configuration, label, actions, experimental_link_std_dylib, rust_std, allocator_library, std)
-    )
-    make_local_ccinfo = lambda allocator_library, std: make_ccinfo(
-        ctx.label,
-        ctx.actions,
-        struct(cc_info = allocator_library),
-        std,
-    )
+    if not ctx.attr.linker and cc_toolchain:
+        fail("A linker must be explicitly provided or a cc_toolchain must be registered.")
+
+    if cc_toolchain:
+        experimental_link_std_dylib = _experimental_link_std_dylib(ctx)
+
+        def make_ccinfo(label, actions, allocator_library, std):
+            return _make_libstd_and_allocator_ccinfo(
+                cc_toolchain,
+                feature_configuration,
+                label,
+                actions,
+                experimental_link_std_dylib,
+                rust_std,
+                allocator_library,
+                std,
+            )
+
+        def make_local_ccinfo(allocator_library, std):
+            return make_ccinfo(
+                ctx.label,
+                ctx.actions,
+                struct(cc_info = allocator_library),
+                std,
+            )
+
+    #     rust_register_toolchains(
+    #     versions = ["1.89.0"],
+    #     extra_rustc_flags = {
+    #         "x86_64-unknown-linux-gnu": [
+    #             "--codegen=link-arg=-B$(RUST_SYSROOT)/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+    #             "--codegen=link-arg=-fuse-ld=lld",
+    #         ],
+    #     },
+    # )
 
     # Include C++ toolchain files to ensure tools like 'ar' are available for cross-compilation
-    cc_toolchain, _ = find_cc_toolchain(ctx)
     all_files_depsets = [sysroot.all_files]
     if cc_toolchain and cc_toolchain.all_files:
         all_files_depsets.append(cc_toolchain.all_files)
@@ -714,6 +754,7 @@ def _rust_toolchain_impl(ctx):
         libstd_and_global_allocator_ccinfo = make_local_ccinfo(ctx.attr.global_allocator_library[CcInfo], "std"),
         nostd_and_global_allocator_ccinfo = make_local_ccinfo(ctx.attr.global_allocator_library[CcInfo], "no_std_with_alloc"),
         make_libstd_and_allocator_ccinfo = make_ccinfo,
+        linker = sysroot.linker,
         llvm_cov = ctx.file.llvm_cov,
         llvm_profdata = ctx.file.llvm_profdata,
         llvm_lib = ctx.files.llvm_lib,
@@ -759,11 +800,6 @@ def _rust_toolchain_impl(ctx):
         toolchain,
         make_variable_info,
     ]
-
-def _experimental_link_std_dylib(ctx):
-    return not is_exec_configuration(ctx) and \
-           ctx.attr.experimental_link_std_dylib[BuildSettingInfo].value and \
-           ctx.attr.rust_std[rust_common.stdlib_info].std_dylib != None
 
 rust_toolchain = rule(
     implementation = _rust_toolchain_impl,
@@ -853,6 +889,9 @@ rust_toolchain = rule(
         "global_allocator_library": attr.label(
             doc = "Target that provides allocator functions for when a global allocator is present.",
             default = "@rules_rust//ffi/cc/global_allocator_library",
+        ),
+        "linker": attr.label(
+            doc = "The label to an explicit linker to use (e.g. `gcc-ld`)",
         ),
         "llvm_cov": attr.label(
             doc = "The location of the `llvm-cov` binary. Can be a direct source or a filegroup containing one item. If None, rust code is not instrumented for coverage.",
@@ -996,7 +1035,7 @@ rust_toolchain = rule(
         ),
     },
     toolchains = [
-        "@bazel_tools//tools/cpp:toolchain_type",
+        # config_common.toolchain_type("@bazel_tools//tools/cpp:toolchain_type", mandatory = False)
     ],
     doc = """Declares a Rust toolchain for use.
 
