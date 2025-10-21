@@ -16,13 +16,30 @@ local_path_override(
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_cc", version = "0.2.8")
 bazel_dep(name = "rules_java", version = "8.13.0")
+bazel_dep(name = "apple_support", version = "1.24.1")
 bazel_dep(name = "rules_jvm_external", version = "6.6")
+single_version_override(
+    module_name = "rules_jvm_external",
+    patch_strip = 1,
+    patches = ["//:rules_jvm_external.patch"],
+)
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 use_repo(maven, "maven")
 
-bazel_dep(name = "rules_android", version = "0.6.0", repo_name = "build_bazel_rules_android")
+bazel_dep(name = "rules_android", version = "0.6.0")
+single_version_override(
+    module_name = "rules_android",
+    patch_strip = 1,
+    patches = ["//:rules_android.patch"],
+)
+
 bazel_dep(name = "rules_android_ndk", version = "0.1.3")
+single_version_override(
+    module_name = "rules_android_ndk",
+    patch_strip = 1,
+    patches = ["//:rules_android_ndk.patch"],
+)
 
 ###############################################################################
 # T O O L C H A I N S
@@ -79,10 +96,36 @@ REMOTE_JDK_REPOS = [
     for name in REMOTE_JDK_REPOS
 ]
 
-android_ndk_repository_extension = use_extension(
-    "@rules_android_ndk//:extension.bzl",
-    "android_ndk_repository_extension",
+remote_android_extensions = use_extension(
+    "@rules_android//bzlmod_extensions:android_extensions.bzl",
+    "remote_android_tools_extensions",
 )
-use_repo(android_ndk_repository_extension, "androidndk")
+use_repo(remote_android_extensions, "android_tools")
+
+# android_sdk_repository_extension = use_extension("@rules_android//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
+# use_repo(android_sdk_repository_extension, "androidsdk")
+
+# register_toolchains("@androidsdk//:all")
+android_sdk = use_extension("//:android_sdk_extensions.bzl", "android_sdk")
+use_repo(
+    android_sdk,
+    "androidsdk",
+    "androidsdk_36_darwin",
+    "androidsdk_36_linux",
+    "androidsdk_36_windows",
+)
+
+register_toolchains("@androidsdk//:all")
+
+# Custom NDK download extension - downloads NDK r27d automatically
+# Workaround for https://github.com/bazelbuild/rules_android_ndk/issues/44
+android_ndk = use_extension("//:android_ndk_extensions.bzl", "android_ndk")
+use_repo(
+    android_ndk,
+    "androidndk",
+    "androidndk_r27d_darwin",
+    "androidndk_r27d_linux",
+    "androidndk_r27d_windows",
+)
 
 register_toolchains("@androidndk//:all")

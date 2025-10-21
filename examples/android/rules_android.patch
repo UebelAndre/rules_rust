@@ -1,0 +1,60 @@
+diff --git a/rules/android_sdk_repository/rule.bzl b/rules/android_sdk_repository/rule.bzl
+index fe82242..e7cd569 100644
+--- a/rules/android_sdk_repository/rule.bzl
++++ b/rules/android_sdk_repository/rule.bzl
+@@ -94,7 +94,11 @@ def _android_sdk_repository_impl(repo_ctx):
+     # Determine the SDK path to use, either from the attribute or the environment.
+     android_sdk_path = repo_ctx.attr.path
+     if not android_sdk_path:
+-        android_sdk_path = repo_ctx.os.environ.get("ANDROID_HOME")
++        if repo_ctx.attr.anchor:
++            anchor = repo_ctx.path(Label(repo_ctx.attr.anchor))
++            android_sdk_path = anchor.dirname
++        else:
++            android_sdk_path = repo_ctx.getenv("ANDROID_HOME")
+     if not android_sdk_path:
+         # Create an empty repository that allows non-Android code to build.
+         repo_ctx.template("BUILD.bazel", _EMPTY_SDK_REPO_TEMPLATE)
+@@ -170,6 +174,7 @@ _android_sdk_repository = repository_rule(
+         "api_level": attr.int(default = 0),
+         "build_tools_version": attr.string(),
+         "path": attr.string(),
++        "anchor": attr.string(),
+     },
+     environ = ["ANDROID_HOME"],
+     local = True,
+@@ -179,7 +184,9 @@ def android_sdk_repository(
+         name,
+         path = "",
+         api_level = 0,
+-        build_tools_version = ""):
++        build_tools_version = "",
++        anchor = None,
++        register_toolchains = True):
+     """Create a repository with Android SDK toolchains.
+ 
+     The SDK will be located at the given path, or via the ANDROID_HOME
+@@ -190,17 +197,21 @@ def android_sdk_repository(
+       api_level: The SDK API level to use.
+       build_tools_version: The build_tools in the SDK to use.
+       path: The path to the Android SDK.
++      anchor: A label to some file found in the root of an SDK.
++      register_toolchains: Whether or not to register toolchains.
+     """
+ 
+     _android_sdk_repository(
+         name = name,
+         path = path,
+         api_level = api_level,
++        anchor = anchor,
+         build_tools_version = build_tools_version,
+     )
+ 
+-    native.register_toolchains("@%s//:sdk-toolchain" % name)
+-    native.register_toolchains("@%s//:all" % name)
++    if register_toolchains:
++        native.register_toolchains("@%s//:sdk-toolchain" % name)
++        native.register_toolchains("@%s//:all" % name)
+ 
+ def _android_sdk_repository_extension_impl(module_ctx):
+     root_modules = [m for m in module_ctx.modules if m.is_root and m.tags.configure]

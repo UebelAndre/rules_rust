@@ -1,6 +1,6 @@
-load("@build_bazel_rules_android//android:rules.bzl", "android_binary", "android_library")
-load("@rules_cc//cc:defs.bzl", "cc_library")
-load("@rules_rust//rust:defs.bzl", "rust_library")
+load("@rules_android//android:rules.bzl", "android_binary", "android_library")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_rust//rust:rust_library.bzl", "rust_library")
 
 rust_library(
     name = "rust_lib",

@@ -1,0 +1,27 @@
+diff --git a/private/rules/coursier.bzl b/private/rules/coursier.bzl
+index 69b4f4f..6a21275 100644
+--- a/private/rules/coursier.bzl
++++ b/private/rules/coursier.bzl
+@@ -256,6 +256,14 @@ def _get_aar_import_statement_or_empty_str(repository_ctx):
+         return ""
+ 
+ def _java_path(repository_ctx):
++    # Allow setting an env var to keep legacy JAVA_HOME behavior
++    use_java_home = repository_ctx.os.environ.get("RJE_COURSIER_USE_JAVA_HOME")
++
++    if use_java_home == None:
++        embedded_java = "../bazel_tools/jdk/bin/java"
++        if _is_file(repository_ctx, embedded_java):
++            return repository_ctx.path(embedded_java)
++
+     java_home = repository_ctx.os.environ.get("JAVA_HOME")
+     if java_home != None:
+         return repository_ctx.path(java_home + "/bin/java")
+@@ -1508,6 +1516,7 @@ coursier_fetch = repository_rule(
+         "COURSIER_URL",
+         "RJE_VERBOSE",
+         "XDG_CACHE_HOME",
++        "RJE_COURSIER_USE_JAVA_HOME",
+     ],
+     implementation = _coursier_fetch_impl,
+ )

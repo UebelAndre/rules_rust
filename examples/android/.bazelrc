@@ -48,8 +48,9 @@ build:unpretty --config=nightly
 ###############################################################################
 
 common --java_runtime_version=remotejdk_21
-
-build --fat_apk_cpu=arm64-v8a --android_crosstool_top=@androidndk//:toolchain
+common --java_language_version=21
+common --tool_java_language_version=21
+common --tool_java_runtime_version=remotejdk_21
 
 ###############################################################################
 ## Incompatibility flags
@@ -67,9 +68,6 @@ build --nolegacy_external_runfiles
 
 # A configuration for disabling bzlmod.
 common:no-bzlmod --noenable_bzlmod --enable_workspace
-
-# Disable the bzlmod lockfile, so we don't accidentally commit MODULE.bazel.lock
-common --lockfile_mode=off
 
 ###############################################################################
 ## Custom user flags
