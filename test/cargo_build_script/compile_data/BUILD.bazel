@@ -1,14 +1,28 @@
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("//cargo:defs.bzl", "cargo_build_script")
 load("//rust:defs.bzl", "rust_test")
-load("@bazel_skylib//rules:write_file.bzl", "write_file")
+
+write_file(
+    name = "generated_data",
+    out = "generated_data.txt",
+    content = [
+        "La-Li-Lu-Le-Lo",
+        "",
+    ],
+    newline = "unix",
+)
 
 cargo_build_script(
     name = "build_rs",
     srcs = ["build.rs"],
     data = [
         "data.txt",
+        ":generated_data.txt",
     ],
     edition = "2018",
+    # build_script_env = {
+    #     "GEN_DATA_RLOCATIONPATH": "$(rlocationpath :generated_data.txt)",
+    # },
 )
 
 rust_test(

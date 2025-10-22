@@ -93,7 +93,7 @@ pub struct RunfilesMaker {
     filename_suffixes_to_retain: BTreeSet<String>,
 
     /// Runfiles to include in `output_dir`.
-    runfiles: BTreeMap<PathBuf, RlocationPath>,
+    runfiles: BTreeMap<RlocationPath, PathBuf>,
 }
 
 impl RunfilesMaker {
@@ -128,10 +128,10 @@ impl RunfilesMaker {
                 } else {
                     s
                 };
-                let (src, dest) = s
+                let (dest, src) = s
                     .split_once('=')
                     .unwrap_or_else(|| panic!("Unexpected runfiles argument: {}", s));
-                (PathBuf::from(src), RlocationPath::from(dest))
+                (RlocationPath::from(dest), PathBuf::from(src))
             })
             .collect::<BTreeMap<_, _>>();
 
@@ -184,7 +184,7 @@ impl RunfilesMaker {
             }
         };
 
-        for (src, dest) in &self.runfiles {
+        for (dest, src) in &self.runfiles {
             let abs_dest = self.output_dir.join(dest);
             if let Some(parent) = abs_dest.parent() {
                 if !parent.exists() {
@@ -204,12 +204,23 @@ impl RunfilesMaker {
         Ok(())
     }
 
+    /// Replace the given value with an execpath if one was found.
+    pub fn replace_rlocationpath_with_execpath(&self, content: &mut String) {
+        for (src, dest) in &self.runfiles {
+            let path = self.output_dir.join(src);
+            let path_str = path.to_string_lossy().to_string();
+            // let new = format!("${{pwd}}/{}", dest.display());
+            let new = dest.to_string_lossy().to_string();
+            *content = content.replace(&path_str, &new);
+        }
+    }
+
     /// Delete runfiles from the runfiles directory that do not match user defined suffixes
     ///
     /// The Unix implementation assumes symlinks are supported and that the runfiles directory
     /// was created using symlinks.
     fn drain_runfiles_dir_unix(&self) -> Result<(), String> {
-        for (src, dest) in &self.runfiles {
+        for (dest, src) in &self.runfiles {
             let abs_dest = self.output_dir.join(dest);
 
             remove_symlink(&abs_dest).map_err(|e| {
@@ -258,7 +269,7 @@ impl RunfilesMaker {
     /// The Windows implementation assumes symlinks are not supported and real files will have
     /// been copied into the runfiles directory.
     fn drain_runfiles_dir_windows(&self) -> Result<(), String> {
-        for dest in self.runfiles.values() {
+        for dest in self.runfiles.keys() {
             if !self
                 .filename_suffixes_to_retain
                 .iter()

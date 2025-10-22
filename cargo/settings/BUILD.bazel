@@ -3,6 +3,7 @@ load(
     ":settings.bzl",
     "cargo_manifest_dir_filename_suffixes_to_retain",
     "debug_std_streams_output_group",
+    "experimental_replace_rlocationpath_in_env_vars",
     "experimental_symlink_execroot",
     "incompatible_runfiles_cargo_manifest_dir",
     "use_default_shell_env",
@@ -24,6 +25,8 @@ bzl_library(
 cargo_manifest_dir_filename_suffixes_to_retain()
 
 debug_std_streams_output_group()
+
+experimental_replace_rlocationpath_in_env_vars()
 
 experimental_symlink_execroot()
 

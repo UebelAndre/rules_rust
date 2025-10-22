@@ -40,9 +40,9 @@ pub enum BuildScriptOutput {
     /// cargo::rustc-link-arg
     LinkArg(String),
     /// cargo::rustc-env
-    Env(String),
+    RustcEnv(String),
     /// cargo::VAR=VALUE
-    DepEnv(String),
+    Env(String),
 }
 
 impl BuildScriptOutput {
@@ -76,7 +76,7 @@ impl BuildScriptOutput {
             "rustc-cfg" => Some(BuildScriptOutput::Cfg(param)),
             "rustc-flags" => Some(BuildScriptOutput::Flags(param)),
             "rustc-link-arg" => Some(BuildScriptOutput::LinkArg(param)),
-            "rustc-env" => Some(BuildScriptOutput::Env(param)),
+            "rustc-env" => Some(BuildScriptOutput::RustcEnv(param)),
             "rerun-if-changed" | "rerun-if-env-changed" =>
             // Ignored because Bazel will re-run if those change all the time.
             {
@@ -98,7 +98,7 @@ impl BuildScriptOutput {
             }
             _ => {
                 // cargo::KEY=VALUE — Metadata, used by links scripts.
-                Some(BuildScriptOutput::DepEnv(format!(
+                Some(BuildScriptOutput::Env(format!(
                     "{}={}",
                     cargo_instruction_name.to_uppercase().replace('-', "_"),
                     param
@@ -148,7 +148,7 @@ impl BuildScriptOutput {
         outputs
             .iter()
             .filter_map(|x| {
-                if let BuildScriptOutput::Env(env) = x {
+                if let BuildScriptOutput::RustcEnv(env) = x {
                     Some(Self::escape_for_serializing(Self::redact_exec_root(
                         env, exec_root,
                     )))
@@ -169,7 +169,7 @@ impl BuildScriptOutput {
         outputs
             .iter()
             .filter_map(|x| {
-                if let BuildScriptOutput::DepEnv(env) = x {
+                if let BuildScriptOutput::Env(env) = x {
                     Some(format!(
                         "{}{}",
                         prefix,
@@ -238,28 +238,25 @@ mod tests {
         let result = BuildScriptOutput::outputs_from_reader(reader);
         assert_eq!(result.len(), 13);
         assert_eq!(result[0], BuildScriptOutput::LinkLib("sdfsdf".to_owned()));
-        assert_eq!(result[1], BuildScriptOutput::Env("FOO=BAR".to_owned()));
+        assert_eq!(result[1], BuildScriptOutput::RustcEnv("FOO=BAR".to_owned()));
         assert_eq!(
             result[2],
             BuildScriptOutput::LinkSearch("/some/absolute/path/bleh".to_owned())
         );
-        assert_eq!(result[3], BuildScriptOutput::Env("BAR=FOO".to_owned()));
+        assert_eq!(result[3], BuildScriptOutput::RustcEnv("BAR=FOO".to_owned()));
         assert_eq!(result[4], BuildScriptOutput::Flags("-Lblah".to_owned()));
         assert_eq!(
             result[5],
             BuildScriptOutput::Cfg("feature=awesome".to_owned())
         );
-        assert_eq!(
-            result[6],
-            BuildScriptOutput::DepEnv("VERSION=123".to_owned())
-        );
+        assert_eq!(result[6], BuildScriptOutput::Env("VERSION=123".to_owned()));
         assert_eq!(
             result[7],
-            BuildScriptOutput::DepEnv("VERSION_NUMBER=1010107f".to_owned())
+            BuildScriptOutput::Env("VERSION_NUMBER=1010107f".to_owned())
         );
         assert_eq!(
             result[9],
-            BuildScriptOutput::Env("SOME_PATH=/some/absolute/path/beep".to_owned())
+            BuildScriptOutput::RustcEnv("SOME_PATH=/some/absolute/path/beep".to_owned())
         );
         assert_eq!(
             result[10],
@@ -268,7 +265,7 @@ mod tests {
         assert_eq!(result[11], BuildScriptOutput::LinkArg("Metal".to_owned()));
         assert_eq!(
             result[12],
-            BuildScriptOutput::Env("no_trailing_newline=true".to_owned())
+            BuildScriptOutput::RustcEnv("no_trailing_newline=true".to_owned())
         );
         assert_eq!(
             BuildScriptOutput::outputs_to_dep_env(&result, "ssh2", "/some/absolute/path"),

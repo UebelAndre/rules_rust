@@ -171,28 +171,30 @@ fn run_buildrs() -> Result<(), String> {
         )
     })?;
 
-    write(
-        &env_file,
-        // TODO: using `cargo_manifest_maker` replace env values that point to the runfiles dir with
-        // execpath values
+    let mut env_content =
         BuildScriptOutput::outputs_to_env(&buildrs_outputs, &exec_root.to_string_lossy())
-            .join("\n")
-            .as_bytes(),
+            .join("\n");
+    let mut dep_env_content = BuildScriptOutput::outputs_to_dep_env(
+        &buildrs_outputs,
+        &crate_links,
+        &exec_root.to_string_lossy(),
     )
-    .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", env_file, e));
-    write(
-        &output_dep_env_path,
-        // TODO: using `cargo_manifest_maker` replace env values that point to the runfiles dir with
-        // execpath values
-        BuildScriptOutput::outputs_to_dep_env(
-            &buildrs_outputs,
-            &crate_links,
-            &exec_root.to_string_lossy(),
-        )
-        .join("\n")
-        .as_bytes(),
-    )
-    .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", output_dep_env_path, e));
+    .join("\n");
+
+    // Update any environment variables to replace runfiles paths with execpath paths for
+    // use in downstream rustc actions.
+    if should_replace_rlocationpath_with_execpath_in_env_vars() {
+        if let Some(cargo_manifest_maker) = &cargo_manifest_maker {
+            cargo_manifest_maker.replace_rlocationpath_with_execpath(&mut env_content);
+            cargo_manifest_maker.replace_rlocationpath_with_execpath(&mut dep_env_content);
+        }
+    }
+
+    write(&env_file, env_content.as_bytes())
+        .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", env_file, e));
+
+    write(&output_dep_env_path, dep_env_content.as_bytes())
+        .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", output_dep_env_path, e));
 
     if let Some(path) = &stdout_path {
         write(path, process_output.stdout)
@@ -247,6 +249,12 @@ fn run_buildrs() -> Result<(), String> {
 
 fn should_symlink_exec_root() -> bool {
     env::var("RULES_RUST_SYMLINK_EXEC_ROOT")
+        .map(|s| s == "1")
+        .unwrap_or(false)
+}
+
+fn should_replace_rlocationpath_with_execpath_in_env_vars() -> bool {
+    env::var("RULES_RUST_REPLACE_RLOCATIONPATH")
         .map(|s| s == "1")
         .unwrap_or(false)
 }

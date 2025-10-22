@@ -293,7 +293,7 @@ def _create_runfiles_dir(ctx, script, retain_list):
     workspace_name = ctx.workspace_name
 
     def _runfiles_map(file):
-        return "{}={}".format(file.path, _rlocationpath(file, workspace_name))
+        return "{}={}".format(_rlocationpath(file, workspace_name), file.path)
 
     runfiles = script[DefaultInfo].default_runfiles
 
@@ -571,6 +571,10 @@ def _cargo_build_script_impl(ctx):
     if experimental_symlink_execroot:
         env["RULES_RUST_SYMLINK_EXEC_ROOT"] = "1"
 
+    replace_rlocationpath_in_env_vars = ctx.attr._experimental_replace_rlocationpath_in_env_vars[BuildSettingInfo].value
+    if replace_rlocationpath_in_env_vars:
+        env["RULES_RUST_REPLACE_RLOCATIONPATH"] = "1"
+
     ctx.actions.run(
         executable = ctx.executable._cargo_build_script_runner,
         arguments = [args] + extra_args,
@@ -721,6 +725,9 @@ cargo_build_script = rule(
         ),
         "_default_use_default_shell_env": attr.label(
             default = Label("//cargo/settings:use_default_shell_env"),
+        ),
+        "_experimental_replace_rlocationpath_in_env_vars": attr.label(
+            default = Label("//cargo/settings:experimental_replace_rlocationpath_in_env_vars"),
         ),
         "_experimental_symlink_execroot": attr.label(
             default = Label("//cargo/settings:experimental_symlink_execroot"),
