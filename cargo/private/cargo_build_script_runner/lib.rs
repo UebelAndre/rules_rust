@@ -21,9 +21,9 @@ pub mod cargo_manifest_dir;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CompileAndLinkFlags {
-    pub compile_flags: String,
-    pub link_flags: String,
-    pub link_search_paths: String,
+    pub compile_flags: Vec<String>,
+    pub link_flags: Vec<String>,
+    pub link_search_paths: Vec<String>,
 }
 
 /// Enum containing all the considered return value from the script
@@ -144,7 +144,7 @@ impl BuildScriptOutput {
     }
 
     /// Convert a vector of [BuildScriptOutput] into a list of environment variables.
-    pub fn outputs_to_env(outputs: &[BuildScriptOutput], exec_root: &str) -> String {
+    pub fn outputs_to_env(outputs: &[BuildScriptOutput], exec_root: &str) -> Vec<String> {
         outputs
             .iter()
             .filter_map(|x| {
@@ -157,7 +157,6 @@ impl BuildScriptOutput {
                 }
             })
             .collect::<Vec<_>>()
-            .join("\n")
     }
 
     /// Convert a vector of [BuildScriptOutput] into a list of dependencies environment variables.
@@ -165,7 +164,7 @@ impl BuildScriptOutput {
         outputs: &[BuildScriptOutput],
         crate_links: &str,
         exec_root: &str,
-    ) -> String {
+    ) -> Vec<String> {
         let prefix = format!("DEP_{}_", crate_links.replace('-', "_").to_uppercase());
         outputs
             .iter()
@@ -181,7 +180,6 @@ impl BuildScriptOutput {
                 }
             })
             .collect::<Vec<_>>()
-            .join("\n")
     }
 
     /// Convert a vector of [BuildScriptOutput] into a flagfile.
@@ -195,16 +193,20 @@ impl BuildScriptOutput {
                 BuildScriptOutput::Cfg(e) => compile_flags.push(format!("--cfg={e}")),
                 BuildScriptOutput::Flags(e) => compile_flags.push(e.to_owned()),
                 BuildScriptOutput::LinkArg(e) => compile_flags.push(format!("-Clink-arg={e}")),
-                BuildScriptOutput::LinkLib(e) => link_flags.push(format!("-l{e}")),
-                BuildScriptOutput::LinkSearch(e) => link_search_paths.push(format!("-L{e}")),
+                BuildScriptOutput::LinkLib(e) => {
+                    link_flags.push(Self::redact_exec_root(&format!("-l{e}"), exec_root))
+                }
+                BuildScriptOutput::LinkSearch(e) => {
+                    link_search_paths.push(Self::redact_exec_root(&format!("-L{e}"), exec_root))
+                }
                 _ => {}
             }
         }
 
         CompileAndLinkFlags {
-            compile_flags: compile_flags.join("\n"),
-            link_flags: Self::redact_exec_root(&link_flags.join("\n"), exec_root),
-            link_search_paths: Self::redact_exec_root(&link_search_paths.join("\n"), exec_root),
+            compile_flags,
+            link_flags,
+            link_search_paths,
         }
     }
 
@@ -270,22 +272,33 @@ mod tests {
         );
         assert_eq!(
             BuildScriptOutput::outputs_to_dep_env(&result, "ssh2", "/some/absolute/path"),
-            "DEP_SSH2_VERSION=123\nDEP_SSH2_VERSION_NUMBER=1010107f\nDEP_SSH2_INCLUDE_PATH=${pwd}/include".to_owned()
+            vec![
+                "DEP_SSH2_VERSION=123".to_owned(),
+                "DEP_SSH2_VERSION_NUMBER=1010107f".to_owned(),
+                "DEP_SSH2_INCLUDE_PATH=${pwd}/include".to_owned()
+            ],
         );
         assert_eq!(
             BuildScriptOutput::outputs_to_env(&result, "/some/absolute/path"),
-            "FOO=BAR\nBAR=FOO\nSOME_PATH=${pwd}/beep\nno_trailing_newline=true".to_owned()
+            vec![
+                "FOO=BAR".to_owned(),
+                "BAR=FOO".to_owned(),
+                "SOME_PATH=${pwd}/beep\nno_trailing_newline=true".to_owned(),
+            ]
         );
         assert_eq!(
             BuildScriptOutput::outputs_to_flags(&result, "/some/absolute/path"),
             CompileAndLinkFlags {
                 // -Lblah was output as a rustc-flags, so even though it probably _should_ be a link
                 // flag, we don't treat it like one.
-                compile_flags:
-                    "-Lblah\n--cfg=feature=awesome\n-Clink-arg=-weak_framework\n-Clink-arg=Metal"
-                        .to_owned(),
-                link_flags: "-lsdfsdf".to_owned(),
-                link_search_paths: "-L${pwd}/bleh".to_owned(),
+                compile_flags: vec![
+                    "-Lblah".to_owned(),
+                    "--cfg=feature=awesome".to_owned(),
+                    "-Clink-arg=-weak_framework".to_owned(),
+                    "-Clink-arg=Metal".to_owned(),
+                ],
+                link_flags: vec!["-lsdfsdf".to_owned()],
+                link_search_paths: vec!["-L${pwd}/bleh".to_owned()],
             }
         );
     }
@@ -352,8 +365,8 @@ cargo::rustc-env=valid2=2
         let result = BuildScriptOutput::outputs_from_reader(reader);
         assert_eq!(result.len(), 2);
         assert_eq!(
-            &BuildScriptOutput::outputs_to_env(&result, "/some/absolute/path"),
-            "valid1=1\nvalid2=2"
+            BuildScriptOutput::outputs_to_env(&result, "/some/absolute/path"),
+            vec!["valid1=1".to_owned(), "valid2=2".to_owned(),],
         );
     }
 
@@ -371,8 +384,8 @@ cargo:rustc-env=valid2=2
         let result = BuildScriptOutput::outputs_from_reader(reader);
         assert_eq!(result.len(), 2);
         assert_eq!(
-            &BuildScriptOutput::outputs_to_env(&result, "/some/absolute/path"),
-            "valid1=1\nvalid2=2"
+            BuildScriptOutput::outputs_to_env(&result, "/some/absolute/path"),
+            vec!["valid1=1".to_owned(), "valid2=2".to_owned(),],
         );
     }
 }

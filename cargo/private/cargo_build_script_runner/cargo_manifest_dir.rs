@@ -37,7 +37,13 @@ pub fn remove_symlink(path: &Path) -> Result<(), std::io::Error> {
     }
 }
 
+#[cfg(target_family = "unix")]
+fn system_supports_symlinks(_test_dir: &Path) -> Result<bool, String> {
+    Ok(true)
+}
+
 /// Check if the system supports symlinks by attempting to create one.
+#[cfg(target_family = "windows")]
 fn system_supports_symlinks(test_dir: &Path) -> Result<bool, String> {
     let test_file = test_dir.join("cbsr.txt");
     std::fs::write(&test_file, "").map_err(|e| {
@@ -139,41 +145,6 @@ impl RunfilesMaker {
     }
 
     /// Create a runfiles directory.
-    #[cfg(target_family = "unix")]
-    pub fn create_runfiles_dir(&self) -> Result<(), String> {
-        for (src, dest) in &self.runfiles {
-            let abs_dest = self.output_dir.join(dest);
-
-            if let Some(parent) = abs_dest.parent() {
-                if !parent.exists() {
-                    std::fs::create_dir_all(parent).map_err(|e| {
-                        format!(
-                            "Failed to create parent directory '{}' for '{}' with {:?}",
-                            parent.display(),
-                            abs_dest.display(),
-                            e
-                        )
-                    })?;
-                }
-            }
-
-            let abs_src = std::env::current_dir().unwrap().join(src);
-
-            symlink(&abs_src, &abs_dest).map_err(|e| {
-                format!(
-                    "Failed to link `{} -> {}` with {:?}",
-                    abs_src.display(),
-                    abs_dest.display(),
-                    e
-                )
-            })?;
-        }
-
-        Ok(())
-    }
-
-    /// Create a runfiles directory.
-    #[cfg(target_family = "windows")]
     pub fn create_runfiles_dir(&self) -> Result<(), String> {
         if !self.output_dir.exists() {
             std::fs::create_dir_all(&self.output_dir).map_err(|e| {
@@ -185,7 +156,33 @@ impl RunfilesMaker {
             })?;
         }
 
-        let supports_symlinks = system_supports_symlinks(&self.output_dir)?;
+        let generator = if system_supports_symlinks(&self.output_dir)? {
+            |src: &Path, dest: &Path| -> Result<(), String> {
+                let abs_src = std::env::current_dir().unwrap().join(src);
+
+                symlink(&abs_src, dest).map_err(|e| {
+                    format!(
+                        "Failed to link `{} -> {}` with {:?}",
+                        abs_src.display(),
+                        dest.display(),
+                        e
+                    )
+                })?;
+                Ok(())
+            }
+        } else {
+            |src: &Path, dest: &Path| -> Result<(), String> {
+                std::fs::copy(src, dest).map_err(|e| {
+                    format!(
+                        "Failed to copy `{} -> {}` with {:?}",
+                        src.display(),
+                        dest.display(),
+                        e
+                    )
+                })?;
+                Ok(())
+            }
+        };
 
         for (src, dest) in &self.runfiles {
             let abs_dest = self.output_dir.join(dest);
@@ -202,27 +199,7 @@ impl RunfilesMaker {
                 }
             }
 
-            if supports_symlinks {
-                let abs_src = std::env::current_dir().unwrap().join(src);
-
-                symlink(&abs_src, &abs_dest).map_err(|e| {
-                    format!(
-                        "Failed to link `{} -> {}` with {:?}",
-                        abs_src.display(),
-                        abs_dest.display(),
-                        e
-                    )
-                })?;
-            } else {
-                std::fs::copy(src, &abs_dest).map_err(|e| {
-                    format!(
-                        "Failed to copy `{} -> {}` with {:?}",
-                        src.display(),
-                        abs_dest.display(),
-                        e
-                    )
-                })?;
-            }
+            generator(src, &abs_dest)?;
         }
         Ok(())
     }

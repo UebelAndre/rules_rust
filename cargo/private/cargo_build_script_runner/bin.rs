@@ -173,17 +173,23 @@ fn run_buildrs() -> Result<(), String> {
 
     write(
         &env_file,
+        // TODO: using `cargo_manifest_maker` replace env values that point to the runfiles dir with
+        // execpath values
         BuildScriptOutput::outputs_to_env(&buildrs_outputs, &exec_root.to_string_lossy())
+            .join("\n")
             .as_bytes(),
     )
     .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", env_file, e));
     write(
         &output_dep_env_path,
+        // TODO: using `cargo_manifest_maker` replace env values that point to the runfiles dir with
+        // execpath values
         BuildScriptOutput::outputs_to_dep_env(
             &buildrs_outputs,
             &crate_links,
             &exec_root.to_string_lossy(),
         )
+        .join("\n")
         .as_bytes(),
     )
     .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", output_dep_env_path, e));
@@ -203,11 +209,15 @@ fn run_buildrs() -> Result<(), String> {
         link_search_paths,
     } = BuildScriptOutput::outputs_to_flags(&buildrs_outputs, &exec_root.to_string_lossy());
 
-    write(&compile_flags_file, compile_flags.as_bytes())
+    write(&compile_flags_file, compile_flags.join("\n").as_bytes())
         .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", compile_flags_file, e));
-    write(&link_flags_file, link_flags.as_bytes())
+    write(&link_flags_file, link_flags.join("\n").as_bytes())
         .unwrap_or_else(|e| panic!("Unable to write file {:?}: {:#?}", link_flags_file, e));
-    write(&link_search_paths_file, link_search_paths.as_bytes()).unwrap_or_else(|e| {
+    write(
+        &link_search_paths_file,
+        link_search_paths.join("\n").as_bytes(),
+    )
+    .unwrap_or_else(|e| {
         panic!(
             "Unable to write file {:?}: {:#?}",
             link_search_paths_file, e
