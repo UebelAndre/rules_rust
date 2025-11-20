@@ -9,6 +9,8 @@ pub(crate) const CRATES_IO_INDEX_URL: &str = "https://github.com/rust-lang/crate
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use crate::config::VendorMode;
+
 /// Convert a string into a valid crate module name by applying transforms to invalid characters
 pub(crate) fn sanitize_module_name(name: &str) -> String {
     name.replace('-', "_")
@@ -30,8 +32,8 @@ pub(crate) fn sanitize_repository_name(name: &str) -> String {
 pub(crate) fn normalize_cargo_file_paths(
     outputs: BTreeMap<PathBuf, String>,
     out_dir: &Path,
+    vendor_mode: &Option<VendorMode>,
 ) -> BTreeMap<PathBuf, String> {
-    println!("{:#?}", outputs.keys());
     outputs
         .into_iter()
         .map(|(path, content)| {
@@ -46,11 +48,13 @@ pub(crate) fn normalize_cargo_file_paths(
             let path = if original_parent_path_str.contains('+') {
                 let new_parent_file_path = sanitize_repository_name(original_parent_path_str);
                 let from_path = out_dir.join(original_parent_path_str);
-                // BUILD files have yet to be rendered to disk so don't need to be moved.
-                if !from_path.ends_with("BUILD.bazel") {
-                    std::fs::rename(&from_path, out_dir.join(new_parent_file_path)).unwrap_or_else(
-                        |e| panic!("Could not rename paths: {}\n{:?}", from_path.display(), e),
-                    );
+                if let Some(mode) = vendor_mode {
+                    if matches!(mode, VendorMode::Local) {
+                        std::fs::rename(&from_path, out_dir.join(new_parent_file_path))
+                            .unwrap_or_else(|e| {
+                                panic!("Could not rename paths: {}\n{:?}", from_path.display(), e)
+                            });
+                    }
                 }
                 PathBuf::from(&original_path_str.replace('+', "-"))
             } else {
@@ -96,7 +100,7 @@ mod test {
         // create dir to mimic cargo vendor
         std::fs::create_dir_all(outdir.path().join("libbpf-sys-1.3.0+v1.3.0")).unwrap();
 
-        let got = normalize_cargo_file_paths(outputs, outdir.path());
+        let got = normalize_cargo_file_paths(outputs, outdir.path(), &None);
         for output in got.into_keys() {
             assert!(!output.to_str().unwrap().contains('+'));
         }
@@ -109,7 +113,7 @@ mod test {
 
         let outdir = tempfile::tempdir().unwrap();
 
-        let got = normalize_cargo_file_paths(outputs, outdir.path());
+        let got = normalize_cargo_file_paths(outputs, outdir.path(), &None);
         for output in got.into_keys() {
             assert!(!output.to_str().unwrap().contains('+'));
         }
