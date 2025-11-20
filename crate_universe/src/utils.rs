@@ -31,6 +31,7 @@ pub(crate) fn normalize_cargo_file_paths(
     outputs: BTreeMap<PathBuf, String>,
     out_dir: &Path,
 ) -> BTreeMap<PathBuf, String> {
+    println!("{:#?}", outputs.keys());
     outputs
         .into_iter()
         .map(|(path, content)| {
@@ -45,9 +46,12 @@ pub(crate) fn normalize_cargo_file_paths(
             let path = if original_parent_path_str.contains('+') {
                 let new_parent_file_path = sanitize_repository_name(original_parent_path_str);
                 let from_path = out_dir.join(original_parent_path_str);
-                std::fs::rename(&from_path, out_dir.join(new_parent_file_path)).unwrap_or_else(
-                    |e| panic!("Could not rename paths: {}\n{:?}", from_path.display(), e),
-                );
+                // BUILD files have yet to be rendered to disk so don't need to be moved.
+                if !from_path.ends_with("BUILD.bazel") {
+                    std::fs::rename(&from_path, out_dir.join(new_parent_file_path)).unwrap_or_else(
+                        |e| panic!("Could not rename paths: {}\n{:?}", from_path.display(), e),
+                    );
+                }
                 PathBuf::from(&original_path_str.replace('+', "-"))
             } else {
                 path

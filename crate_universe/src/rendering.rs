@@ -57,15 +57,21 @@ impl Renderer {
         let mut output = BTreeMap::new();
 
         let platforms = self.render_platform_labels(conditions);
-        output.extend(self.render_build_files(&engine, context, &platforms)?);
         output.extend(self.render_crates_module(&engine, context, &platforms, generator)?);
+        output.extend(self.render_build_files(&engine, context, &platforms)?);
 
         if let Some(vendor_mode) = &self.config.vendor_mode {
             match vendor_mode {
                 crate::config::VendorMode::Local => {
-                    // Nothing to do for local vendor crate
+                    // Only subpackage aliases for workspace member dependencies should be added.
+                    // In Local vendor mode, subdirectories already exist as {crate_name}-{crate_version},
+                    // so we only generate {crate_name} aliases, except for ambiguous dependencies
+                    // where we generate the full version alias.
+                    output.extend(self.render_module_aliases_local(&engine, context)?);
                 }
                 crate::config::VendorMode::Remote => {
+                    // Generate aliases for workspace member dependencies
+                    output.extend(self.render_module_aliases(&engine, context)?);
                     output.extend(self.render_vendor_support_files(&engine, context)?);
                 }
             }
@@ -126,11 +132,13 @@ impl Renderer {
             Renderer::label_to_path(&module_label),
             engine.render_module_bzl(context, platforms, generator)?,
         );
-        map.extend(self.render_module_build_files(
-            &self.config.crates_module_template,
-            engine,
-            context,
-        )?);
+        // Render the root BUILD file
+        map.extend(self.render_module_root_build_file(engine, context)?);
+
+        // Only include aliases if legacy_root_pkg_aliases is set
+        if self.config.legacy_root_pkg_aliases {
+            map.extend(self.render_module_aliases(engine, context)?);
+        }
         map.insert(
             Renderer::label_to_path(&module_alias_rules_label),
             include_str!(concat!(
@@ -143,9 +151,8 @@ impl Renderer {
         Ok(map)
     }
 
-    fn render_module_build_files(
+    fn render_module_root_build_file(
         &self,
-        crates_module_template: &str,
         engine: &TemplateEngine,
         context: &Context,
     ) -> Result<BTreeMap<PathBuf, String>> {
@@ -198,6 +205,39 @@ impl Renderer {
         };
         starlark.push(Starlark::Filegroup(filegroup));
 
+        // An `alias` for each binary dependency.
+        // This should only happen if `legacy_root_pkg_aliases` is set.
+        if self.config.legacy_root_pkg_aliases {
+            let mut binaries = Vec::new();
+            for crate_id in &context.binary_crates {
+                let krate = &context.crates[crate_id];
+                for rule in &krate.targets {
+                    if let Rule::Binary(bin) = rule {
+                        binaries.push(Alias {
+                            rule: AliasRule::default().rule(),
+                            // If duplicates exist, include version to disambiguate them.
+                            name: if context.has_duplicate_binary_crate(crate_id) {
+                                format!("{}-{}__{}", krate.name, krate.version, bin.crate_name)
+                            } else {
+                                format!("{}__{}", krate.name, bin.crate_name)
+                            },
+                            actual: self.crate_label(
+                                &krate.name,
+                                &krate.version.to_string(),
+                                &format!("{}__bin", bin.crate_name),
+                            ),
+                            tags: BTreeSet::from(["manual".to_owned()]),
+                        });
+                    }
+                }
+            }
+            if !binaries.is_empty() {
+                let comment = "# Binaries".to_owned();
+                starlark.push(Starlark::Verbatim(comment));
+                starlark.extend(binaries.into_iter().map(Starlark::Alias));
+            }
+        }
+
         let module_build_label =
             render_module_label(&self.config.crates_module_template, "BUILD.bazel")
                 .context("Failed to resolve string to module file label")?;
@@ -206,6 +246,16 @@ impl Renderer {
             Renderer::label_to_path(&module_build_label),
             starlark::serialize(&starlark)?,
         );
+
+        Ok(map)
+    }
+
+    fn render_module_aliases(
+        &self,
+        engine: &TemplateEngine,
+        context: &Context,
+    ) -> Result<BTreeMap<PathBuf, String>> {
+        let mut map = BTreeMap::new();
 
         // An `alias` for each direct dependency of a workspace member crate.
         // Each alias gets its own BUILD file in a subpackage named after the alias.
@@ -234,7 +284,7 @@ impl Renderer {
                 if add_primary_alias {
                     let alias_name = format!("{}-{}", krate.name, krate.version);
                     let (key, val) = self.render_alias_build_file(
-                        crates_module_template,
+                        &self.config.crates_module_template,
                         engine,
                         &alias_name,
                         Alias {
@@ -258,7 +308,7 @@ impl Renderer {
                     if krate.name != *rename {
                         let alias_name = format!("{}-{}", rename, krate.version);
                         let (key, val) = self.render_alias_build_file(
-                            crates_module_template,
+                            &self.config.crates_module_template,
                             engine,
                             &alias_name,
                             Alias {
@@ -287,7 +337,7 @@ impl Renderer {
                 if !context.has_duplicate_workspace_member_dep_by_alias(&dep) {
                     let alias_name = shorthand.clone();
                     let (key, val) = self.render_alias_build_file(
-                        crates_module_template,
+                        &self.config.crates_module_template,
                         engine,
                         &alias_name,
                         Alias {
@@ -309,7 +359,144 @@ impl Renderer {
 
             for (alias, target) in &krate.extra_aliased_targets {
                 let (key, val) = self.render_alias_build_file(
-                    crates_module_template,
+                    &self.config.crates_module_template,
+                    engine,
+                    alias,
+                    Alias {
+                        rule: alias_rule.rule(),
+                        name: alias.clone(),
+                        actual: self.crate_label(&krate.name, &krate.version.to_string(), target),
+                        tags: BTreeSet::from(["manual".to_owned()]),
+                    },
+                    alias_rule,
+                )?;
+                map.insert(key, val);
+                alias_names.push(alias.clone());
+            }
+        }
+
+        // An `alias` for each binary dependency.
+        // Each alias gets its own BUILD file in a subpackage named after the alias.
+        for crate_id in &context.binary_crates {
+            let krate = &context.crates[crate_id];
+            for rule in &krate.targets {
+                if let Rule::Binary(bin) = rule {
+                    let binary_alias_name = if context.has_duplicate_binary_crate(crate_id) {
+                        format!("{}-{}__{}", krate.name, krate.version, bin.crate_name)
+                    } else {
+                        format!("{}__{}", krate.name, bin.crate_name)
+                    };
+
+                    let (key, val) = self.render_alias_build_file(
+                        &self.config.crates_module_template,
+                        engine,
+                        &binary_alias_name,
+                        Alias {
+                            rule: AliasRule::default().rule(),
+                            name: binary_alias_name.clone(),
+                            actual: self.crate_label(
+                                &krate.name,
+                                &krate.version.to_string(),
+                                &format!("{}__bin", bin.crate_name),
+                            ),
+                            tags: BTreeSet::from(["manual".to_owned()]),
+                        },
+                        &AliasRule::default(),
+                    )?;
+                    map.insert(key, val);
+                    alias_names.push(binary_alias_name);
+                }
+            }
+        }
+
+        let duplicates: Vec<_> = alias_names.iter().duplicates().sorted().collect();
+
+        assert!(
+            duplicates.is_empty(),
+            "Found duplicate aliases that must be changed (Check your `extra_aliased_targets`): {:#?}",
+            duplicates
+        );
+
+        Ok(map)
+    }
+
+    fn render_module_aliases_local(
+        &self,
+        engine: &TemplateEngine,
+        context: &Context,
+    ) -> Result<BTreeMap<PathBuf, String>> {
+        let mut map = BTreeMap::new();
+
+        // An `alias` for each direct dependency of a workspace member crate.
+        // In Local vendor mode, subdirectories already exist as {crate_name}-{crate_version},
+        // so we only generate {crate_name} aliases, except for ambiguous dependencies
+        // where we generate the full version alias.
+        let mut alias_names = Vec::new();
+        for dep in context.workspace_member_deps() {
+            let krate = &context.crates[&dep.id];
+            let alias_rule = krate
+                .alias_rule
+                .as_ref()
+                .unwrap_or(&self.config.default_alias_rule);
+
+            if let Some(library_target_name) = &krate.library_target_name {
+                let is_ambiguous = context.has_duplicate_workspace_member_dep_by_alias(&dep);
+
+                if is_ambiguous {
+                    // For ambiguous dependencies, generate the full version alias
+                    let alias_name = format!("{}-{}", krate.name, krate.version);
+                    let (key, val) = self.render_alias_build_file(
+                        &self.config.crates_module_template,
+                        engine,
+                        &alias_name,
+                        Alias {
+                            rule: alias_rule.rule(),
+                            name: alias_name.clone(),
+                            actual: self.crate_label(
+                                &krate.name,
+                                &krate.version.to_string(),
+                                library_target_name,
+                            ),
+                            tags: BTreeSet::from(["manual".to_owned()]),
+                        },
+                        alias_rule,
+                    )?;
+                    map.insert(key, val);
+                    alias_names.push(alias_name);
+                } else {
+                    // For non-ambiguous dependencies, generate only the {crate_name} alias
+                    // (or {rename} if there's a rename and it's different from the crate name)
+                    let alias_name = if let Some(rename) = dep.alias.as_ref() {
+                        // If there's a rename, use it as the alias name
+                        rename.clone()
+                    } else {
+                        // Otherwise use the crate name
+                        krate.name.clone()
+                    };
+                    let (key, val) = self.render_alias_build_file(
+                        &self.config.crates_module_template,
+                        engine,
+                        &alias_name,
+                        Alias {
+                            rule: alias_rule.rule(),
+                            name: alias_name.clone(),
+                            actual: self.crate_label(
+                                &krate.name,
+                                &krate.version.to_string(),
+                                library_target_name,
+                            ),
+                            tags: BTreeSet::from(["manual".to_owned()]),
+                        },
+                        alias_rule,
+                    )?;
+                    map.insert(key, val);
+                    alias_names.push(alias_name);
+                }
+            }
+
+            for (alias, target) in &krate.extra_aliased_targets {
+                let (key, val) = self.render_alias_build_file(
+                    &self.config.crates_module_template,
                     engine,
                     alias,
                     Alias {
@@ -332,36 +519,6 @@ impl Renderer {
             "Found duplicate aliases that must be changed (Check your `extra_aliased_targets`): {:#?}",
             duplicates
         );
-
-        // An `alias` for each binary dependency.
-        let mut binaries = Vec::new();
-        for crate_id in &context.binary_crates {
-            let krate = &context.crates[crate_id];
-            for rule in &krate.targets {
-                if let Rule::Binary(bin) = rule {
-                    binaries.push(Alias {
-                        rule: AliasRule::default().rule(),
-                        // If duplicates exist, include version to disambiguate them.
-                        name: if context.has_duplicate_binary_crate(crate_id) {
-                            format!("{}-{}__{}", krate.name, krate.version, bin.crate_name)
-                        } else {
-                            format!("{}__{}", krate.name, bin.crate_name)
-                        },
-                        actual: self.crate_label(
-                            &krate.name,
-                            &krate.version.to_string(),
-                            &format!("{}__bin", bin.crate_name),
-                        ),
-                        tags: BTreeSet::from(["manual".to_owned()]),
-                    });
-                }
-            }
-        }
-        if !binaries.is_empty() {
-            let comment = "# Binaries".to_owned();
-            starlark.push(Starlark::Verbatim(comment));
-            starlark.extend(binaries.into_iter().map(Starlark::Alias));
-        }
 
         Ok(map)
     }
@@ -1049,11 +1206,6 @@ pub(crate) fn render_crate_build_file(template: &str, name: &str, version: &str)
 }
 
 /// Render the Bazel label of a vendor module label
-pub(crate) fn render_module_label(template: &str, name: &str) -> Result<Label> {
-    Label::from_str(&template.replace("{file}", name).replace("{subpackage}", ""))
-}
-
-/// Render the Bazel label of a vendor module label
 pub(crate) fn render_module_subpkg_label(
     template: &str,
     name: &str,
@@ -1066,6 +1218,10 @@ pub(crate) fn render_module_subpkg_label(
         &template
             .replace("{file}", name)
             .replace("{subpackage}", subpackage)
+    } else if template.contains("{subpackage}:") && subpackage.is_empty() {
+        &template
+            .replace("{file}", name)
+            .replace("{subpackage}", subpackage)
     } else {
         &template
             .replace("{file}", name)
@@ -1073,6 +1229,11 @@ pub(crate) fn render_module_subpkg_label(
     };
 
     Label::from_str(&value)
+}
+
+/// Render the Bazel label of a vendor module label
+pub(crate) fn render_module_label(template: &str, name: &str) -> Result<Label> {
+    render_module_subpkg_label(template, name, "")
 }
 
 /// Render the Bazel label of a platform triple
@@ -2134,7 +2295,7 @@ mod test {
                         id: crate_id.clone(),
                         target: "library_name".into(),
                         // this is identical to what we have in the `name` attribute
-                        // which creates conflict in `render_module_build_file`
+                        // which creates conflict in `render_module_build_files`
                         alias: Some("mock_crate".into()),
                         local_path: None,
                     }])),
