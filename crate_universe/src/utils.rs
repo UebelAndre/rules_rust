@@ -44,11 +44,10 @@ pub(crate) fn normalize_cargo_file_paths(
 
             let path = if original_parent_path_str.contains('+') {
                 let new_parent_file_path = sanitize_repository_name(original_parent_path_str);
-                std::fs::rename(
-                    out_dir.join(original_parent_path_str),
-                    out_dir.join(new_parent_file_path),
-                )
-                .expect("Could not rename paths");
+                let from_path = out_dir.join(original_parent_path_str);
+                std::fs::rename(&from_path, out_dir.join(new_parent_file_path)).unwrap_or_else(
+                    |e| panic!("Could not rename paths: {}\n{:?}", from_path.display(), e),
+                );
                 PathBuf::from(&original_path_str.replace('+', "-"))
             } else {
                 path
