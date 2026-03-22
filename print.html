@@ -254,7 +254,6 @@ also be set either in the command line or in the project's <code>.bazelrc</code>
 <ul>
 <li><a href="rust_bindgen.html">rust_bindgen</a>: rules for generating C++ bindings.</li>
 <li><a href="rust_prost.html">rust_prost</a>: rules for generating <a href="https://developers.google.com/protocol-buffers">protobuf</a> and <a href="https://grpc.io">gRPC</a> stubs using <a href="https://github.com/tokio-rs/prost">prost</a>.</li>
-<li><a href="rust_protobuf.html">rust_protobuf</a>: rules for generating <a href="https://developers.google.com/protocol-buffers">protobuf</a> and <a href="https://grpc.io">gRPC</a> stubs with <a href="https://github.com/stepancheg/rust-protobuf/">rust-protobuf</a></li>
 <li><a href="rust_pyo3.html">rust_pyo3</a>: Bazel rules for <a href="https://pyo3.rs/v0.23.4/">PyO3</a>.</li>
 <li><a href="rust_wasm_bindgen.html">rust_wasm_bindgen</a>: rules for generating <a href="https://www.rust-lang.org/what/wasm">WebAssembly</a> bindings.</li>
 </ul>
@@ -383,8 +382,8 @@ is available under the key <code>dsym_folder</code> in <code>OutputGroupInfo</co
 <tr><td style="text-align: left"><a id="rust_binary-experimental_use_cc_common_link"></a>experimental_use_cc_common_link</td><td style="text-align: left">Whether to use cc_common.link to link rust binaries. Possible values: [-1, 0, 1]. -1 means use the value of the toolchain.experimental_use_cc_common_link boolean build setting to determine. 0 means do not use cc_common.link (use rustc instead). 1 means use cc_common.link.</td><td style="text-align: left">Integer</td><td style="text-align: left">optional</td><td style="text-align: left"><code>-1</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_binary-linker_script"></a>linker_script</td><td style="text-align: left">Link script to forward into linker via rustc options.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_binary-lint_config"></a>lint_config</td><td style="text-align: left">Set of lints to apply when building this crate.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_binary-malloc"></a>malloc</td><td style="text-align: left">Override the default dependency on <code>malloc</code>.<br><br>By default, Rust binaries linked with cc_common.link are linked against <code>//rust/private/cc:malloc"</code>, which is an empty library and the resulting binary will use libc's <code>malloc</code>. This label must refer to a <code>cc_library</code> rule.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_rust//rust/private/cc:malloc"</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_binary-platform"></a>platform</td><td style="text-align: left">Optional platform to transition the binary to.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_binary-malloc"></a>malloc</td><td style="text-align: left">Override the default dependency on <code>malloc</code>.<br><br>By default, Rust binaries linked with <a href="https://bazel.build/rules/lib/toplevel/cc_common#link"><code>cc_common.link</code></a> are linked against <code>@rules_rust//rust/private/cc:malloc</code>, which is an empty library and the resulting binary will use libc's <code>malloc</code>. This label must refer to a <code>cc_library</code> rule.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_rust//rust/private/cc:malloc"</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_binary-platform"></a>platform</td><td style="text-align: left">Optional platform to transition the static library to.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_binary-proc_macro_deps"></a>proc_macro_deps</td><td style="text-align: left">List of <code>rust_proc_macro</code> targets used to help build this library target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_binary-require_explicit_unstable_features"></a>require_explicit_unstable_features</td><td style="text-align: left">Whether to require all unstable features to be explicitly opted in to using <code>-Zallow-features=...</code>. Possible values: [-1, 0, 1]. -1 means delegate to the toolchain.require_explicit_unstable_features boolean build setting; 0 means False; 1 means True.</td><td style="text-align: left">Integer</td><td style="text-align: left">optional</td><td style="text-align: left"><code>-1</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_binary-rustc_env"></a>rustc_env</td><td style="text-align: left">Dictionary of additional <code>"key": "value"</code> environment variables to set for rustc.<br><br>rust_test()/rust_binary() rules can use $(rootpath //package:target) to pass in the location of a generated file or external tool. Cargo build scripts that wish to expand locations should use cargo_build_script()'s build_script_env argument instead, as build scripts are run in a different environment - see cargo_build_script()'s documentation for more.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
@@ -630,8 +629,8 @@ It is meant to be used when producing an artifact that is then consumed by some 
 <tr><td style="text-align: left"><a id="rust_shared_library-edition"></a>edition</td><td style="text-align: left">The rust edition to use for this crate. Defaults to the edition specified in the rust_toolchain.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_shared_library-experimental_use_cc_common_link"></a>experimental_use_cc_common_link</td><td style="text-align: left">Whether to use cc_common.link to link rust binaries. Possible values: [-1, 0, 1]. -1 means use the value of the toolchain.experimental_use_cc_common_link boolean build setting to determine. 0 means do not use cc_common.link (use rustc instead). 1 means use cc_common.link.</td><td style="text-align: left">Integer</td><td style="text-align: left">optional</td><td style="text-align: left"><code>-1</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_shared_library-lint_config"></a>lint_config</td><td style="text-align: left">Set of lints to apply when building this crate.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_shared_library-malloc"></a>malloc</td><td style="text-align: left">Override the default dependency on <code>malloc</code>.<br><br>By default, Rust binaries linked with cc_common.link are linked against <code>//rust/private/cc:malloc"</code>, which is an empty library and the resulting binary will use libc's <code>malloc</code>. This label must refer to a <code>cc_library</code> rule.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_rust//rust/private/cc:malloc"</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_shared_library-platform"></a>platform</td><td style="text-align: left">Optional platform to transition the shared library to.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_shared_library-malloc"></a>malloc</td><td style="text-align: left">Override the default dependency on <code>malloc</code>.<br><br>By default, Rust binaries linked with <a href="https://bazel.build/rules/lib/toplevel/cc_common#link"><code>cc_common.link</code></a> are linked against <code>@rules_rust//rust/private/cc:malloc</code>, which is an empty library and the resulting binary will use libc's <code>malloc</code>. This label must refer to a <code>cc_library</code> rule.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_rust//rust/private/cc:malloc"</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_shared_library-platform"></a>platform</td><td style="text-align: left">Optional platform to transition the static library to.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_shared_library-proc_macro_deps"></a>proc_macro_deps</td><td style="text-align: left">List of <code>rust_proc_macro</code> targets used to help build this library target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_shared_library-require_explicit_unstable_features"></a>require_explicit_unstable_features</td><td style="text-align: left">Whether to require all unstable features to be explicitly opted in to using <code>-Zallow-features=...</code>. Possible values: [-1, 0, 1]. -1 means delegate to the toolchain.require_explicit_unstable_features boolean build setting; 0 means False; 1 means True.</td><td style="text-align: left">Integer</td><td style="text-align: left">optional</td><td style="text-align: left"><code>-1</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_shared_library-rustc_env"></a>rustc_env</td><td style="text-align: left">Dictionary of additional <code>"key": "value"</code> environment variables to set for rustc.<br><br>rust_test()/rust_binary() rules can use $(rootpath //package:target) to pass in the location of a generated file or external tool. Cargo build scripts that wish to expand locations should use cargo_build_script()'s build_script_env argument instead, as build scripts are run in a different environment - see cargo_build_script()'s documentation for more.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
@@ -810,8 +809,8 @@ rust_test(
 <tr><td style="text-align: left"><a id="rust_test-env_inherit"></a>env_inherit</td><td style="text-align: left">Specifies additional environment variables to inherit from the external environment when the test is executed by bazel test.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_test-experimental_use_cc_common_link"></a>experimental_use_cc_common_link</td><td style="text-align: left">Whether to use cc_common.link to link rust binaries. Possible values: [-1, 0, 1]. -1 means use the value of the toolchain.experimental_use_cc_common_link boolean build setting to determine. 0 means do not use cc_common.link (use rustc instead). 1 means use cc_common.link.</td><td style="text-align: left">Integer</td><td style="text-align: left">optional</td><td style="text-align: left"><code>-1</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_test-lint_config"></a>lint_config</td><td style="text-align: left">Set of lints to apply when building this crate.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_test-malloc"></a>malloc</td><td style="text-align: left">Override the default dependency on <code>malloc</code>.<br><br>By default, Rust binaries linked with cc_common.link are linked against <code>//rust/private/cc:malloc"</code>, which is an empty library and the resulting binary will use libc's <code>malloc</code>. This label must refer to a <code>cc_library</code> rule.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_rust//rust/private/cc:malloc"</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_test-platform"></a>platform</td><td style="text-align: left">Optional platform to transition the test to.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_test-malloc"></a>malloc</td><td style="text-align: left">Override the default dependency on <code>malloc</code>.<br><br>By default, Rust binaries linked with <a href="https://bazel.build/rules/lib/toplevel/cc_common#link"><code>cc_common.link</code></a> are linked against <code>@rules_rust//rust/private/cc:malloc</code>, which is an empty library and the resulting binary will use libc's <code>malloc</code>. This label must refer to a <code>cc_library</code> rule.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_rust//rust/private/cc:malloc"</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_test-platform"></a>platform</td><td style="text-align: left">Optional platform to transition the static library to.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_test-proc_macro_deps"></a>proc_macro_deps</td><td style="text-align: left">List of <code>rust_proc_macro</code> targets used to help build this library target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_test-require_explicit_unstable_features"></a>require_explicit_unstable_features</td><td style="text-align: left">Whether to require all unstable features to be explicitly opted in to using <code>-Zallow-features=...</code>. Possible values: [-1, 0, 1]. -1 means delegate to the toolchain.require_explicit_unstable_features boolean build setting; 0 means False; 1 means True.</td><td style="text-align: left">Integer</td><td style="text-align: left">optional</td><td style="text-align: left"><code>-1</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_test-rustc_env"></a>rustc_env</td><td style="text-align: left">Dictionary of additional <code>"key": "value"</code> environment variables to set for rustc.<br><br>rust_test()/rust_binary() rules can use $(rootpath //package:target) to pass in the location of a generated file or external tool. Cargo build scripts that wish to expand locations should use cargo_build_script()'s build_script_env argument instead, as build scripts are run in a different environment - see cargo_build_script()'s documentation for more.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
@@ -2799,8 +2798,8 @@ crate.render_config(<a href="crate_universe_bzlmod.html#crate.render_config-buil
                     <a href="crate_universe_bzlmod.html#crate.render_config-default_alias_rule_name">default_alias_rule_name</a>, <a href="crate_universe_bzlmod.html#crate.render_config-default_package_name">default_package_name</a>, <a href="crate_universe_bzlmod.html#crate.render_config-generate_cargo_toml_env_vars">generate_cargo_toml_env_vars</a>,
                     <a href="crate_universe_bzlmod.html#crate.render_config-generate_rules_license_metadata">generate_rules_license_metadata</a>, <a href="crate_universe_bzlmod.html#crate.render_config-generate_target_compatible_with">generate_target_compatible_with</a>,
                     <a href="crate_universe_bzlmod.html#crate.render_config-platforms_template">platforms_template</a>, <a href="crate_universe_bzlmod.html#crate.render_config-regen_command">regen_command</a>, <a href="crate_universe_bzlmod.html#crate.render_config-repositories">repositories</a>, <a href="crate_universe_bzlmod.html#crate.render_config-vendor_mode">vendor_mode</a>)
-crate.spec(<a href="crate_universe_bzlmod.html#crate.spec-artifact">artifact</a>, <a href="crate_universe_bzlmod.html#crate.spec-branch">branch</a>, <a href="crate_universe_bzlmod.html#crate.spec-default_features">default_features</a>, <a href="crate_universe_bzlmod.html#crate.spec-features">features</a>, <a href="crate_universe_bzlmod.html#crate.spec-git">git</a>, <a href="crate_universe_bzlmod.html#crate.spec-lib">lib</a>, <a href="crate_universe_bzlmod.html#crate.spec-package">package</a>, <a href="crate_universe_bzlmod.html#crate.spec-path">path</a>, <a href="crate_universe_bzlmod.html#crate.spec-repositories">repositories</a>, <a href="crate_universe_bzlmod.html#crate.spec-rev">rev</a>,
-           <a href="crate_universe_bzlmod.html#crate.spec-tag">tag</a>, <a href="crate_universe_bzlmod.html#crate.spec-version">version</a>)
+crate.spec(<a href="crate_universe_bzlmod.html#crate.spec-artifact">artifact</a>, <a href="crate_universe_bzlmod.html#crate.spec-branch">branch</a>, <a href="crate_universe_bzlmod.html#crate.spec-default_features">default_features</a>, <a href="crate_universe_bzlmod.html#crate.spec-features">features</a>, <a href="crate_universe_bzlmod.html#crate.spec-git">git</a>, <a href="crate_universe_bzlmod.html#crate.spec-lib">lib</a>, <a href="crate_universe_bzlmod.html#crate.spec-package">package</a>, <a href="crate_universe_bzlmod.html#crate.spec-package_alias">package_alias</a>, <a href="crate_universe_bzlmod.html#crate.spec-path">path</a>,
+           <a href="crate_universe_bzlmod.html#crate.spec-repositories">repositories</a>, <a href="crate_universe_bzlmod.html#crate.spec-rev">rev</a>, <a href="crate_universe_bzlmod.html#crate.spec-tag">tag</a>, <a href="crate_universe_bzlmod.html#crate.spec-version">version</a>)
 crate.splicing_config(<a href="crate_universe_bzlmod.html#crate.splicing_config-repositories">repositories</a>, <a href="crate_universe_bzlmod.html#crate.splicing_config-resolver_version">resolver_version</a>)
 </pre>
 <p>Crate universe module extensions.</p>
@@ -2975,6 +2974,7 @@ can be found below where the supported keys for each template can be found in th
 <tr><td style="text-align: left"><a id="crate.spec-git"></a>git</td><td style="text-align: left">The Git url to use for the crate. Cannot be used with <code>version</code> or <code>path</code>.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.spec-lib"></a>lib</td><td style="text-align: left">If using <code>artifact = 'bin'</code>, additionally setting <code>lib = True</code> declares a dependency on both the package's library and binary, as opposed to just the binary.</td><td style="text-align: left">Boolean</td><td style="text-align: left">optional</td><td style="text-align: left"><code>False</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.spec-package"></a>package</td><td style="text-align: left">The explicit name of the package.</td><td style="text-align: left">String</td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="crate.spec-package_alias"></a>package_alias</td><td style="text-align: left">Alias for the package.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.spec-path"></a>path</td><td style="text-align: left">The local path of the remote crate. Cannot be used with <code>version</code> or <code>git</code>.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.spec-repositories"></a>repositories</td><td style="text-align: left">A list of repository names specified from <code>crate.from_cargo(name=...)</code> that this spec is applied to. Defaults to all repositories.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.spec-rev"></a>rev</td><td style="text-align: left">The git revision of the remote crate. Tied with the <code>git</code> param. Only one of branch, tag or rev may be specified.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
@@ -4032,161 +4032,6 @@ actions with minimal impact to other consumers.</p>
 <tr><td style="text-align: left"><a id="rust_prost_transform-tonic_opts"></a>tonic_opts</td><td style="text-align: left">Additional options to add to Tonic.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
-<h1 id="rules_rust_protobuf"><a class="header" href="#rules_rust_protobuf">rules_rust_protobuf</a></h1>
-<p>These build rules are used for building <a href="https://developers.google.com/protocol-buffers/">protobufs</a>/<a href="https://grpc.io">gRPC</a> in <a href="http://www.rust-lang.org/">Rust</a> with Bazel
-using <a href="https://github.com/stepancheg/rust-protobuf/"><code>rust-protobuf</code></a>.</p>
-<h2 id="setup-10"><a class="header" href="#setup-10">Setup</a></h2>
-<p>To use the Rust proto rules, add the following to your <code>WORKSPACE</code> file to add the
-external repositories for the Rust proto toolchain (in addition to the <a href="..">rust rules setup</a>):</p>
-<pre><code class="language-python">load("@rules_rust//proto/protobuf:repositories.bzl", "rust_proto_protobuf_dependencies", "rust_proto_protobuf_register_toolchains")
-
-rust_proto_protobuf_dependencies()
-
-rust_proto_protobuf_register_toolchains()
-
-load("@rules_rust//proto/protobuf:transitive_repositories.bzl", "rust_proto_protobuf_transitive_repositories")
-
-rust_proto_protobuf_transitive_repositories()
-</code></pre>
-<p>This will load the required dependencies for the <a href="https://github.com/stepancheg/rust-protobuf/"><code>rust-protobuf</code></a> rules. It will also
-register a default toolchain for the <code>rust_proto_library</code> and <code>rust_grpc_library</code> rules.</p>
-<p>To customize the <code>rust_proto_library</code> and <code>rust_grpc_library</code> toolchain, please see the section
-<a href="rust_protobuf.html#custom-proto-deps">Customizing <code>rust-protobuf</code> Dependencies</a>.</p>
-<p>For additional information about Bazel toolchains, see <a href="https://docs.bazel.build/versions/master/toolchains.html">here</a>.</p>
-<h4 id="customizing-rust-protobuf-dependencies"><a class="header" href="#customizing-rust-protobuf-dependencies"><a name="custom-proto-deps">Customizing <code>rust-protobuf</code> Dependencies</a></h4>
-<p>These rules depend on the <a href="https://crates.io/crates/protobuf"><code>protobuf</code></a> and
-the <a href="https://crates.io/crates/grpc"><code>grpc</code></a> crates in addition to the <a href="https://github.com/google/protobuf">protobuf
-compiler</a>. To obtain these crates,
-<code>rust_proto_repositories</code> imports the given crates using BUILD files generated with
-<a href="./crate_universe.html">crate_universe</a>.</p>
-<p>If you want to either change the protobuf and gRPC rust compilers, or to
-simply use <a href="./crate_universe.html">crate_universe</a> in a more
-complex scenario (with more dependencies), you must redefine those
-dependencies.</p>
-<p>To do this, once you've imported the needed dependencies (see our
-<a href="https://github.com/bazelbuild/rules_rust/blob/main/proto/protobuf/3rdparty/BUILD.bazel">@rules_rust//proto/protobuf/3rdparty/BUILD.bazel</a>
-file to see the default dependencies), you need to create your own toolchain.
-To do so you can create a BUILD file with your toolchain definition, for example:</p>
-<pre><code class="language-python">load("@rules_rust//proto:toolchain.bzl", "rust_proto_toolchain")
-
-rust_proto_toolchain(
-    name = "proto-toolchain-impl",
-    # Path to the protobuf compiler.
-    protoc = "@com_google_protobuf//:protoc",
-    # Protobuf compiler plugin to generate rust gRPC stubs.
-    grpc_plugin = "//3rdparty/crates:cargo_bin_protoc_gen_rust_grpc",
-    # Protobuf compiler plugin to generate rust protobuf stubs.
-    proto_plugin = "//3rdparty/crates:cargo_bin_protoc_gen_rust",
-)
-
-toolchain(
-    name = "proto-toolchain",
-    toolchain = ":proto-toolchain-impl",
-    toolchain_type = "@rules_rust//proto/protobuf:toolchain_type",
-)
-</code></pre>
-<p>Now that you have your own toolchain, you need to register it by
-inserting the following statement in your <code>WORKSPACE</code> file:</p>
-<pre><code class="language-python">register_toolchains("//my/toolchains:proto-toolchain")
-</code></pre>
-<p>Finally, you might want to set the <code>rust_deps</code> attribute in
-<code>rust_proto_library</code> and <code>rust_grpc_library</code> to change the compile-time
-dependencies:</p>
-<pre><code class="language-python">rust_proto_library(
-    ...
-    rust_deps = ["//3rdparty/crates:protobuf"],
-    ...
-)
-
-rust_grpc_library(
-    ...
-    rust_deps = [
-        "//3rdparty/crates:protobuf",
-        "//3rdparty/crates:grpc",
-        "//3rdparty/crates:tls_api",
-        "//3rdparty/crates:tls_api_stub",
-    ],
-    ...
-)
-</code></pre>
-<p><strong>Note</strong>: Ideally, we would inject those dependencies from the toolchain,
-but due to <a href="https://github.com/bazelbuild/bazel/issues/6889">bazelbuild/bazel#6889</a>
-all dependencies added via the toolchain ends-up being in the wrong
-configuration.</p>
-<hr />
-<hr />
-<p><a id="rust_grpc_library"></a></p>
-<h2 id="rust_grpc_library"><a class="header" href="#rust_grpc_library">rust_grpc_library</a></h2>
-<pre>
-load("@rules_rust_protobuf//:defs.bzl", "rust_grpc_library")
-
-rust_grpc_library(<a href="rust_protobuf.html#rust_grpc_library-name">name</a>, <a href="rust_protobuf.html#rust_grpc_library-deps">deps</a>, <a href="rust_protobuf.html#rust_grpc_library-crate_name">crate_name</a>, <a href="rust_protobuf.html#rust_grpc_library-rust_deps">rust_deps</a>, <a href="rust_protobuf.html#rust_grpc_library-rustc_flags">rustc_flags</a>)
-</pre>
-<p>Builds a Rust library crate from a set of <code>proto_library</code>s suitable for gRPC.</p>
-<p>Example:</p>
-<pre><code class="language-python">load("@rules_rust_protobuf//:defs.bzl", "rust_grpc_library")
-
-proto_library(
-    name = "my_proto",
-    srcs = ["my.proto"]
-)
-
-rust_grpc_library(
-    name = "rust",
-    deps = [":my_proto"],
-)
-
-rust_binary(
-    name = "my_service",
-    srcs = ["my_service.rs"],
-    deps = [":rust"],
-)
-</code></pre>
-<p><strong>ATTRIBUTES</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="rust_grpc_library-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-<tr><td style="text-align: left"><a id="rust_grpc_library-deps"></a>deps</td><td style="text-align: left">List of proto_library dependencies that will be built. One crate for each proto_library will be created with the corresponding gRPC stubs.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-<tr><td style="text-align: left"><a id="rust_grpc_library-crate_name"></a>crate_name</td><td style="text-align: left">Crate name to use for this target.<br><br>This must be a valid Rust identifier, i.e. it may contain only alphanumeric characters and underscores. Defaults to the target name, with any hyphens replaced by underscores.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_grpc_library-rust_deps"></a>rust_deps</td><td style="text-align: left">The crates the generated library depends on.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_grpc_library-rustc_flags"></a>rustc_flags</td><td style="text-align: left">List of compiler flags passed to <code>rustc</code>.<br><br>These strings are subject to Make variable expansion for predefined source/output path variables like <code>$location</code>, <code>$execpath</code>, and <code>$rootpath</code>. This expansion is useful if you wish to pass a generated file of arguments to rustc: <code>@$(location //package:target)</code>.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-</tbody></table>
-</div>
-<p><a id="rust_proto_library"></a></p>
-<h2 id="rust_proto_library"><a class="header" href="#rust_proto_library">rust_proto_library</a></h2>
-<pre>
-load("@rules_rust_protobuf//:defs.bzl", "rust_proto_library")
-
-rust_proto_library(<a href="rust_protobuf.html#rust_proto_library-name">name</a>, <a href="rust_protobuf.html#rust_proto_library-deps">deps</a>, <a href="rust_protobuf.html#rust_proto_library-crate_name">crate_name</a>, <a href="rust_protobuf.html#rust_proto_library-rust_deps">rust_deps</a>, <a href="rust_protobuf.html#rust_proto_library-rustc_flags">rustc_flags</a>)
-</pre>
-<p>Builds a Rust library crate from a set of <code>proto_library</code>s.</p>
-<p>Example:</p>
-<pre><code class="language-python">load("@rules_rust_protobuf//:defs.bzl", "rust_proto_library")
-
-proto_library(
-    name = "my_proto",
-    srcs = ["my.proto"]
-)
-
-rust_proto_library(
-    name = "rust",
-    deps = [":my_proto"],
-)
-
-rust_binary(
-    name = "my_proto_binary",
-    srcs = ["my_proto_binary.rs"],
-    deps = [":rust"],
-)
-</code></pre>
-<p><strong>ATTRIBUTES</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="rust_proto_library-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-<tr><td style="text-align: left"><a id="rust_proto_library-deps"></a>deps</td><td style="text-align: left">List of proto_library dependencies that will be built. One crate for each proto_library will be created with the corresponding stubs.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-<tr><td style="text-align: left"><a id="rust_proto_library-crate_name"></a>crate_name</td><td style="text-align: left">Crate name to use for this target.<br><br>This must be a valid Rust identifier, i.e. it may contain only alphanumeric characters and underscores. Defaults to the target name, with any hyphens replaced by underscores.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_proto_library-rust_deps"></a>rust_deps</td><td style="text-align: left">The crates the generated library depends on.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_proto_library-rustc_flags"></a>rustc_flags</td><td style="text-align: left">List of compiler flags passed to <code>rustc</code>.<br><br>These strings are subject to Make variable expansion for predefined source/output path variables like <code>$location</code>, <code>$execpath</code>, and <code>$rootpath</code>. This expansion is useful if you wish to pass a generated file of arguments to rustc: <code>@$(location //package:target)</code>.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-</tbody></table>
-</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <h1 id="rules_rust_pyo3"><a class="header" href="#rules_rust_pyo3">rules_rust_pyo3</a></h1>
 <p><a id="pyo3_toolchain"></a></p>
 <h2 id="pyo3_toolchain"><a class="header" href="#pyo3_toolchain">pyo3_toolchain</a></h2>
@@ -4304,7 +4149,7 @@ pyo3_extension(*, <a href="rust_pyo3.html#pyo3_extension-name">name</a>, <a href
 <li><a href="rust_wasm_bindgen.html#rust_wasm_bindgen">rust_wasm_bindgen</a></li>
 <li><a href="rust_wasm_bindgen.html#rust_wasm_bindgen_toolchain">rust_wasm_bindgen_toolchain</a></li>
 </ul>
-<h2 id="setup-11"><a class="header" href="#setup-11">Setup</a></h2>
+<h2 id="setup-10"><a class="header" href="#setup-10">Setup</a></h2>
 <p>To begin using the <code>wasm-bindgen</code> rules, users can load the necessary dependencies
 in their workspace by adding the following to their <code>WORKSPACE.bazel</code> file.</p>
 <pre><code class="language-python">load("@rules_rust_wasm_bindgen//:repositories.bzl", "rust_wasm_bindgen_dependencies", "rust_wasm_bindgen_register_toolchains")
@@ -4338,36 +4183,6 @@ rust_wasm_bindgen(<a href="rust_wasm_bindgen.html#rust_wasm_bindgen-name">name</
 <tr><td style="text-align: left"><a id="rust_wasm_bindgen-target"></a>target</td><td style="text-align: left">The type of output to generate. See https://rustwasm.github.io/wasm-bindgen/reference/deployment.html for details.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"bundler"</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_wasm_bindgen-target_arch"></a>target_arch</td><td style="text-align: left">The target architecture to use for the wasm-bindgen command line option.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"wasm32"</code></td></tr>
 <tr><td style="text-align: left"><a id="rust_wasm_bindgen-wasm_file"></a>wasm_file</td><td style="text-align: left">The <code>.wasm</code> crate to generate bindings for.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-</tbody></table>
-</div>
-<p><a id="rust_wasm_bindgen_test"></a></p>
-<h2 id="rust_wasm_bindgen_test"><a class="header" href="#rust_wasm_bindgen_test">rust_wasm_bindgen_test</a></h2>
-<pre>
-load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_test")
-
-rust_wasm_bindgen_test(<a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-name">name</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-deps">deps</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-data">data</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-aliases">aliases</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-compile_data">compile_data</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-crate_features">crate_features</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-edition">edition</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-env">env</a>,
-                       <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-env_inherit">env_inherit</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-proc_macro_deps">proc_macro_deps</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-rustc_env">rustc_env</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-rustc_env_files">rustc_env_files</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-rustc_flags">rustc_flags</a>,
-                       <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-target_arch">target_arch</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-version">version</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-wasm">wasm</a>)
-</pre>
-<p>Rules for running <a href="https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/index.html">wasm-bindgen tests</a>.</p>
-<p><strong>ATTRIBUTES</strong></p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-deps"></a>deps</td><td style="text-align: left">List of other libraries to be linked to this library target.<br><br>These can be either other <code>rust_library</code> targets or <code>cc_library</code> targets if linking a native library.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-data"></a>data</td><td style="text-align: left">List of files used by this rule at compile time and runtime.<br><br>If including data at compile time with include_str!() and similar, prefer <code>compile_data</code> over <code>data</code>, to prevent the data also being included in the runfiles.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-aliases"></a>aliases</td><td style="text-align: left">Remap crates to a new name or moniker for linkage to this target<br><br>These are other <code>rust_library</code> targets and will be presented as the new name given.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-compile_data"></a>compile_data</td><td style="text-align: left">List of files used by this rule at compile time.<br><br>This attribute can be used to specify any data files that are embedded into the library, such as via the <a href="https://doc.rust-lang.org/std/macro.include_str!.html"><code>include_str!</code></a> macro.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-crate_features"></a>crate_features</td><td style="text-align: left">List of features to enable for this crate.<br><br>Features are defined in the code using the <code>#[cfg(feature = "foo")]</code> configuration option. The features listed here will be passed to <code>rustc</code> with <code>--cfg feature="${feature_name}"</code> flags.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-edition"></a>edition</td><td style="text-align: left">The rust edition to use for this crate. Defaults to the edition specified in the rust_toolchain.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-env"></a>env</td><td style="text-align: left">Specifies additional environment variables to set when the test is executed by bazel test. Values are subject to <code>$(rootpath)</code>, <code>$(execpath)</code>, location, and <a href="https://docs.bazel.build/versions/master/be/make-variables.html">"Make variable"</a> substitution.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-env_inherit"></a>env_inherit</td><td style="text-align: left">Specifies additional environment variables to inherit from the external environment when the test is executed by bazel test.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-proc_macro_deps"></a>proc_macro_deps</td><td style="text-align: left">List of <code>rust_proc_macro</code> targets used to help build this library target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-rustc_env"></a>rustc_env</td><td style="text-align: left">Dictionary of additional <code>"key": "value"</code> environment variables to set for rustc.<br><br>rust_test()/rust_binary() rules can use $(rootpath //package:target) to pass in the location of a generated file or external tool. Cargo build scripts that wish to expand locations should use cargo_build_script()'s build_script_env argument instead, as build scripts are run in a different environment - see cargo_build_script()'s documentation for more.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-rustc_env_files"></a>rustc_env_files</td><td style="text-align: left">Files containing additional environment variables to set for rustc.<br><br>These files should  contain a single variable per line, of format <code>NAME=value</code>, and newlines may be included in a value by ending a line with a trailing back-slash (<code>\\</code>).<br><br>The order that these files will be processed is unspecified, so multiple definitions of a particular variable are discouraged.<br><br>Note that the variables here are subject to <a href="https://docs.bazel.build/versions/main/user-manual.html#workspace_status">workspace status</a> stamping should the <code>stamp</code> attribute be enabled. Stamp variables should be wrapped in brackets in order to be resolved. E.g. <code>NAME={WORKSPACE_STATUS_VARIABLE}</code>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-rustc_flags"></a>rustc_flags</td><td style="text-align: left">List of compiler flags passed to <code>rustc</code>.<br><br>These strings are subject to Make variable expansion for predefined source/output path variables like <code>$location</code>, <code>$execpath</code>, and <code>$rootpath</code>. This expansion is useful if you wish to pass a generated file of arguments to rustc: <code>@$(location //package:target)</code>.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-target_arch"></a>target_arch</td><td style="text-align: left">The target architecture to use for the wasm-bindgen command line option.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"wasm32"</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-version"></a>version</td><td style="text-align: left">A version to inject in the cargo environment variable.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"0.0.0"</code></td></tr>
-<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-wasm"></a>wasm</td><td style="text-align: left">The wasm target to test.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
 </div>
 <p><a id="rust_wasm_bindgen_toolchain"></a></p>
@@ -4426,6 +4241,37 @@ RustWasmBindgenInfo(<a href="rust_wasm_bindgen.html#RustWasmBindgenInfo-js">js</
 <tr><td style="text-align: left"><a id="RustWasmBindgenInfo-snippets"></a>snippets</td><td style="text-align: left">File: The snippets directory produced by <code>wasm-bindgen</code>.</td></tr>
 <tr><td style="text-align: left"><a id="RustWasmBindgenInfo-ts"></a>ts</td><td style="text-align: left">Depset[File]: The Typescript files produced by <code>wasm-bindgen</code>.</td></tr>
 <tr><td style="text-align: left"><a id="RustWasmBindgenInfo-wasm"></a>wasm</td><td style="text-align: left">File: The <code>.wasm</code> file generated by <code>wasm-bindgen</code>.</td></tr>
+</tbody></table>
+</div>
+<p><a id="rust_wasm_bindgen_test"></a></p>
+<h2 id="rust_wasm_bindgen_test"><a class="header" href="#rust_wasm_bindgen_test">rust_wasm_bindgen_test</a></h2>
+<pre>
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_test")
+
+rust_wasm_bindgen_test(*, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-name">name</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-aliases">aliases</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-compile_data">compile_data</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-crate_features">crate_features</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-data">data</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-edition">edition</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-env">env</a>,
+                       <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-env_inherit">env_inherit</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-proc_macro_deps">proc_macro_deps</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-rustc_env">rustc_env</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-rustc_env_files">rustc_env_files</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-rustc_flags">rustc_flags</a>,
+                       <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-target_arch">target_arch</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-version">version</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-wasm">wasm</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-tags">tags</a>, <a href="rust_wasm_bindgen.html#rust_wasm_bindgen_test-kwargs">**kwargs</a>)
+</pre>
+<p>"A test rule for running <a href="https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/index.html">wasm-bindgen tests</a>."</p>
+<p><strong>PARAMETERS</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Default Value</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left">none</td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-aliases"></a>aliases</td><td style="text-align: left">Remap crates to a new name or moniker for linkage to this target.</td><td style="text-align: left"><code>{}</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-compile_data"></a>compile_data</td><td style="text-align: left">List of files used by this rule at compile time.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-crate_features"></a>crate_features</td><td style="text-align: left">List of features to enable for this crate.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-data"></a>data</td><td style="text-align: left">List of files used by this rule at compile time and runtime.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-edition"></a>edition</td><td style="text-align: left">The rust edition to use for this crate. Defaults to the edition specified in the rust_toolchain.</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-env"></a>env</td><td style="text-align: left">Specifies additional environment variables to set when the test is executed by bazel test.</td><td style="text-align: left"><code>{}</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-env_inherit"></a>env_inherit</td><td style="text-align: left">Specifies additional environment variables to inherit from the external environment when the test is executed by bazel test.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-proc_macro_deps"></a>proc_macro_deps</td><td style="text-align: left">List of <code>rust_proc_macro</code> targets used to help build this library target.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-rustc_env"></a>rustc_env</td><td style="text-align: left">Dictionary of additional <code>"key": "value"</code> environment variables to set for rustc.</td><td style="text-align: left"><code>{}</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-rustc_env_files"></a>rustc_env_files</td><td style="text-align: left">Files containing additional environment variables to set for rustc.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-rustc_flags"></a>rustc_flags</td><td style="text-align: left">List of compiler flags passed to <code>rustc</code>.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-target_arch"></a>target_arch</td><td style="text-align: left">The target architecture to use for the wasm-bindgen command line option.</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-version"></a>version</td><td style="text-align: left">A version to inject in the cargo environment variable.</td><td style="text-align: left"><code>"0.0.0"</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-wasm"></a>wasm</td><td style="text-align: left">The wasm target to test.</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-tags"></a>tags</td><td style="text-align: left">Tags to apply to the target.</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust_wasm_bindgen_test-kwargs"></a>kwargs</td><td style="text-align: left">Additional keyword arguments.</td><td style="text-align: left">none</td></tr>
 </tbody></table>
 </div>
                     </main>
