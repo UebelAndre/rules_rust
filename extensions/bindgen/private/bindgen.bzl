@@ -247,7 +247,7 @@ def _rust_bindgen_impl(ctx):
 
     # Ignore `nightly` or `beta` versions.
     if rust_toolchain.version and rust_toolchain.version[0].isdigit():
-        # Pass `--rust-target` so bidgen knows the actual toolchain version.
+        # Pass `--rust-target` so bindgen knows the actual toolchain version.
         # Without this, bindgen defaults to it's built-in `LATEST_STABLE_RUST`
         # which may be older than the actual toolchain version and would
         # reject newer editions (e.g. edition 2024 requires `rust-target >= 1.85.0`).
