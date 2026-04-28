@@ -16,6 +16,7 @@ load(
     "experimental_per_crate_rustc_flag",
     "experimental_use_allocator_libraries_with_mangled_symbols",
     "experimental_use_cc_common_link",
+    "experimental_use_libtest_bzl",
     "experimental_use_coverage_metadata_files",
     "experimental_use_global_allocator",
     "experimental_use_sh_toolchain_for_bootstrap_process_wrapper",
@@ -87,6 +88,8 @@ experimental_link_std_dylib()
 experimental_per_crate_rustc_flag()
 
 experimental_use_cc_common_link()
+
+experimental_use_libtest_bzl()
 
 experimental_use_coverage_metadata_files()
 

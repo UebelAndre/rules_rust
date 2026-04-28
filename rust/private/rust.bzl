@@ -324,11 +324,13 @@ def _rust_binary_impl(ctx):
 
     return providers
 
-def get_rust_test_flags(attr):
+def get_rust_test_flags(attr, use_libtest_bzl = False, is_nightly = False):
     """Determine the desired rustc flags for test targets.
 
     Args:
         attr (dict): Attributes of a rule
+        use_libtest_bzl (bool): Whether libtest_bzl is enabled for this target
+        is_nightly (bool): Whether the toolchain channel is nightly
 
     Returns:
         List: A list of test flags
@@ -337,6 +339,12 @@ def get_rust_test_flags(attr):
         rust_flags = ["--test"]
     else:
         rust_flags = ["--cfg", "test"]
+
+    if use_libtest_bzl and is_nightly and getattr(attr, "use_libtest_harness", True):
+        rust_flags.extend([
+            "-Zcrate-attr=feature(custom_test_frameworks)",
+            "-Zcrate-attr=test_runner(::libtest_bzl::runner)",
+        ])
 
     return rust_flags
 
@@ -355,7 +363,13 @@ def _rust_test_impl(ctx):
     toolchain = find_toolchain(ctx)
 
     crate_type = "bin"
+    use_libtest_bzl = getattr(ctx.attr, "use_libtest_bzl", False)
+    if not use_libtest_bzl and getattr(ctx.attr, "use_libtest_harness", True):
+        use_libtest_bzl = hasattr(ctx.attr, "_experimental_use_libtest_bzl") and \
+            ctx.attr._experimental_use_libtest_bzl[BuildSettingInfo].value
     deps = transform_deps(ctx.attr.deps)
+    if use_libtest_bzl:
+        deps = deps + transform_deps([ctx.attr._libtest_bzl])
     proc_macro_deps = transform_deps(ctx.attr.proc_macro_deps + get_import_macro_deps(ctx))
 
     if ctx.attr.crate and ctx.attr.srcs:
@@ -496,7 +510,11 @@ def _rust_test_impl(ctx):
         toolchain = toolchain,
         crate_info_dict = crate_info_dict,
         output_hash = output_hash,
-        rust_flags = get_rust_test_flags(ctx.attr),
+        rust_flags = get_rust_test_flags(
+            ctx.attr,
+            use_libtest_bzl = use_libtest_bzl,
+            is_nightly = toolchain.channel == "nightly",
+        ),
         skip_expanding_rustc_env = True,
     )
     data = getattr(ctx.attr, "data", [])
@@ -919,6 +937,21 @@ _RUST_TEST_ATTRS = {
             [--test_arg](https://docs.bazel.build/versions/4.0.0/command-line-reference.html#flag--test_arg) flag.
             E.g. `bazel test //src:rust_test --test_arg=foo::test::test_fn`.
         """),
+    ),
+    "use_libtest_bzl": attr.bool(
+        mandatory = False,
+        default = False,
+        doc = dedent("""\
+            Enables Bazel test sharding and JUnit XML output for libtest.
+            Users must add `libtest_bzl::init!();` to their test source.
+            Use with `shard_count` for sharding. Requires `use_libtest_harness = True`.
+        """),
+    ),
+    "_libtest_bzl": attr.label(
+        default = Label("//util/libtest_bzl"),
+    ),
+    "_experimental_use_libtest_bzl": attr.label(
+        default = Label("//rust/settings:experimental_use_libtest_bzl"),
     ),
 } | _COVERAGE_ATTRS | _EXPERIMENTAL_USE_CC_COMMON_LINK_ATTRS
 

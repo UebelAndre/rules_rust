@@ -1,0 +1,20 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//rust:defs.bzl", "rust_test")
+
+rust_test(
+    name = "libtest_bzl_tests",
+    srcs = ["tests.rs"],
+    edition = "2021",
+    use_libtest_bzl = True,
+)
+
+sh_test(
+    name = "libtest_bzl_test",
+    srcs = ["libtest_bzl_test.sh"],
+    args = ["$(rootpath :libtest_bzl_tests)"],
+    data = [":libtest_bzl_tests"],
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)

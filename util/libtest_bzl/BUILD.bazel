@@ -1,0 +1,12 @@
+load("//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "libtest_bzl",
+    srcs = ["lib.rs"],
+    edition = "2021",
+    rustc_flags = select({
+        "//rust/toolchain/channel:nightly": ["--cfg=libtest_bzl_nightly"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)

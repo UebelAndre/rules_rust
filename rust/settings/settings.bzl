@@ -147,6 +147,20 @@ def experimental_use_cc_common_link():
     )
 
 # buildifier: disable=unnamed-macro
+def experimental_use_libtest_bzl():
+    """A flag to globally enable libtest_bzl for all rust_test targets with use_libtest_harness = True.
+
+    When enabled, all rust_test targets automatically get Bazel test sharding and JUnit XML
+    output support via the libtest_bzl library. Users must add `libtest_bzl::init!();` to their
+    test source, unless the toolchain is nightly (in which case `-Zcrate-attr` injects it
+    automatically).
+    """
+    bool_flag(
+        name = "experimental_use_libtest_bzl",
+        build_setting_default = False,
+    )
+
+# buildifier: disable=unnamed-macro
 def default_allocator_library():
     """A flag that determines the default allocator library for `rust_toolchain` targets."""
 
