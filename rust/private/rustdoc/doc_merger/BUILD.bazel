@@ -1,9 +1,8 @@
 load("//rust/private:rust.bzl", "rust_binary")
 
 rust_binary(
-    name = "dir_zipper",
-    srcs = ["dir_zipper.rs"],
+    name = "doc_merger",
+    srcs = ["doc_merger.rs"],
     edition = "2021",
     visibility = ["//visibility:public"],
-    deps = ["//rust/private/rustdoc/3rdparty/crates:zip"],
 )

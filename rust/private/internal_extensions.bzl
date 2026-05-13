@@ -3,6 +3,7 @@
 load("@bazel_features//:features.bzl", "bazel_features")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("//rust/private:repository_utils.bzl", "TINYJSON_KWARGS")
+load("//rust/private/rustdoc/3rdparty/crates:crates.bzl", _rustdoc_crate_repositories = "crate_repositories")
 load("//tools/rust_analyzer/3rdparty/crates:crates.bzl", _rust_analyzer_crate_repositories = "crate_repositories")
 
 def _internal_deps_impl(module_ctx):
@@ -10,6 +11,7 @@ def _internal_deps_impl(module_ctx):
     http_archive(**TINYJSON_KWARGS)
 
     direct_deps.extend(_rust_analyzer_crate_repositories())
+    direct_deps.extend(_rustdoc_crate_repositories())
 
     # is_dev_dep is ignored here. It's not relevant for internal_deps, as dev
     # dependencies are only relevant for module extensions that can be used
