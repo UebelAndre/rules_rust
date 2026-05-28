@@ -1751,8 +1751,16 @@ def rustc_compile_action(
             action_outputs.append(dsym_folder)
 
     if toolchain.process_wrapper:
+        use_worker = getattr(toolchain, "_experimental_incremental_worker", False) and getattr(toolchain, "persistent_worker", None)
+        executable = toolchain.persistent_worker if use_worker else toolchain.process_wrapper
+
+        exec_reqs = {"supports-path-mapping": ""} if args.supports_path_mapping else {}
+        if use_worker:
+            exec_reqs["supports-workers"] = "1"
+            exec_reqs["requires-worker-protocol"] = "json"
+
         ctx.actions.run(
-            executable = toolchain.process_wrapper,
+            executable = executable,
             inputs = compile_inputs,
             outputs = action_outputs,
             env = env,
@@ -1767,11 +1775,11 @@ def rustc_compile_action(
             ),
             toolchain = "@rules_rust//rust:toolchain_type",
             resource_set = get_rustc_resource_set(toolchain),
-            execution_requirements = {"supports-path-mapping": ""} if args.supports_path_mapping else None,
+            execution_requirements = exec_reqs if exec_reqs else None,
         )
         if args_metadata:
             ctx.actions.run(
-                executable = toolchain.process_wrapper,
+                executable = executable,
                 inputs = compile_inputs,
                 outputs = [build_metadata] + [x for x in [rustc_rmeta_output] if x],
                 env = env,
@@ -1785,7 +1793,7 @@ def rustc_compile_action(
                     "" if len(srcs) == 1 else "s",
                 ),
                 toolchain = "@rules_rust//rust:toolchain_type",
-                execution_requirements = {"supports-path-mapping": ""} if args_metadata.supports_path_mapping else None,
+                execution_requirements = exec_reqs if exec_reqs else None,
             )
     elif getattr(toolchain, "bootstrap_process_wrapper", None):
         if build_env_files or build_flags_files or stamp or build_metadata:

@@ -20,7 +20,7 @@ use std::iter::Peekable;
 use std::mem::take;
 
 #[derive(Debug, Clone)]
-pub(crate) enum FlagParseError {
+pub enum FlagParseError {
     UnknownFlag(String),
     ValueMissing(String),
     ProvidedMultipleTimes(String),
@@ -65,26 +65,26 @@ impl<T> fmt::Debug for FlagDef<'_, T> {
 }
 
 #[derive(Debug)]
-pub(crate) struct Flags<'a> {
+pub struct Flags<'a> {
     single: BTreeMap<String, FlagDef<'a, String>>,
     repeated: BTreeMap<String, FlagDef<'a, Vec<String>>>,
 }
 
 #[derive(Debug)]
-pub(crate) enum ParseOutcome {
+pub enum ParseOutcome {
     Help(String),
     Parsed(Vec<String>),
 }
 
 impl<'a> Flags<'a> {
-    pub(crate) fn new() -> Flags<'a> {
+    pub fn new() -> Flags<'a> {
         Flags {
             single: BTreeMap::new(),
             repeated: BTreeMap::new(),
         }
     }
 
-    pub(crate) fn define_flag(
+    pub fn define_flag(
         &mut self,
         name: impl Into<String>,
         help: impl Into<String>,
@@ -104,7 +104,7 @@ impl<'a> Flags<'a> {
         );
     }
 
-    pub(crate) fn define_repeated_flag(
+    pub fn define_repeated_flag(
         &mut self,
         name: impl Into<String>,
         help: impl Into<String>,
@@ -142,7 +142,7 @@ impl<'a> Flags<'a> {
         help_text
     }
 
-    pub(crate) fn parse(mut self, argv: Vec<String>) -> Result<ParseOutcome, FlagParseError> {
+    pub fn parse(mut self, argv: Vec<String>) -> Result<ParseOutcome, FlagParseError> {
         let mut argv_iter = argv.into_iter().peekable();
         let program_name = argv_iter.next().ok_or(FlagParseError::ProgramNameMissing)?;
 

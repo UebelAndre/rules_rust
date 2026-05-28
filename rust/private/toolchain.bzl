@@ -399,13 +399,14 @@ def _expand_flags(ctx, attr_name, targets, make_variables):
         expanded_flags.append(flag)
     return expanded_flags
 
-def _rust_toolchain_impl_common(ctx, process_wrapper, is_bootstrap):
+def _rust_toolchain_impl_common(ctx, process_wrapper, is_bootstrap, persistent_worker = None):
     """The rust_toolchain implementation
 
     Args:
         ctx (ctx): The rule's context object
         process_wrapper (File): The executable for the Rustc process wrapper.
         is_bootstrap (bool): True if the process wrapper is the bootstrap variant.
+        persistent_worker (File, optional): The persistent worker executable for incremental compilation.
 
     Returns:
         list: A list containing the target's toolchain Provider info
@@ -608,6 +609,7 @@ def _rust_toolchain_impl_common(ctx, process_wrapper, is_bootstrap):
         all_files = depset(transitive = all_files_depsets),
         process_wrapper = None if is_bootstrap else process_wrapper,
         bootstrap_process_wrapper = process_wrapper if is_bootstrap else None,
+        persistent_worker = persistent_worker,
         binary_ext = ctx.attr.binary_ext,
         cargo = sysroot.cargo,
         channel = ctx.attr.channel,
@@ -674,6 +676,7 @@ def _rust_toolchain_impl_common(ctx, process_wrapper, is_bootstrap):
         _codegen_units = ctx.attr._codegen_units[BuildSettingInfo].value,
         _experimental_use_allocator_libraries_with_mangled_symbols = ctx.attr.experimental_use_allocator_libraries_with_mangled_symbols,
         _experimental_use_allocator_libraries_with_mangled_symbols_setting = ctx.attr._experimental_use_allocator_libraries_with_mangled_symbols_setting[BuildSettingInfo].value,
+        _experimental_incremental_worker = ctx.attr._experimental_incremental_worker[BuildSettingInfo].value if hasattr(ctx.attr, "_experimental_incremental_worker") else False,
     )
     return [
         toolchain,
@@ -958,6 +961,7 @@ def _rust_toolchain_impl(ctx):
         ctx = ctx,
         process_wrapper = ctx.executable._process_wrapper,
         is_bootstrap = False,
+        persistent_worker = getattr(ctx.executable, "_persistent_worker", None),
     )
 
 rust_toolchain = rule(
@@ -968,6 +972,14 @@ rust_toolchain = rule(
             default = Label("//util/process_wrapper"),
             executable = True,
             cfg = "exec",
+        ),
+        "_persistent_worker": attr.label(
+            default = Label("//util/rustc_worker"),
+            executable = True,
+            cfg = "exec",
+        ),
+        "_experimental_incremental_worker": attr.label(
+            default = Label("//rust/settings:experimental_incremental_worker"),
         ),
     },
     toolchains = [

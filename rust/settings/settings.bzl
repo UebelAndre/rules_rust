@@ -115,6 +115,13 @@ def pipelined_compilation():
         build_setting_default = False,
     )
 
+def experimental_incremental_worker():
+    """When set, this flag causes rustc actions to use a persistent worker with incremental compilation caching."""
+    bool_flag(
+        name = "experimental_incremental_worker",
+        build_setting_default = False,
+    )
+
 # buildifier: disable=unnamed-macro
 def experimental_use_cc_common_link():
     """A flag to control whether to link rust_binary and rust_test targets using \

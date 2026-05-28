@@ -12,23 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod flags;
-mod options;
-mod output;
-mod rustc;
-mod util;
-
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::{copy, OpenOptions};
 use std::io;
 use std::process::{exit, Command, ExitStatus, Stdio};
 
-use tinyjson::JsonValue;
+use process_wrapper::tinyjson::JsonValue;
 
-use crate::options::options;
-use crate::output::{process_output, LineOutput};
-use crate::rustc::ErrorFormat;
+use process_wrapper::options::options;
+use process_wrapper::output::{process_output, LineOutput};
+use process_wrapper::rustc::ErrorFormat;
 
 #[cfg(windows)]
 fn status_code(status: ExitStatus, was_killed: bool) -> i32 {
@@ -111,9 +105,9 @@ fn process_line(
         }
     }
     if quit_on_rmeta {
-        rustc::stop_on_rmeta_completion(line, format, metadata_emitted)
+        process_wrapper::rustc::stop_on_rmeta_completion(line, format, metadata_emitted)
     } else {
-        rustc::process_json(line, format)
+        process_wrapper::rustc::process_json(line, format)
     }
 }
 

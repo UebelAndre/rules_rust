@@ -14,21 +14,21 @@ pub(crate) fn rust_proc_macro<S>(rule: &RustProcMacro, serializer: S) -> Result<
 where
     S: Serializer,
 {
-    FunctionCall::new("rust_proc_macro", rule).serialize(serializer)
+    FunctionCall::new(&rule.rule_name, rule).serialize(serializer)
 }
 
 pub(crate) fn rust_library<S>(rule: &RustLibrary, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    FunctionCall::new("rust_library", rule).serialize(serializer)
+    FunctionCall::new(&rule.rule_name, rule).serialize(serializer)
 }
 
 pub(crate) fn rust_binary<S>(rule: &RustBinary, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    FunctionCall::new("rust_binary", rule).serialize(serializer)
+    FunctionCall::new(&rule.rule_name, rule).serialize(serializer)
 }
 
 // Serialize an array with each element on its own line, even if there is just a

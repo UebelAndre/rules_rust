@@ -23,14 +23,14 @@ use std::io::{self, prelude::*};
 /// Terminate is used to stop processing when we see an emit metadata
 /// message.
 #[derive(Debug)]
-pub(crate) enum LineOutput {
+pub enum LineOutput {
     Message(String),
     Skip,
     Terminate,
 }
 
 #[derive(Debug)]
-pub(crate) enum ProcessError {
+pub enum ProcessError {
     IO(io::Error),
     Process(String),
 }
@@ -58,17 +58,17 @@ impl From<String> for ProcessError {
     }
 }
 
-pub(crate) type ProcessResult = Result<(), ProcessError>;
+pub type ProcessResult = Result<(), ProcessError>;
 
 /// If this is Err we assume there were issues processing the line.
 /// We will print the error returned and all following lines without
 /// any more processing.
-pub(crate) type LineResult = Result<LineOutput, String>;
+pub type LineResult = Result<LineOutput, String>;
 
 /// process_output reads lines from read_end and invokes process_line on each.
 /// Depending on the result of process_line, the modified message may be written
 /// to write_end.
-pub(crate) fn process_output<F>(
+pub fn process_output<F>(
     read_end: &mut dyn Read,
     output_write_end: &mut dyn Write,
     opt_file_write_end: Option<&mut std::fs::File>,

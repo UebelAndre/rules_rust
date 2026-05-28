@@ -1,0 +1,49 @@
+load("//crate_universe:defs.bzl", "crate", "crates_vendor", "render_config")
+
+crates_vendor(
+    name = "crates_vendor",
+    generate_build_scripts = False,
+    annotations = {
+        "generic-array": [crate.annotation(
+            gen_build_script = False,
+            rustc_flags = ["--cfg=feature=\"more_lengths\""],
+        )],
+        "serde_json": [crate.annotation(
+            gen_build_script = False,
+            # Replicates serde_json's build.rs which sets fast_arithmetic based
+            # on target arch / pointer width. See:
+            # https://github.com/serde-rs/json/blob/v1.0.140/build.rs
+            # Note: //conditions:default is intentionally omitted because the
+            # crate_universe renderer adds its own empty default; supported
+            # targets all have native 64-bit arithmetic.
+            rustc_flags = {
+                "common": [],
+                "selects": {
+                    "@platforms//cpu:aarch64": ["--cfg=fast_arithmetic=\"64\""],
+                    "@platforms//cpu:ppc64le": ["--cfg=fast_arithmetic=\"64\""],
+                    "@platforms//cpu:s390x": ["--cfg=fast_arithmetic=\"64\""],
+                    "@platforms//cpu:wasm32": ["--cfg=fast_arithmetic=\"64\""],
+                    "@platforms//cpu:wasm64": ["--cfg=fast_arithmetic=\"64\""],
+                    "@platforms//cpu:x86_64": ["--cfg=fast_arithmetic=\"64\""],
+                },
+            },
+        )],
+    },
+    cargo_lockfile = "Cargo.Bazel.lock",
+    manifests = [
+        "//util/rustc_worker:Cargo.toml",
+    ],
+    mode = "remote",
+    render_config = render_config(
+        generate_cargo_toml_env_vars = False,
+        rust_rules = {
+            "bzl": "@rules_rust//rust/toolchain/bootstrap:defs.bzl",
+            "library": "rust_bootstrap_library",
+            "binary": "rust_bootstrap_binary",
+            "proc_macro": "rust_bootstrap_proc_macro",
+        },
+    ),
+    # `rrw` == `rules_rust_worker`.
+    repository_name = "rrw",
+    tags = ["manual"],
+)

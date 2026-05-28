@@ -19,7 +19,7 @@ use tinyjson::JsonValue;
 use crate::output::{LineOutput, LineResult};
 
 #[derive(Debug, Default, Copy, Clone)]
-pub(crate) enum ErrorFormat {
+pub enum ErrorFormat {
     Json,
     #[default]
     Rendered,
@@ -61,7 +61,7 @@ impl TryFrom<JsonValue> for RustcMessage {
 /// according to the original --error-format supplied.
 /// Only messages are returned, emits are ignored.
 /// Returns an errors if parsing json fails.
-pub(crate) fn process_json(line: String, error_format: ErrorFormat) -> LineResult {
+pub fn process_json(line: String, error_format: ErrorFormat) -> LineResult {
     let parsed: JsonValue = line
         .parse()
         .map_err(|_| "error parsing rustc output as json".to_owned())?;
@@ -80,7 +80,7 @@ pub(crate) fn process_json(line: String, error_format: ErrorFormat) -> LineResul
 /// https://internals.rust-lang.org/t/evaluating-pipelined-rustc-compilation/10199
 /// Returns an error if parsing json fails.
 /// TODO: pass a function to handle the emit event and merge with process_json
-pub(crate) fn stop_on_rmeta_completion(
+pub fn stop_on_rmeta_completion(
     line: String,
     error_format: ErrorFormat,
     kill: &mut bool,

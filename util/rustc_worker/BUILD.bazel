@@ -1,0 +1,18 @@
+load("//rust/toolchain/bootstrap:rust_bootstrap_binary.bzl", "rust_bootstrap_binary")
+
+exports_files([
+    "Cargo.toml"
+])
+
+rust_bootstrap_binary(
+    name = "rustc_worker",
+    srcs = glob(["*.rs"]),
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//util/process_wrapper:process_wrapper_lib",
+        "//util/rustc_worker/3rdparty/crates:serde",
+        "//util/rustc_worker/3rdparty/crates:serde_json",
+        "//util/rustc_worker/3rdparty/crates:sha2",
+    ],
+)

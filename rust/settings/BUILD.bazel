@@ -16,6 +16,7 @@ load(
     "experimental_link_std_dylib",
     "experimental_per_crate_rustc_flag",
     "experimental_use_allocator_libraries_with_mangled_symbols",
+    "experimental_incremental_worker",
     "experimental_use_cc_common_link",
     "experimental_use_coverage_metadata_files",
     "experimental_use_global_allocator",
@@ -88,6 +89,8 @@ experimental_compile_rustdoc_tests()
 experimental_link_std_dylib()
 
 experimental_per_crate_rustc_flag()
+
+experimental_incremental_worker()
 
 experimental_use_cc_common_link()
 

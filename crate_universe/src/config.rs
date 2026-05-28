@@ -109,6 +109,24 @@ pub(crate) struct RenderConfig {
     /// Whether to generate cargo_toml_env_vars targets.
     /// This is expected to always be true except for bootstrapping.
     pub(crate) generate_cargo_toml_env_vars: bool,
+
+    /// Custom Rust rule names to use in generated BUILD files.
+    /// When set, overrides the default `@rules_rust//rust:defs.bzl` rules.
+    #[serde(default)]
+    pub(crate) rust_rules: Option<RustRules>,
+}
+
+/// Configuration for custom Rust rule implementations in generated BUILD files.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct RustRules {
+    /// The `.bzl` file to load rules from.
+    pub(crate) bzl: String,
+    /// The rule name for `rust_library` targets.
+    pub(crate) library: String,
+    /// The rule name for `rust_binary` targets.
+    pub(crate) binary: String,
+    /// The rule name for `rust_proc_macro` targets.
+    pub(crate) proc_macro: String,
 }
 
 // Default is manually implemented so that the default values match the default
@@ -131,6 +149,7 @@ impl Default for RenderConfig {
             regen_command: String::default(),
             vendor_mode: Option::default(),
             generate_rules_license_metadata: default_generate_rules_license_metadata(),
+            rust_rules: None,
         }
     }
 }

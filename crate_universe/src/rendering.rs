@@ -496,18 +496,30 @@ impl Renderer {
                         }));
                     }
                     Rule::ProcMacro(target) => {
-                        load("@rules_rust//rust:defs.bzl", "rust_proc_macro");
+                        let (bzl, rule_name) = match &self.config.rust_rules {
+                            Some(rr) => (rr.bzl.as_str(), rr.proc_macro.as_str()),
+                            None => ("@rules_rust//rust:defs.bzl", "rust_proc_macro"),
+                        };
+                        load(bzl, rule_name);
                         let rust_proc_macro =
                             self.make_rust_proc_macro(platforms, &krate, target)?;
                         starlark.push(Starlark::RustProcMacro(rust_proc_macro));
                     }
                     Rule::Library(target) => {
-                        load("@rules_rust//rust:defs.bzl", "rust_library");
+                        let (bzl, rule_name) = match &self.config.rust_rules {
+                            Some(rr) => (rr.bzl.as_str(), rr.library.as_str()),
+                            None => ("@rules_rust//rust:defs.bzl", "rust_library"),
+                        };
+                        load(bzl, rule_name);
                         let rust_library = self.make_rust_library(platforms, &krate, target)?;
                         starlark.push(Starlark::RustLibrary(rust_library));
                     }
                     Rule::Binary(target) => {
-                        load("@rules_rust//rust:defs.bzl", "rust_binary");
+                        let (bzl, rule_name) = match &self.config.rust_rules {
+                            Some(rr) => (rr.bzl.as_str(), rr.binary.as_str()),
+                            None => ("@rules_rust//rust:defs.bzl", "rust_binary"),
+                        };
+                        load(bzl, rule_name);
                         let rust_binary = self.make_rust_binary(platforms, &krate, target)?;
                         starlark.push(Starlark::RustBinary(rust_binary));
                     }
@@ -681,6 +693,7 @@ impl Renderer {
         target: &TargetAttributes,
     ) -> Result<RustProcMacro> {
         Ok(RustProcMacro {
+            rule_name: self.config.rust_rules.as_ref().map_or("rust_proc_macro".to_owned(), |rr| rr.proc_macro.clone()),
             name: target.crate_name.clone(),
             deps: SelectSet::new(
                 self.make_deps(
@@ -708,6 +721,7 @@ impl Renderer {
         target: &TargetAttributes,
     ) -> Result<RustLibrary> {
         Ok(RustLibrary {
+            rule_name: self.config.rust_rules.as_ref().map_or("rust_library".to_owned(), |rr| rr.library.clone()),
             name: target.crate_name.clone(),
             deps: SelectSet::new(
                 self.make_deps(
@@ -761,6 +775,7 @@ impl Renderer {
         }
 
         Ok(RustBinary {
+            rule_name: self.config.rust_rules.as_ref().map_or("rust_binary".to_owned(), |rr| rr.binary.clone()),
             name: format!("{}__bin", target.crate_name),
             deps: SelectSet::new(deps, platforms),
             proc_macro_deps: SelectSet::new(proc_macro_deps, platforms),

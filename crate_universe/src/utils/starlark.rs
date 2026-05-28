@@ -152,6 +152,8 @@ pub(crate) struct CargoTomlEnvVars {
 
 #[derive(Serialize)]
 pub(crate) struct RustProcMacro {
+    #[serde(skip)]
+    pub(crate) rule_name: String,
     pub(crate) name: String,
     #[serde(skip_serializing_if = "SelectSet::is_empty")]
     pub(crate) deps: SelectSet<Label>,
@@ -165,6 +167,8 @@ pub(crate) struct RustProcMacro {
 
 #[derive(Serialize)]
 pub(crate) struct RustLibrary {
+    #[serde(skip)]
+    pub(crate) rule_name: String,
     pub(crate) name: String,
     #[serde(skip_serializing_if = "SelectSet::is_empty")]
     pub(crate) deps: SelectSet<Label>,
@@ -180,6 +184,8 @@ pub(crate) struct RustLibrary {
 
 #[derive(Serialize)]
 pub(crate) struct RustBinary {
+    #[serde(skip)]
+    pub(crate) rule_name: String,
     pub(crate) name: String,
     #[serde(skip_serializing_if = "SelectSet::is_empty")]
     pub(crate) deps: SelectSet<Label>,

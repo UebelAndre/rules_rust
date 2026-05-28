@@ -102,7 +102,8 @@ def render_config(
         platforms_template = "@rules_rust//rust/platform:{triple}",
         regen_command = None,
         vendor_mode = None,
-        generate_rules_license_metadata = False):
+        generate_rules_license_metadata = False,
+        rust_rules = None):
     """Various settings used to configure rendered outputs
 
     The template parameters each support a select number of format keys. A description of each key
@@ -145,6 +146,9 @@ def render_config(
         regen_command (str, optional): An optional command to demonstrate how generated files should be regenerated.
         vendor_mode (str, optional): An optional configuration for rendirng content to be rendered into repositories.
         generate_rules_license_metadata (bool, optional): Whether to generate rules license metadata
+        rust_rules (struct, optional): Custom Rust rule implementations for generated BUILD files.
+            A struct with fields `bzl` (the .bzl file to load from), `library`, `binary`, and `proc_macro`
+            (the rule names). When set, overrides the default `@rules_rust//rust:defs.bzl` rules.
 
     Returns:
         string: A json encoded struct to match the Rust `config::RenderConfig` struct
@@ -163,6 +167,7 @@ def render_config(
         platforms_template = platforms_template,
         regen_command = regen_command,
         vendor_mode = vendor_mode,
+        rust_rules = rust_rules,
     ))
 
 def _crate_id(name, version):

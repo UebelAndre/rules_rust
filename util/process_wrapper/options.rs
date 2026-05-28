@@ -10,7 +10,7 @@ use crate::rustc;
 use crate::util::*;
 
 #[derive(Debug)]
-pub(crate) enum OptionError {
+pub enum OptionError {
     FlagError(FlagParseError),
     Generic(String),
 }
@@ -25,33 +25,37 @@ impl fmt::Display for OptionError {
 }
 
 #[derive(Debug)]
-pub(crate) struct Options {
+pub struct Options {
     // Contains the path to the child executable
-    pub(crate) executable: String,
+    pub executable: String,
     // Contains arguments for the child process fetched from files.
-    pub(crate) child_arguments: Vec<String>,
+    pub child_arguments: Vec<String>,
     // Contains environment variables for the child process fetched from files.
-    pub(crate) child_environment: HashMap<String, String>,
+    pub child_environment: HashMap<String, String>,
     // If set, create the specified file after the child process successfully
     // terminated its execution.
-    pub(crate) touch_file: Option<String>,
+    pub touch_file: Option<String>,
     // If set to (source, dest) copies the source file to dest.
-    pub(crate) copy_output: Option<(String, String)>,
+    pub copy_output: Option<(String, String)>,
     // If set, redirects the child process stdout to this file.
-    pub(crate) stdout_file: Option<String>,
+    pub stdout_file: Option<String>,
     // If set, redirects the child process stderr to this file.
-    pub(crate) stderr_file: Option<String>,
+    pub stderr_file: Option<String>,
     // If set, also logs all unprocessed output from the rustc output to this file.
     // Meant to be used to get json output out of rustc for tooling usage.
-    pub(crate) output_file: Option<String>,
+    pub output_file: Option<String>,
     // If set, it configures rustc to emit an rmeta file and then
     // quit.
-    pub(crate) rustc_quit_on_rmeta: bool,
+    pub rustc_quit_on_rmeta: bool,
     // This controls the output format of rustc messages.
-    pub(crate) rustc_output_format: Option<rustc::ErrorFormat>,
+    pub rustc_output_format: Option<rustc::ErrorFormat>,
 }
 
-pub(crate) fn options() -> Result<Options, OptionError> {
+pub fn options() -> Result<Options, OptionError> {
+    options_from_args(env::args().collect())
+}
+
+pub fn options_from_args(argv: Vec<String>) -> Result<Options, OptionError> {
     // Process argument list until -- is encountered.
     // Everything after is sent to the child process.
     let mut subst_mapping_raw = None;
@@ -134,7 +138,7 @@ pub(crate) fn options() -> Result<Options, OptionError> {
     );
 
     let mut child_args = match flags
-        .parse(env::args().collect())
+        .parse(argv)
         .map_err(OptionError::FlagError)?
     {
         ParseOutcome::Help(help) => {

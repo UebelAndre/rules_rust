@@ -15,7 +15,7 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 
-pub(crate) fn read_file_to_array(path: &str) -> Result<Vec<String>, String> {
+pub fn read_file_to_array(path: &str) -> Result<Vec<String>, String> {
     let file = File::open(path).map_err(|e| e.to_string()).map_err(|err| {
         format!(
             "{} reading path: {:?}, current directory: {:?}",
@@ -28,7 +28,7 @@ pub(crate) fn read_file_to_array(path: &str) -> Result<Vec<String>, String> {
     read_to_array(file)
 }
 
-pub(crate) fn read_stamp_status_to_array(path: String) -> Result<Vec<(String, String)>, String> {
+pub fn read_stamp_status_to_array(path: String) -> Result<Vec<(String, String)>, String> {
     let file = File::open(path).map_err(|e| e.to_string())?;
     stamp_status_to_array(file)
 }
