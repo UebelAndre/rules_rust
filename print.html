@@ -1021,11 +1021,6 @@ impact user's ability to rapidly iterate on changes.</p>
 file is used whenever <code>rustfmt</code> is run:</p>
 <pre><code class="language-text">build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 </code></pre>
-<h3 id="tips"><a class="header" href="#tips">Tips</a></h3>
-<p>Any target which uses Bazel generated sources will cause the <code>@rules_rust//tools/rustfmt</code> tool to fail with
-<code>failed to resolve mod `MOD` </code>. To avoid failures, <a href="https://rust-lang.github.io/rustfmt/?version=v1.6.0&amp;search=skip_chil#skip_children"><code>skip_children = true</code></a>
-is recommended to be set in the workspace's <code>rustfmt.toml</code> file which allows rustfmt to run on these targets
-without failing.</p>
 <h2 id="rules-3"><a class="header" href="#rules-3">Rules</a></h2>
 <ul>
 <li><a href="rust_fmt.html#rustfmt_test">rustfmt_test</a></li>
@@ -1889,12 +1884,6 @@ is available.</li>
 <li><code>mir</code></li>
 <li><code>normal</code></li>
 </ul>
-<p><a id="use_real_import_macro"></a></p>
-<h2 id="use_real_import_macro"><a class="header" href="#use_real_import_macro">use_real_import_macro</a></h2>
-<pre>
---@rules_rust//rust/settings:use_real_import_macro
-</pre>
-<p>A flag to control whether rust_library and rust_binary targets should     implicitly depend on the <em>real</em> import macro, or on a no-op target.</p>
 <div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <h1 id="cargo-settings"><a class="header" href="#cargo-settings">Cargo settings</a></h1>
 <p>Definitions for all <code>@rules_rust//cargo</code> settings</p>
@@ -2099,9 +2088,10 @@ rust.repository_set(<a href="rust_bzlmod.html#rust.repository_set-name">name</a>
                     <a href="rust_bzlmod.html#rust.repository_set-global_allocator_library">global_allocator_library</a>, <a href="rust_bzlmod.html#rust.repository_set-netrc">netrc</a>, <a href="rust_bzlmod.html#rust.repository_set-opt_level">opt_level</a>, <a href="rust_bzlmod.html#rust.repository_set-rustfmt_version">rustfmt_version</a>, <a href="rust_bzlmod.html#rust.repository_set-sha256s">sha256s</a>, <a href="rust_bzlmod.html#rust.repository_set-strip_level">strip_level</a>,
                     <a href="rust_bzlmod.html#rust.repository_set-target_compatible_with">target_compatible_with</a>, <a href="rust_bzlmod.html#rust.repository_set-target_settings">target_settings</a>, <a href="rust_bzlmod.html#rust.repository_set-target_triple">target_triple</a>, <a href="rust_bzlmod.html#rust.repository_set-urls">urls</a>, <a href="rust_bzlmod.html#rust.repository_set-versions">versions</a>)
 rust.toolchain(<a href="rust_bzlmod.html#rust.toolchain-aliases">aliases</a>, <a href="rust_bzlmod.html#rust.toolchain-allocator_library">allocator_library</a>, <a href="rust_bzlmod.html#rust.toolchain-dev_components">dev_components</a>, <a href="rust_bzlmod.html#rust.toolchain-edition">edition</a>, <a href="rust_bzlmod.html#rust.toolchain-extra_exec_rustc_flags">extra_exec_rustc_flags</a>,
-               <a href="rust_bzlmod.html#rust.toolchain-extra_rustc_flags">extra_rustc_flags</a>, <a href="rust_bzlmod.html#rust.toolchain-extra_rustc_flags_triples">extra_rustc_flags_triples</a>, <a href="rust_bzlmod.html#rust.toolchain-extra_target_triples">extra_target_triples</a>,
-               <a href="rust_bzlmod.html#rust.toolchain-global_allocator_library">global_allocator_library</a>, <a href="rust_bzlmod.html#rust.toolchain-rust_analyzer_version">rust_analyzer_version</a>, <a href="rust_bzlmod.html#rust.toolchain-rustfmt_toolchain_triples">rustfmt_toolchain_triples</a>,
-               <a href="rust_bzlmod.html#rust.toolchain-rustfmt_version">rustfmt_version</a>, <a href="rust_bzlmod.html#rust.toolchain-sha256s">sha256s</a>, <a href="rust_bzlmod.html#rust.toolchain-strip_level">strip_level</a>, <a href="rust_bzlmod.html#rust.toolchain-target_settings">target_settings</a>, <a href="rust_bzlmod.html#rust.toolchain-urls">urls</a>, <a href="rust_bzlmod.html#rust.toolchain-versions">versions</a>)
+               <a href="rust_bzlmod.html#rust.toolchain-extra_exec_rustc_flags_triples">extra_exec_rustc_flags_triples</a>, <a href="rust_bzlmod.html#rust.toolchain-extra_rustc_flags">extra_rustc_flags</a>, <a href="rust_bzlmod.html#rust.toolchain-extra_rustc_flags_triples">extra_rustc_flags_triples</a>,
+               <a href="rust_bzlmod.html#rust.toolchain-extra_target_triples">extra_target_triples</a>, <a href="rust_bzlmod.html#rust.toolchain-global_allocator_library">global_allocator_library</a>, <a href="rust_bzlmod.html#rust.toolchain-rust_analyzer_version">rust_analyzer_version</a>,
+               <a href="rust_bzlmod.html#rust.toolchain-rustfmt_toolchain_triples">rustfmt_toolchain_triples</a>, <a href="rust_bzlmod.html#rust.toolchain-rustfmt_version">rustfmt_version</a>, <a href="rust_bzlmod.html#rust.toolchain-sha256s">sha256s</a>, <a href="rust_bzlmod.html#rust.toolchain-strip_level">strip_level</a>, <a href="rust_bzlmod.html#rust.toolchain-target_settings">target_settings</a>,
+               <a href="rust_bzlmod.html#rust.toolchain-urls">urls</a>, <a href="rust_bzlmod.html#rust.toolchain-versions">versions</a>)
 </pre>
 <p>Rust toolchain extension.</p>
 <p><strong>TAG CLASSES</strong></p>
@@ -2143,6 +2133,7 @@ rust.toolchain(<a href="rust_bzlmod.html#rust.toolchain-aliases">aliases</a>, <a
 <tr><td style="text-align: left"><a id="rust.toolchain-dev_components"></a>dev_components</td><td style="text-align: left">Whether to download the rustc-dev components (defaults to False). Requires version to be "nightly".</td><td style="text-align: left">Boolean</td><td style="text-align: left">optional</td><td style="text-align: left"><code>False</code></td></tr>
 <tr><td style="text-align: left"><a id="rust.toolchain-edition"></a>edition</td><td style="text-align: left">The rust edition to be used by default (2015, 2018, or 2021). If absent, every rule is required to specify its <code>edition</code> attribute.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="rust.toolchain-extra_exec_rustc_flags"></a>extra_exec_rustc_flags</td><td style="text-align: left">Extra flags to pass to rustc in exec configuration</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="rust.toolchain-extra_exec_rustc_flags_triples"></a>extra_exec_rustc_flags_triples</td><td style="text-align: left">Extra flags to pass to rustc in exec configuration. Key is the triple, value is the flag.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; List of strings</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="rust.toolchain-extra_rustc_flags"></a>extra_rustc_flags</td><td style="text-align: left">Extra flags to pass to rustc in non-exec configuration</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="rust.toolchain-extra_rustc_flags_triples"></a>extra_rustc_flags_triples</td><td style="text-align: left">Extra flags to pass to rustc in non-exec configuration. Key is the triple, value is the flag.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; List of strings</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="rust.toolchain-extra_target_triples"></a>extra_target_triples</td><td style="text-align: left">-</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "wasm32-unknown-unknown", "wasm32-wasip1", "wasm32-wasip2"]</code></td></tr>
