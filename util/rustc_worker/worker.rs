@@ -96,9 +96,23 @@ fn process_line(
 
 fn handle_request(
     req: &WorkRequest,
+    startup_args: &[String],
     cache: &mut IncrementalCache,
 ) -> WorkResponse {
-    let opts = match process_wrapper::options::options_from_args(req.arguments.clone()) {
+    // The worker's startup argv already includes the process_wrapper flags
+    // (e.g. `--subst pwd=${pwd} ... -- <rustc-path>`). Each WorkRequest's
+    // arguments are the per-action rustc flags that go AFTER the rustc-path.
+    // Combine them into a single argv that the process_wrapper's option
+    // parser can consume.
+    let mut argv = Vec::with_capacity(startup_args.len() + req.arguments.len());
+    argv.extend(startup_args.iter().cloned());
+    argv.extend(req.arguments.iter().cloned());
+
+    if std::env::var_os("RULES_RUST_WORKER_DEBUG").is_some() {
+        eprintln!("[worker] argv: {:?}", argv);
+    }
+
+    let opts = match process_wrapper::options::options_from_args(argv) {
         Ok(o) => o,
         Err(e) => {
             return WorkResponse {
@@ -202,7 +216,7 @@ fn handle_request(
     }
 }
 
-pub fn run_worker_loop() -> Result<(), WorkerError> {
+pub fn run_worker_loop(startup_args: Vec<String>) -> Result<(), WorkerError> {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     let mut cache = IncrementalCache::new();
@@ -214,7 +228,7 @@ pub fn run_worker_loop() -> Result<(), WorkerError> {
         }
 
         let req = parse_work_request(&line)?;
-        let resp = handle_request(&req, &mut cache);
+        let resp = handle_request(&req, &startup_args, &mut cache);
         let resp_json = serialize_work_response(&resp);
 
         writeln!(stdout, "{}", resp_json)

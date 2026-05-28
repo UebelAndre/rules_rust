@@ -38,8 +38,12 @@ impl IncrementalCache {
 
         let dir = self.cache_root.join(format!("{:016x}", key));
         if let Err(e) = std::fs::create_dir_all(&dir) {
-            eprintln!("Failed to create incremental cache dir: {}", e);
+            eprintln!("[worker] Failed to create incremental cache dir {}: {}", dir.display(), e);
             return None;
+        }
+
+        if std::env::var_os("RULES_RUST_WORKER_DEBUG").is_some() {
+            eprintln!("[worker] cache dir: {}", dir.display());
         }
 
         self.entries.insert(key, dir.clone());

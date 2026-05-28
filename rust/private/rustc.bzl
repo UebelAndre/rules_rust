@@ -1751,13 +1751,24 @@ def rustc_compile_action(
             action_outputs.append(dsym_folder)
 
     if toolchain.process_wrapper:
-        use_worker = getattr(toolchain, "_experimental_incremental_worker", False) and getattr(toolchain, "persistent_worker", None)
+        # The worker only handles targets that don't use location expansion in
+        # rustc flags. Bazel's worker arg-file expansion can't resolve `${pwd}`
+        # tokens that location expansion may emit. `supports_path_mapping`
+        # already encodes "no location-expanded args", so reuse it.
+        use_worker = (
+            getattr(toolchain, "_experimental_incremental_worker", False) and
+            getattr(toolchain, "persistent_worker", None) and
+            args.supports_path_mapping
+        )
         executable = toolchain.persistent_worker if use_worker else toolchain.process_wrapper
 
         exec_reqs = {"supports-path-mapping": ""} if args.supports_path_mapping else {}
         if use_worker:
             exec_reqs["supports-workers"] = "1"
             exec_reqs["requires-worker-protocol"] = "json"
+            # The worker manages a per-action incremental compilation cache
+            # on disk outside the sandbox, so the spawn cannot be sandboxed.
+            exec_reqs["no-sandbox"] = "1"
 
         ctx.actions.run(
             executable = executable,
