@@ -1751,14 +1751,20 @@ def rustc_compile_action(
             action_outputs.append(dsym_folder)
 
     if toolchain.process_wrapper:
-        # The worker only handles targets that don't use location expansion in
-        # rustc flags. Bazel's worker arg-file expansion can't resolve `${pwd}`
-        # tokens that location expansion may emit. `supports_path_mapping`
-        # already encodes "no location-expanded args", so reuse it.
+        # The worker uses rustc's `-C incremental` cache, which is unsafe for
+        # crate types that produce a final linkable artifact (binaries,
+        # cdylibs, staticlibs) — stale incremental object files can drop
+        # required symbols like the allocator shims (`__rdl_alloc`) when
+        # transitive deps change. Restrict the worker to library crate types
+        # whose output is consumed by a downstream rustc invocation. The
+        # `supports_path_mapping` gate also covers Bazel's inability to
+        # expand `${pwd}/...` tokens emitted by location expansion in the
+        # worker arg file.
         use_worker = (
             getattr(toolchain, "_experimental_incremental_worker", False) and
             getattr(toolchain, "persistent_worker", None) and
-            args.supports_path_mapping
+            args.supports_path_mapping and
+            crate_info.type in ("lib", "rlib", "proc-macro")
         )
         executable = toolchain.persistent_worker if use_worker else toolchain.process_wrapper
 
