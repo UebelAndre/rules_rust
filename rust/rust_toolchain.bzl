@@ -1,9 +1,4 @@
-"""# Rust Toolchains
-
-Public entry point for Rust toolchain rules. Implementation lives in
-`//rust/private:toolchain.bzl`; this module re-exports the user-facing
-symbols.
-"""
+"""rust_toolchain"""
 
 load(
     "//rust/private:toolchain.bzl",

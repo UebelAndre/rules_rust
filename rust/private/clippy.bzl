@@ -279,7 +279,7 @@ def _clippy_aspect_impl(target, ctx):
     rust_clippy_action(
         ctx = ctx,
         clippy_executable = toolchain.clippy_driver,
-        process_wrapper = ctx.executable._process_wrapper,
+        process_wrapper = toolchain.process_wrapper,
         crate_info = crate_info,
         config = ctx.file._config,
         output = clippy_out,
@@ -346,12 +346,6 @@ rust_clippy_aspect = aspect(
         ),
         "_per_crate_rustc_flag": attr.label(
             default = Label("//rust/settings:experimental_per_crate_rustc_flag"),
-        ),
-        "_process_wrapper": attr.label(
-            doc = "A process wrapper for running clippy on all platforms",
-            default = Label("//util/process_wrapper"),
-            executable = True,
-            cfg = "exec",
         ),
     },
     provides = [ClippyInfo],
