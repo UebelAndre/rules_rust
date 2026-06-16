@@ -336,43 +336,56 @@ def BUILD_for_stdlib(target_triple):
     )
 
 _build_file_for_rust_toolchain_template = """\
-load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
-
-rust_toolchain(
-    name = "{toolchain_name}",
-    rust_doc = "//:rustdoc",
-    rust_std = "//:rust_std-{target_triple}",
-    rustc = "//:rustc",
-    linker = {linker_label},
-    linker_type = {linker_type},
-    rust_objcopy = {rust_objcopy_label},
-    rustfmt = {rustfmt_label},
-    cargo = "//:cargo",
-    clippy_driver = "//:clippy_driver_bin",
-    cargo_clippy = "//:cargo_clippy_bin",
-    llvm_cov = {llvm_cov_label},
-    llvm_profdata = {llvm_profdata_label},
-    llvm_lib = {llvm_lib_label},
-    rustc_lib = "//:rustc_lib",
-    allocator_library = {allocator_library},
-    global_allocator_library = {global_allocator_library},
-    binary_ext = "{binary_ext}",
-    staticlib_ext = "{staticlib_ext}",
-    dylib_ext = "{dylib_ext}",
-    stdlib_linkflags = [{stdlib_linkflags}],
-    default_edition = "{default_edition}",
-    exec_triple = "{exec_triple}",
-    target_triple = "{target_triple}",
-    visibility = ["//visibility:public"],
-    extra_rustc_flags = {extra_rustc_flags},
-    extra_exec_rustc_flags = {extra_exec_rustc_flags},
-    opt_level = {opt_level},
-    strip_level = {strip_level},
-    version = "{version}",
-    channel = "{channel}",
-    iso_date = {iso_date},
-    tags = ["rust_version={version}"],
+load(
+    "@rules_rust//rust/private:toolchain.bzl",
+    "rust_bootstrap_toolchain",
+    "rust_toolchain",
+    "rust_without_process_wrapper_toolchain",
 )
+
+[
+    rust_toolchain_rule(
+        name = name,
+        rust_doc = "//:rustdoc",
+        rust_std = "//:rust_std-{target_triple}",
+        rustc = "//:rustc",
+        linker = {linker_label},
+        linker_type = {linker_type},
+        rust_objcopy = {rust_objcopy_label},
+        rustfmt = {rustfmt_label},
+        cargo = "//:cargo",
+        clippy_driver = "//:clippy_driver_bin",
+        cargo_clippy = "//:cargo_clippy_bin",
+        llvm_cov = {llvm_cov_label},
+        llvm_profdata = {llvm_profdata_label},
+        llvm_lib = {llvm_lib_label},
+        rustc_lib = "//:rustc_lib",
+        allocator_library = {allocator_library},
+        global_allocator_library = {global_allocator_library},
+        binary_ext = "{binary_ext}",
+        staticlib_ext = "{staticlib_ext}",
+        dylib_ext = "{dylib_ext}",
+        stdlib_linkflags = [{stdlib_linkflags}],
+        default_edition = "{default_edition}",
+        exec_triple = "{exec_triple}",
+        target_triple = "{target_triple}",
+        visibility = ["//visibility:public"],
+        extra_rustc_flags = {extra_rustc_flags},
+        extra_exec_rustc_flags = {extra_exec_rustc_flags},
+        opt_level = {opt_level},
+        strip_level = {strip_level},
+        version = "{version}",
+        channel = "{channel}",
+        iso_date = {iso_date},
+        tags = ["rust_version={version}"],
+    )
+    for rust_toolchain_rule, name in [
+        (rust_toolchain, "rust_toolchain"),
+        (rust_bootstrap_toolchain, "rust_bootstrap_toolchain"),
+        (rust_without_process_wrapper_toolchain, "rust_without_process_wrapper_toolchain"),
+    ]
+]
+
 """
 
 def BUILD_for_rust_toolchain(

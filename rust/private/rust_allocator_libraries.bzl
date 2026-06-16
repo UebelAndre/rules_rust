@@ -300,3 +300,18 @@ rust_allocator_libraries = rule(
         config_common.toolchain_type("@bazel_tools//tools/cpp:toolchain_type", mandatory = False),
     ],
 )
+
+def _rust_empty_allocator_libraries_impl(_ctx):
+    return [AllocatorLibrariesInfo(
+        allocator_library = None,
+        global_allocator_library = None,
+        libstd_and_allocator_ccinfo = None,
+        libstd_and_global_allocator_ccinfo = None,
+        nostd_and_global_allocator_ccinfo = None,
+    )]
+
+rust_empty_allocator_libraries = rule(
+    doc = "Provides empty AllocatorLibrariesInfo with no allocator libraries and no toolchain dependency.",
+    implementation = _rust_empty_allocator_libraries_impl,
+    provides = [AllocatorLibrariesInfo],
+)

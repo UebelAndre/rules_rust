@@ -981,7 +981,7 @@ def construct_arguments(
             such as `map_each`. For individual `File`-derived flags that must
             be rewritten by Bazel path mapping, they can be passed as
             `(format_string, File)` tuples within the list form (e.g.
-            `("-Zsplit-dwarf-out-dir=%s", dwo_outputs)`).
+            `("-Zsplit-dwarf-out-dir=%s", dwo_output_dir)`).
         out_dir (File, optional): The build script's output directory.
             When provided, the directory is handed to `process_wrapper`
             via an explicit `--out-dir <path>` arg sourced from a
@@ -1142,7 +1142,7 @@ def construct_arguments(
     # Rustc arguments
     rustc_flags = ctx.actions.args()
     rustc_flags.set_param_file_format("multiline")
-    rustc_flags.use_param_file("@%s", use_always = bool(ctx.executable._process_wrapper))
+    rustc_flags.use_param_file("@%s", use_always = bool(toolchain.process_wrapper))
     rustc_flags.add(crate_info.root)
     rustc_flags.add(crate_info.name, format = "--crate-name=%s")
     rustc_flags.add(crate_info.type, format = "--crate-type=%s")
@@ -1727,6 +1727,7 @@ def rustc_compile_action(
         cc_common.is_enabled(feature_configuration = feature_configuration, feature_name = "per_object_debug_info") and
         ctx.fragments.cpp.fission_active_for_current_compilation_mode()
     )
+    dwo_output_dir = None
     if use_split_debuginfo:
         rust_flags = rust_flags + [
             "--codegen=split-debuginfo=unpacked",
@@ -1735,8 +1736,8 @@ def rustc_compile_action(
         fission_directory = crate_info.name + "_fission"
         if output_hash:
             fission_directory = fission_directory + "-" + output_hash
-        dwo_outputs = ctx.actions.declare_directory(fission_directory, sibling = crate_info.output)
-        rust_flags.append(("-Zsplit-dwarf-out-dir=%s", dwo_outputs))
+        dwo_output_dir = ctx.actions.declare_directory(fission_directory, sibling = crate_info.output)
+        rust_flags.append(("-Zsplit-dwarf-out-dir=%s", dwo_output_dir))
 
     args, env_from_args = construct_arguments(
         ctx = ctx,
@@ -1834,12 +1835,11 @@ def rustc_compile_action(
             action_outputs.append(dsym_folder)
 
     if use_split_debuginfo:
-        action_outputs.append(dwo_outputs)  # buildifier: disable=uninitialized
+        action_outputs.append(dwo_output_dir)
 
-    if ctx.executable._process_wrapper:
-        # Run as normal
+    if toolchain.process_wrapper:
         ctx.actions.run(
-            executable = ctx.executable._process_wrapper,
+            executable = toolchain.process_wrapper,
             inputs = compile_inputs,
             outputs = action_outputs,
             env = env,
@@ -1858,7 +1858,7 @@ def rustc_compile_action(
         )
         if args_metadata:
             ctx.actions.run(
-                executable = ctx.executable._process_wrapper,
+                executable = toolchain.process_wrapper,
                 inputs = compile_inputs,
                 outputs = [build_metadata] + [x for x in [rustc_rmeta_output] if x],
                 env = env,
@@ -1874,12 +1874,11 @@ def rustc_compile_action(
                 toolchain = "@rules_rust//rust:toolchain_type",
                 execution_requirements = {"supports-path-mapping": ""} if args_metadata.supports_path_mapping else None,
             )
-    elif hasattr(ctx.executable, "_bootstrap_process_wrapper"):
-        # Run without process_wrapper
+    elif getattr(toolchain, "bootstrap_process_wrapper", None):
         if build_env_files or build_flags_files or stamp or build_metadata:
             fail("build_env_files, build_flags_files, stamp, build_metadata are not supported when building without process_wrapper")
         ctx.actions.run(
-            executable = ctx.executable._bootstrap_process_wrapper,
+            executable = toolchain.bootstrap_process_wrapper,
             inputs = compile_inputs,
             outputs = action_outputs,
             env = env,
@@ -1892,7 +1891,7 @@ def rustc_compile_action(
                 len(srcs),
                 "" if len(srcs) == 1 else "s",
             ),
-            toolchain = "@rules_rust//rust:toolchain_type",
+            toolchain = "@rules_rust//rust/toolchain/bootstrap:toolchain_without_process_wrapper_type",
             resource_set = get_rustc_resource_set(toolchain),
             execution_requirements = {"supports-path-mapping": ""} if args.supports_path_mapping else None,
         )
@@ -1907,8 +1906,8 @@ def rustc_compile_action(
         cco_args["objects"] = depset([output_o])
         cco_args["pic_objects"] = depset([output_o])
     if use_split_debuginfo:
-        cco_args["dwo_objects"] = depset([dwo_outputs])  # buildifier: disable=uninitialized
-        cco_args["pic_dwo_objects"] = depset([dwo_outputs])  # buildifier: disable=uninitialized
+        cco_args["dwo_objects"] = depset([dwo_output_dir])
+        cco_args["pic_dwo_objects"] = depset([dwo_output_dir])
     compilation_outputs = cc_common.create_compilation_outputs(**cco_args)
     debug_context = cc_common.create_debug_context(compilation_outputs)
     if experimental_use_cc_common_link:

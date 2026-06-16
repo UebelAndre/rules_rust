@@ -1,0 +1,9 @@
+toolchain_type(
+    name = "toolchain_without_process_wrapper_type",
+    visibility = ["//visibility:public"],
+)
+
+toolchain_type(
+    name = "toolchain_bootstrap_type",
+    visibility = ["//visibility:public"],
+)

@@ -384,11 +384,13 @@ def _expand_flags(ctx, attr_name, targets, make_variables):
         expanded_flags.append(flag)
     return expanded_flags
 
-def _rust_toolchain_impl(ctx):
+def _rust_toolchain_impl_common(ctx, process_wrapper, is_bootstrap):
     """The rust_toolchain implementation
 
     Args:
         ctx (ctx): The rule's context object
+        process_wrapper (File): The executable for the Rustc process wrapper.
+        is_bootstrap (bool): True if the process wrapper is the bootstrap variant.
 
     Returns:
         list: A list containing the target's toolchain Provider info
@@ -589,6 +591,8 @@ def _rust_toolchain_impl(ctx):
 
     toolchain = platform_common.ToolchainInfo(
         all_files = depset(transitive = all_files_depsets),
+        process_wrapper = None if is_bootstrap else process_wrapper,
+        bootstrap_process_wrapper = process_wrapper if is_bootstrap else None,
         binary_ext = ctx.attr.binary_ext,
         cargo = sysroot.cargo,
         channel = ctx.attr.channel,
@@ -661,285 +665,301 @@ def _rust_toolchain_impl(ctx):
         make_variable_info,
     ]
 
+_RUST_TOOLCHAIN_ATTRS = {
+    "allocator_library": attr.label(
+        doc = "Target that provides allocator functions when `rust_library` targets are embedded in a `cc_binary`.",
+        default = Label("//rust/settings:default_allocator_library"),
+    ),
+    "binary_ext": attr.string(
+        doc = "The extension for binaries created from rustc.",
+        mandatory = True,
+    ),
+    "cargo": attr.label(
+        doc = "The location of the `cargo` binary. Can be a direct source or a filegroup containing one item.",
+        allow_single_file = True,
+        cfg = "exec",
+    ),
+    "cargo_clippy": attr.label(
+        doc = "The location of the `cargo_clippy` binary. Can be a direct source or a filegroup containing one item.",
+        allow_single_file = True,
+        cfg = "exec",
+    ),
+    "channel": attr.string(
+        doc = "The Rust release channel (`stable`, `nightly`, or `beta`).",
+        default = "",
+    ),
+    "clippy_driver": attr.label(
+        doc = "The location of the `clippy-driver` binary. Can be a direct source or a filegroup containing one item.",
+        allow_single_file = True,
+        cfg = "exec",
+    ),
+    "debug_info": attr.string_dict(
+        doc = "Rustc debug info levels per opt level",
+        default = {
+            "dbg": "2",
+            "fastbuild": "0",
+            "opt": "0",
+        },
+    ),
+    "default_edition": attr.string(
+        doc = (
+            "The edition to use for rust_* rules that don't specify an edition. " +
+            "If absent, every rule is required to specify its `edition` attribute."
+        ),
+    ),
+    "dylib_ext": attr.string(
+        doc = "The extension for dynamic libraries created from rustc.",
+        mandatory = True,
+    ),
+    "env": attr.string_dict(
+        doc = "Environment variables to set in actions.",
+    ),
+    "exec_triple": attr.string(
+        doc = (
+            "The platform triple for the toolchains execution environment. " +
+            "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
+        ),
+        mandatory = True,
+    ),
+    "experimental_link_std_dylib": attr.label(
+        default = Label("@rules_rust//rust/settings:experimental_link_std_dylib"),
+        doc = "Label to a boolean build setting that controls whether whether to link libstd dynamically.",
+    ),
+    "experimental_use_allocator_libraries_with_mangled_symbols": attr.int(
+        doc = (
+            "Whether to use rust-based allocator libraries with " +
+            "mangled symbols. Possible values: [-1, 0, 1]. " +
+            "-1 means to use the value of the build setting " +
+            "//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols. " +
+            "0 means do not use. In that case, rules_rust will try to use " +
+            "the c-based allocator libraries that don't support symbol mangling. " +
+            "1 means use the rust-based allocator libraries."
+        ),
+        values = [-1, 0, 1],
+        default = -1,
+    ),
+    "experimental_use_cc_common_link": attr.label(
+        default = Label("//rust/settings:experimental_use_cc_common_link"),
+        doc = "Label to a boolean build setting that controls whether cc_common.link is used to link rust binaries.",
+    ),
+    "extra_exec_rustc_flags": attr.string_list(
+        doc = "Extra flags to pass to rustc in exec configuration. Subject to location expansion with respect to the srcs of the `rust_std` attribute. Subject to Make variable expansion with respect to RUST_SYSROOT, RUST_SYSROOT_SHORT, RUSTC, etc.",
+    ),
+    "extra_rustc_flags": attr.string_list(
+        doc = "Extra flags to pass to rustc in non-exec configuration. Subject to location expansion with respect to the srcs of the `rust_std` attribute. Subject to Make variable expansion with respect to RUST_SYSROOT, RUST_SYSROOT_SHORT, RUSTC, etc.",
+    ),
+    "extra_rustc_flags_for_crate_types": attr.string_list_dict(
+        doc = "Extra flags to pass to rustc based on crate type",
+    ),
+    "global_allocator_library": attr.label(
+        doc = "Target that provides allocator functions for when a global allocator is present.",
+        default = Label("//rust/private/cc:global_allocator_library"),
+    ),
+    "iso_date": attr.string(
+        doc = "The ISO date of the nightly or beta release (e.g. `2026-03-26`). Empty for stable releases.",
+        default = "",
+    ),
+    "linker": attr.label(
+        doc = "The label to an explicit linker to use (e.g. rust-lld, ld, link-ld.exe, etc.). Linker binaries must be runnable in the exec configuration, so cfg = \"exec\" is used. To choose a linker based on the target platform, use a select() when providing this attribute. The select() will be evaluated against the target platform before the exec transition is applied, allowing platform-specific linker selection while ensuring the selected linker is built for the exec platform.",
+        cfg = "exec",
+        allow_single_file = True,
+    ),
+    "linker_preference": attr.string(
+        doc = "The preferred linker to use. If unspecified, `cc` is preferred and `rust` is used as a fallback whenever `linker` is provided.",
+        values = ["cc", "rust"],
+    ),
+    "linker_type": attr.string(
+        doc = "The type of linker invocation: 'direct' (ld, rust-lld) or 'indirect' (via compiler like clang/gcc). If unset, defaults based on linker_preference.",
+        values = ["direct", "indirect"],
+    ),
+    "llvm_cov": attr.label(
+        doc = "The location of the `llvm-cov` binary. Can be a direct source or a filegroup containing one item. If None, rust code is not instrumented for coverage.",
+        allow_single_file = True,
+        cfg = "exec",
+    ),
+    "llvm_lib": attr.label(
+        doc = "The location of the `libLLVM` shared object files. If `llvm_cov` is None, this can be None as well and rust code is not instrumented for coverage.",
+        allow_files = True,
+        cfg = "exec",
+    ),
+    "llvm_profdata": attr.label(
+        doc = "The location of the `llvm-profdata` binary. Can be a direct source or a filegroup containing one item. If `llvm_cov` is None, this can be None as well and rust code is not instrumented for coverage.",
+        allow_single_file = True,
+        cfg = "exec",
+    ),
+    "llvm_tools": attr.label(
+        doc = "LLVM tools that are shipped with the Rust toolchain.",
+        allow_files = True,
+    ),
+    "lto": attr.label(
+        providers = [RustLtoInfo],
+        default = Label("//rust/settings:lto"),
+        doc = "Label to an LTO setting whether which can enable custom LTO settings",
+    ),
+    "opt_level": attr.string_dict(
+        doc = "Rustc optimization levels.",
+        default = {
+            "dbg": "0",
+            "fastbuild": "0",
+            "opt": "3",
+        },
+    ),
+    "per_crate_rustc_flags": attr.string_list(
+        doc = "Extra flags to pass to rustc in non-exec configuration",
+    ),
+    "require_explicit_unstable_features": attr.label(
+        default = Label(
+            "//rust/settings:require_explicit_unstable_features",
+        ),
+        doc = ("Label to a boolean build setting that controls whether all uses of unstable " +
+               "Rust features must be explicitly opted in to using `-Zallow-features=...`."),
+    ),
+    "rust_doc": attr.label(
+        doc = "The location of the `rustdoc` binary. Can be a direct source or a filegroup containing one item.",
+        allow_single_file = True,
+        cfg = "exec",
+        mandatory = True,
+    ),
+    "rust_objcopy": attr.label(
+        doc = "The location of the `rust-objcopy` binary. Can be a direct source or a filegroup containing one item.",
+        allow_single_file = True,
+        cfg = "exec",
+    ),
+    "rust_std": attr.label(
+        doc = "The Rust standard library.",
+        mandatory = True,
+    ),
+    "rustc": attr.label(
+        doc = "The location of the `rustc` binary. Can be a direct source or a filegroup containing one item.",
+        allow_single_file = True,
+        cfg = "exec",
+        mandatory = True,
+    ),
+    "rustc_lib": attr.label(
+        doc = "The libraries used by rustc during compilation.",
+        cfg = "exec",
+    ),
+    "rustfmt": attr.label(
+        doc = "**Deprecated**: Instead see [rustfmt_toolchain](#rustfmt_toolchain)",
+        allow_single_file = True,
+        cfg = "exec",
+    ),
+    "staticlib_ext": attr.string(
+        doc = "The extension for static libraries created from rustc.",
+        mandatory = True,
+    ),
+    "stdlib_linkflags": attr.string_list(
+        doc = (
+            "Additional linker flags to use when Rust standard library is linked by a C++ linker " +
+            "(rustc will deal with these automatically). Subject to location expansion with respect " +
+            "to the srcs of the `rust_std` attribute. Subject to Make variable expansion with respect " +
+            "to RUST_SYSROOT, RUST_SYSROOT_SHORT, RUSTC, etc."
+        ),
+        mandatory = True,
+    ),
+    "strip_level": attr.string_dict(
+        doc = (
+            "Rustc strip levels. For all potential options, see " +
+            "https://doc.rust-lang.org/rustc/codegen-options/index.html#strip"
+        ),
+        default = {
+            "dbg": "none",
+            "fastbuild": "none",
+            "opt": "debuginfo",
+        },
+    ),
+    "target_json": attr.string(
+        doc = ("Override the target_triple with a custom target specification. " +
+               "For more details see: https://doc.rust-lang.org/rustc/targets/custom.html"),
+    ),
+    "target_triple": attr.string(
+        doc = (
+            "The platform triple for the toolchains target environment. " +
+            "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
+        ),
+    ),
+    "version": attr.string(
+        doc = "The version of the Rust compiler (e.g. `1.94.1`).",
+        default = "",
+    ),
+    "_codegen_units": attr.label(
+        default = Label("//rust/settings:codegen_units"),
+    ),
+    "_experimental_compile_rustdoc_tests": attr.label(
+        default = Label("//rust/settings:experimental_compile_rustdoc_tests"),
+    ),
+    "_experimental_use_allocator_libraries_with_mangled_symbols_setting": attr.label(
+        default = Label("//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols"),
+        providers = [BuildSettingInfo],
+        doc = (
+            "Label to a boolean build setting that informs the target build whether to use rust-based " +
+            "allocator libraries that mangle symbols."
+        ),
+    ),
+    "_experimental_use_coverage_metadata_files": attr.label(
+        default = Label("//rust/settings:experimental_use_coverage_metadata_files"),
+    ),
+    "_experimental_use_global_allocator": attr.label(
+        default = Label("//rust/settings:experimental_use_global_allocator"),
+        doc = (
+            "Label to a boolean build setting that informs the target build whether a global allocator is being used." +
+            "This flag is only relevant when used together with --@rules_rust//rust/settings:experimental_use_global_allocator."
+        ),
+    ),
+    "_incompatible_do_not_include_data_in_compile_data": attr.label(
+        default = Label("//rust/settings:incompatible_do_not_include_data_in_compile_data"),
+        doc = "Label to a boolean build setting that controls whether to include data files in compile_data.",
+    ),
+    "_incompatible_do_not_include_transitive_data_in_compile_inputs": attr.label(
+        default = Label("//rust/settings:incompatible_do_not_include_transitive_data_in_compile_inputs"),
+        doc = "Label to a boolean build setting that controls whether to include transitive data dependencies in compile inputs.",
+    ),
+    "_linker_preference": attr.label(
+        default = Label("//rust/settings:toolchain_linker_preference"),
+    ),
+    "_no_std": attr.label(
+        default = Label("//rust/settings:no_std"),
+    ),
+    "_pipelined_compilation": attr.label(
+        default = Label("//rust/settings:pipelined_compilation"),
+    ),
+    "_rename_first_party_crates": attr.label(
+        default = Label("//rust/settings:rename_first_party_crates"),
+    ),
+    "_third_party_dir": attr.label(
+        default = Label("//rust/settings:third_party_dir"),
+    ),
+    "_toolchain_generated_sysroot": attr.label(
+        default = Label("//rust/settings:toolchain_generated_sysroot"),
+        doc = (
+            "Label to a boolean build setting that lets the rule knows whether to set --sysroot to rustc. " +
+            "This flag is only relevant when used together with --@rules_rust//rust/settings:toolchain_generated_sysroot."
+        ),
+    ),
+}
+
+def _rust_toolchain_impl(ctx):
+    return _rust_toolchain_impl_common(
+        ctx = ctx,
+        process_wrapper = ctx.executable._process_wrapper,
+        is_bootstrap = False,
+    )
+
 rust_toolchain = rule(
     implementation = _rust_toolchain_impl,
     fragments = ["cpp"],
-    attrs = {
-        "allocator_library": attr.label(
-            doc = "Target that provides allocator functions when `rust_library` targets are embedded in a `cc_binary`.",
-            default = Label("//rust/settings:default_allocator_library"),
-        ),
-        "binary_ext": attr.string(
-            doc = "The extension for binaries created from rustc.",
-            mandatory = True,
-        ),
-        "cargo": attr.label(
-            doc = "The location of the `cargo` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
+    attrs = _RUST_TOOLCHAIN_ATTRS | {
+        "_process_wrapper": attr.label(
+            default = Label("//util/process_wrapper"),
+            executable = True,
             cfg = "exec",
-        ),
-        "cargo_clippy": attr.label(
-            doc = "The location of the `cargo_clippy` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-        "channel": attr.string(
-            doc = "The Rust release channel (`stable`, `nightly`, or `beta`).",
-            default = "",
-        ),
-        "clippy_driver": attr.label(
-            doc = "The location of the `clippy-driver` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-        "debug_info": attr.string_dict(
-            doc = "Rustc debug info levels per opt level",
-            default = {
-                "dbg": "2",
-                "fastbuild": "0",
-                "opt": "0",
-            },
-        ),
-        "default_edition": attr.string(
-            doc = (
-                "The edition to use for rust_* rules that don't specify an edition. " +
-                "If absent, every rule is required to specify its `edition` attribute."
-            ),
-        ),
-        "dylib_ext": attr.string(
-            doc = "The extension for dynamic libraries created from rustc.",
-            mandatory = True,
-        ),
-        "env": attr.string_dict(
-            doc = "Environment variables to set in actions.",
-        ),
-        "exec_triple": attr.string(
-            doc = (
-                "The platform triple for the toolchains execution environment. " +
-                "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
-            ),
-            mandatory = True,
-        ),
-        "experimental_link_std_dylib": attr.label(
-            default = Label("@rules_rust//rust/settings:experimental_link_std_dylib"),
-            doc = "Label to a boolean build setting that controls whether whether to link libstd dynamically.",
-        ),
-        "experimental_use_allocator_libraries_with_mangled_symbols": attr.int(
-            doc = (
-                "Whether to use rust-based allocator libraries with " +
-                "mangled symbols. Possible values: [-1, 0, 1]. " +
-                "-1 means to use the value of the build setting " +
-                "//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols. " +
-                "0 means do not use. In that case, rules_rust will try to use " +
-                "the c-based allocator libraries that don't support symbol mangling. " +
-                "1 means use the rust-based allocator libraries."
-            ),
-            values = [-1, 0, 1],
-            default = -1,
-        ),
-        "experimental_use_cc_common_link": attr.label(
-            default = Label("//rust/settings:experimental_use_cc_common_link"),
-            doc = "Label to a boolean build setting that controls whether cc_common.link is used to link rust binaries.",
-        ),
-        "extra_exec_rustc_flags": attr.string_list(
-            doc = "Extra flags to pass to rustc in exec configuration. Subject to location expansion with respect to the srcs of the `rust_std` attribute. Subject to Make variable expansion with respect to RUST_SYSROOT, RUST_SYSROOT_SHORT, RUSTC, etc.",
-        ),
-        "extra_rustc_flags": attr.string_list(
-            doc = "Extra flags to pass to rustc in non-exec configuration. Subject to location expansion with respect to the srcs of the `rust_std` attribute. Subject to Make variable expansion with respect to RUST_SYSROOT, RUST_SYSROOT_SHORT, RUSTC, etc.",
-        ),
-        "extra_rustc_flags_for_crate_types": attr.string_list_dict(
-            doc = "Extra flags to pass to rustc based on crate type",
-        ),
-        "global_allocator_library": attr.label(
-            doc = "Target that provides allocator functions for when a global allocator is present.",
-            default = Label("//rust/private/cc:global_allocator_library"),
-        ),
-        "iso_date": attr.string(
-            doc = "The ISO date of the nightly or beta release (e.g. `2026-03-26`). Empty for stable releases.",
-            default = "",
-        ),
-        "linker": attr.label(
-            doc = "The label to an explicit linker to use (e.g. rust-lld, ld, link-ld.exe, etc.). Linker binaries must be runnable in the exec configuration, so cfg = \"exec\" is used. To choose a linker based on the target platform, use a select() when providing this attribute. The select() will be evaluated against the target platform before the exec transition is applied, allowing platform-specific linker selection while ensuring the selected linker is built for the exec platform.",
-            cfg = "exec",
-            allow_single_file = True,
-        ),
-        "linker_preference": attr.string(
-            doc = "The preferred linker to use. If unspecified, `cc` is preferred and `rust` is used as a fallback whenever `linker` is provided.",
-            values = ["cc", "rust"],
-        ),
-        "linker_type": attr.string(
-            doc = "The type of linker invocation: 'direct' (ld, rust-lld) or 'indirect' (via compiler like clang/gcc). If unset, defaults based on linker_preference.",
-            values = ["direct", "indirect"],
-        ),
-        "llvm_cov": attr.label(
-            doc = "The location of the `llvm-cov` binary. Can be a direct source or a filegroup containing one item. If None, rust code is not instrumented for coverage.",
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-        "llvm_lib": attr.label(
-            doc = "The location of the `libLLVM` shared object files. If `llvm_cov` is None, this can be None as well and rust code is not instrumented for coverage.",
-            allow_files = True,
-            cfg = "exec",
-        ),
-        "llvm_profdata": attr.label(
-            doc = "The location of the `llvm-profdata` binary. Can be a direct source or a filegroup containing one item. If `llvm_cov` is None, this can be None as well and rust code is not instrumented for coverage.",
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-        "llvm_tools": attr.label(
-            doc = "LLVM tools that are shipped with the Rust toolchain.",
-            allow_files = True,
-        ),
-        "lto": attr.label(
-            providers = [RustLtoInfo],
-            default = Label("//rust/settings:lto"),
-            doc = "Label to an LTO setting whether which can enable custom LTO settings",
-        ),
-        "opt_level": attr.string_dict(
-            doc = "Rustc optimization levels.",
-            default = {
-                "dbg": "0",
-                "fastbuild": "0",
-                "opt": "3",
-            },
-        ),
-        "per_crate_rustc_flags": attr.string_list(
-            doc = "Extra flags to pass to rustc in non-exec configuration",
-        ),
-        "require_explicit_unstable_features": attr.label(
-            default = Label(
-                "//rust/settings:require_explicit_unstable_features",
-            ),
-            doc = ("Label to a boolean build setting that controls whether all uses of unstable " +
-                   "Rust features must be explicitly opted in to using `-Zallow-features=...`."),
-        ),
-        "rust_doc": attr.label(
-            doc = "The location of the `rustdoc` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-            cfg = "exec",
-            mandatory = True,
-        ),
-        "rust_objcopy": attr.label(
-            doc = "The location of the `rust-objcopy` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-        "rust_std": attr.label(
-            doc = "The Rust standard library.",
-            mandatory = True,
-        ),
-        "rustc": attr.label(
-            doc = "The location of the `rustc` binary. Can be a direct source or a filegroup containing one item.",
-            allow_single_file = True,
-            cfg = "exec",
-            mandatory = True,
-        ),
-        "rustc_lib": attr.label(
-            doc = "The libraries used by rustc during compilation.",
-            cfg = "exec",
-        ),
-        "rustfmt": attr.label(
-            doc = "**Deprecated**: Instead see [rustfmt_toolchain](#rustfmt_toolchain)",
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-        "staticlib_ext": attr.string(
-            doc = "The extension for static libraries created from rustc.",
-            mandatory = True,
-        ),
-        "stdlib_linkflags": attr.string_list(
-            doc = (
-                "Additional linker flags to use when Rust standard library is linked by a C++ linker " +
-                "(rustc will deal with these automatically). Subject to location expansion with respect " +
-                "to the srcs of the `rust_std` attribute. Subject to Make variable expansion with respect " +
-                "to RUST_SYSROOT, RUST_SYSROOT_SHORT, RUSTC, etc."
-            ),
-            mandatory = True,
-        ),
-        "strip_level": attr.string_dict(
-            doc = (
-                "Rustc strip levels. For all potential options, see " +
-                "https://doc.rust-lang.org/rustc/codegen-options/index.html#strip"
-            ),
-            default = {
-                "dbg": "none",
-                "fastbuild": "none",
-                "opt": "debuginfo",
-            },
-        ),
-        "target_json": attr.string(
-            doc = ("Override the target_triple with a custom target specification. " +
-                   "For more details see: https://doc.rust-lang.org/rustc/targets/custom.html"),
-        ),
-        "target_triple": attr.string(
-            doc = (
-                "The platform triple for the toolchains target environment. " +
-                "For more details see: https://docs.bazel.build/versions/master/skylark/rules.html#configurations"
-            ),
-        ),
-        "version": attr.string(
-            doc = "The version of the Rust compiler (e.g. `1.94.1`).",
-            default = "",
-        ),
-        "_codegen_units": attr.label(
-            default = Label("//rust/settings:codegen_units"),
-        ),
-        "_experimental_compile_rustdoc_tests": attr.label(
-            default = Label("//rust/settings:experimental_compile_rustdoc_tests"),
-        ),
-        "_experimental_use_allocator_libraries_with_mangled_symbols_setting": attr.label(
-            default = Label("//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols"),
-            providers = [BuildSettingInfo],
-            doc = (
-                "Label to a boolean build setting that informs the target build whether to use rust-based " +
-                "allocator libraries that mangle symbols."
-            ),
-        ),
-        "_experimental_use_coverage_metadata_files": attr.label(
-            default = Label("//rust/settings:experimental_use_coverage_metadata_files"),
-        ),
-        "_experimental_use_global_allocator": attr.label(
-            default = Label("//rust/settings:experimental_use_global_allocator"),
-            doc = (
-                "Label to a boolean build setting that informs the target build whether a global allocator is being used." +
-                "This flag is only relevant when used together with --@rules_rust//rust/settings:experimental_use_global_allocator."
-            ),
-        ),
-        "_incompatible_do_not_include_data_in_compile_data": attr.label(
-            default = Label("//rust/settings:incompatible_do_not_include_data_in_compile_data"),
-            doc = "Label to a boolean build setting that controls whether to include data files in compile_data.",
-        ),
-        "_incompatible_do_not_include_transitive_data_in_compile_inputs": attr.label(
-            default = Label("//rust/settings:incompatible_do_not_include_transitive_data_in_compile_inputs"),
-            doc = "Label to a boolean build setting that controls whether to include transitive data dependencies in compile inputs.",
-        ),
-        "_linker_preference": attr.label(
-            default = Label("//rust/settings:toolchain_linker_preference"),
-        ),
-        "_no_std": attr.label(
-            default = Label("//rust/settings:no_std"),
-        ),
-        "_pipelined_compilation": attr.label(
-            default = Label("//rust/settings:pipelined_compilation"),
-        ),
-        "_rename_first_party_crates": attr.label(
-            default = Label("//rust/settings:rename_first_party_crates"),
-        ),
-        "_third_party_dir": attr.label(
-            default = Label("//rust/settings:third_party_dir"),
-        ),
-        "_toolchain_generated_sysroot": attr.label(
-            default = Label("//rust/settings:toolchain_generated_sysroot"),
-            doc = (
-                "Label to a boolean build setting that lets the rule knows whether to set --sysroot to rustc. " +
-                "This flag is only relevant when used together with --@rules_rust//rust/settings:toolchain_generated_sysroot."
-            ),
         ),
     },
     toolchains = [
         config_common.toolchain_type("@bazel_tools//tools/cpp:toolchain_type", mandatory = False),
     ],
-    doc = """Declares a Rust toolchain for use.
+    doc = """\
+Declares a Rust toolchain for use.
 
 This is for declaring a custom toolchain, eg. for configuring a particular version of rust or supporting a new platform.
 
@@ -981,22 +1001,45 @@ toolchain(
 
 Then, either add the label of the toolchain rule to `register_toolchains` in the WORKSPACE, or pass \
 it to the `"--extra_toolchains"` flag for Bazel, and it will be used.
-
-To use a platform-specific linker, you can use a `select()` in the `linker` attribute:
-
-```python
-rust_toolchain(
-    name = "rust_toolchain_impl",
-    # ... other attributes ...
-    linker = select({
-        "@platforms//os:linux": "//tools:rust-lld-linux",
-        "@platforms//os:windows": "//tools:rust-lld-windows",
-        "//conditions:default": "//tools:rust-lld",
-    }),
-)
-```
-
-The `select()` is evaluated against the target platform before the exec transition is applied, \
-allowing platform-specific linker selection while ensuring the selected linker is built for the exec platform.
 """,
+)
+
+rust_bootstrap_toolchain = rule(
+    implementation = _rust_toolchain_impl,
+    fragments = ["cpp"],
+    attrs = _RUST_TOOLCHAIN_ATTRS | {
+        "_process_wrapper": attr.label(
+            default = Label("//util/process_wrapper"),
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+    toolchains = [
+        config_common.toolchain_type("@bazel_tools//tools/cpp:toolchain_type", mandatory = False),
+    ],
+    doc = "A variant of rust_toolchain with a process wrapper but no persistent worker. Used to build toolchain dependencies like the worker itself.",
+)
+
+def _rust_without_process_wrapper_toolchain_impl(ctx):
+    return _rust_toolchain_impl_common(
+        ctx = ctx,
+        process_wrapper = ctx.executable._bootstrap_process_wrapper,
+        is_bootstrap = True,
+    )
+
+rust_without_process_wrapper_toolchain = rule(
+    implementation = _rust_without_process_wrapper_toolchain_impl,
+    fragments = ["cpp"],
+    attrs = _RUST_TOOLCHAIN_ATTRS | {
+        "_bootstrap_process_wrapper": attr.label(
+            doc = "The bootstrap process wrapper (shell script) for building without the full process wrapper.",
+            default = Label("//util/process_wrapper:bootstrap_process_wrapper"),
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+    toolchains = [
+        config_common.toolchain_type("@bazel_tools//tools/cpp:toolchain_type", mandatory = False),
+    ],
+    doc = "A variant of rust_toolchain that uses a bootstrap shell-script wrapper instead of the full process wrapper.",
 )
