@@ -58,6 +58,12 @@ def parse_env_strings(entries):
         env_vars[key] = val
     return env_vars
 
+_TOOLCHAIN_TYPES = [
+    Label("//rust:toolchain_type"),
+    Label("//rust/toolchain/bootstrap:toolchain_bootstrap_type"),
+    Label("//rust/toolchain/bootstrap:toolchain_without_process_wrapper_type"),
+]
+
 def find_toolchain(ctx):
     """Finds the first rust toolchain that is configured.
 
@@ -67,7 +73,10 @@ def find_toolchain(ctx):
     Returns:
         rust_toolchain: A Rust toolchain context.
     """
-    return ctx.toolchains[Label("//rust:toolchain_type")]
+    for tt in _TOOLCHAIN_TYPES:
+        if tt in ctx.toolchains:
+            return ctx.toolchains[tt]
+    fail("No rust toolchain found for {}".format(ctx.label))
 
 # A global kill switch to test without a cc toolchain present.
 _FORCE_DISABLE_CC_TOOLCHAIN = False
@@ -734,7 +743,7 @@ def can_build_metadata(toolchain, ctx, crate_type, *, disable_pipelining = False
     # 2) either:
     #   * always_enable_metadata_output_groups is set
     #   * this target can use metadata for pipelined compilation
-    return bool(ctx.attr._process_wrapper) and (
+    return bool(toolchain.process_wrapper) and (
         ctx.attr._always_enable_metadata_output_groups[AlwaysEnableMetadataOutputGroupsInfo].always_enable_metadata_output_groups or
         (not disable_pipelining and
          can_use_metadata_for_pipelining(toolchain, crate_type))
@@ -941,12 +950,13 @@ def _symlink_for_non_generated_source(ctx, src_file, package_root):
     else:
         return src_file
 
-def generate_output_diagnostics(ctx, sibling, require_process_wrapper = True):
+def generate_output_diagnostics(ctx, sibling, toolchain = None, require_process_wrapper = True):
     """Generates a .rustc-output file if it's required.
 
     Args:
         ctx: (ctx): The current rule's context object
         sibling: (File): The file to generate the diagnostics for.
+        toolchain: (rust_toolchain): The rust toolchain.
         require_process_wrapper: (bool): Whether to require the process wrapper
           in order to generate the .rustc-output file.
     Returns:
@@ -956,7 +966,7 @@ def generate_output_diagnostics(ctx, sibling, require_process_wrapper = True):
     # Since this feature requires error_format=json, we usually need
     # process_wrapper, since it can write the json here, then convert it to the
     # regular error format so the user can see the error properly.
-    if require_process_wrapper and not ctx.attr._process_wrapper:
+    if require_process_wrapper and not (toolchain and toolchain.process_wrapper):
         return None
     provider = ctx.attr._rustc_output_diagnostics[RustcOutputDiagnosticsInfo]
     if not provider.rustc_output_diagnostics:

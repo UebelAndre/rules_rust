@@ -1119,7 +1119,7 @@ def construct_arguments(
     # Rustc arguments
     rustc_flags = ctx.actions.args()
     rustc_flags.set_param_file_format("multiline")
-    rustc_flags.use_param_file("@%s", use_always = bool(ctx.executable._process_wrapper))
+    rustc_flags.use_param_file("@%s", use_always = bool(toolchain.process_wrapper))
     rustc_flags.add(crate_info.root)
     rustc_flags.add(crate_info.name, format = "--crate-name=%s")
     rustc_flags.add(crate_info.type, format = "--crate-type=%s")
@@ -1750,10 +1750,9 @@ def rustc_compile_action(
             dsym_folder = ctx.actions.declare_directory(crate_info.output.basename + ".dSYM", sibling = crate_info.output)
             action_outputs.append(dsym_folder)
 
-    if ctx.executable._process_wrapper:
-        # Run as normal
+    if toolchain.process_wrapper:
         ctx.actions.run(
-            executable = ctx.executable._process_wrapper,
+            executable = toolchain.process_wrapper,
             inputs = compile_inputs,
             outputs = action_outputs,
             env = env,
@@ -1772,7 +1771,7 @@ def rustc_compile_action(
         )
         if args_metadata:
             ctx.actions.run(
-                executable = ctx.executable._process_wrapper,
+                executable = toolchain.process_wrapper,
                 inputs = compile_inputs,
                 outputs = [build_metadata] + [x for x in [rustc_rmeta_output] if x],
                 env = env,
@@ -1788,12 +1787,11 @@ def rustc_compile_action(
                 toolchain = "@rules_rust//rust:toolchain_type",
                 execution_requirements = {"supports-path-mapping": ""} if args_metadata.supports_path_mapping else None,
             )
-    elif hasattr(ctx.executable, "_bootstrap_process_wrapper"):
-        # Run without process_wrapper
+    elif getattr(toolchain, "bootstrap_process_wrapper", None):
         if build_env_files or build_flags_files or stamp or build_metadata:
             fail("build_env_files, build_flags_files, stamp, build_metadata are not supported when building without process_wrapper")
         ctx.actions.run(
-            executable = ctx.executable._bootstrap_process_wrapper,
+            executable = toolchain.bootstrap_process_wrapper,
             inputs = compile_inputs,
             outputs = action_outputs,
             env = env,
@@ -1806,7 +1804,7 @@ def rustc_compile_action(
                 len(srcs),
                 "" if len(srcs) == 1 else "s",
             ),
-            toolchain = "@rules_rust//rust:toolchain_type",
+            toolchain = "@rules_rust//rust/toolchain/bootstrap:toolchain_without_process_wrapper_type",
             resource_set = get_rustc_resource_set(toolchain),
             execution_requirements = {"supports-path-mapping": ""} if args.supports_path_mapping else None,
         )

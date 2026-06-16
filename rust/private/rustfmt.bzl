@@ -91,7 +91,7 @@ def _perform_check(edition, srcs, ctx):
     args.add_all(srcs)
 
     ctx.actions.run(
-        executable = ctx.executable._process_wrapper,
+        executable = rustfmt_toolchain.process_wrapper,
         inputs = srcs + [config],
         outputs = [marker],
         tools = [rustfmt_toolchain.all_files],
@@ -181,12 +181,6 @@ generated source files are also ignored by this aspect.
             doc = "The `rustfmt.toml` file used for formatting",
             allow_single_file = True,
             default = Label("//rust/settings:rustfmt.toml"),
-        ),
-        "_process_wrapper": attr.label(
-            doc = "A process wrapper for running rustfmt on all platforms",
-            cfg = "exec",
-            executable = True,
-            default = Label("//util/process_wrapper"),
         ),
     },
     required_providers = [
@@ -332,6 +326,7 @@ def _rustfmt_toolchain_impl(ctx):
         rustc_lib = depset(ctx.files.rustc_lib),
         all_files = depset(all_files),
         make_variables = make_variable_info,
+        process_wrapper = ctx.executable._process_wrapper,
     )
 
     return [
@@ -358,10 +353,13 @@ rustfmt_toolchain = rule(
             cfg = "exec",
             mandatory = True,
         ),
+        "_process_wrapper": attr.label(
+            doc = "The process wrapper binary for rustfmt actions.",
+            executable = True,
+            default = Label("//util/process_wrapper"),
+            cfg = "exec",
+        ),
     },
-    toolchains = [
-        str(Label("@rules_rust//rust:toolchain_type")),
-    ],
 )
 
 def _current_rustfmt_toolchain_impl(ctx):

@@ -210,6 +210,22 @@ def rust_register_toolchains(
             toolchain_types[toolchain.name] = "@rules_rust//rust:toolchain"
             toolchain_target_settings[toolchain.name] = ["@rules_rust//rust/toolchain/channel:{}".format(toolchain.channel.name)] + target_settings
 
+            bootstrap_pw_name = toolchain.name + "_bootstrap_with_pw"
+            toolchain_names.append(bootstrap_pw_name)
+            toolchain_labels[bootstrap_pw_name] = "@{}//:{}".format(toolchain.name + "_tools", "rust_bootstrap_toolchain")
+            exec_compatible_with_by_toolchain[bootstrap_pw_name] = triple_to_constraint_set(exec_triple)
+            target_compatible_with_by_toolchain[bootstrap_pw_name] = toolchain.target_constraints
+            toolchain_types[bootstrap_pw_name] = "@rules_rust//rust/toolchain/bootstrap:toolchain_bootstrap_type"
+            toolchain_target_settings[bootstrap_pw_name] = ["@rules_rust//rust/toolchain/channel:{}".format(toolchain.channel.name)] + target_settings
+
+            bootstrap_name = toolchain.name + "_bootstrap"
+            toolchain_names.append(bootstrap_name)
+            toolchain_labels[bootstrap_name] = "@{}//:{}".format(toolchain.name + "_tools", "rust_without_process_wrapper_toolchain")
+            exec_compatible_with_by_toolchain[bootstrap_name] = triple_to_constraint_set(exec_triple)
+            target_compatible_with_by_toolchain[bootstrap_name] = toolchain.target_constraints
+            toolchain_types[bootstrap_name] = "@rules_rust//rust/toolchain/bootstrap:toolchain_without_process_wrapper_type"
+            toolchain_target_settings[bootstrap_name] = ["@rules_rust//rust/toolchain/channel:{}".format(toolchain.channel.name)] + target_settings
+
     # Rustfmt toolchains per exec triple
     for exec_triple, name in rustfmt_toolchain_triples.items():
         rustfmt_repo_name = "rustfmt_{}__{}".format(rustfmt_version.replace("/", "-"), exec_triple)
