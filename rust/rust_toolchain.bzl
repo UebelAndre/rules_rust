@@ -1,12 +1,12 @@
 """# Rust Toolchains
 
-Toolchain rules for Rust.
-
-This file re-exports from `//rust:rust_toolchain.bzl` for backwards compatibility.
+Public entry point for Rust toolchain rules. Implementation lives in
+`//rust/private:toolchain.bzl`; this module re-exports the user-facing
+symbols.
 """
 
 load(
-    ":rust_toolchain.bzl",
+    "//rust/private:toolchain.bzl",
     _current_rust_analyzer_toolchain = "current_rust_analyzer_toolchain",
     _current_rustfmt_toolchain = "current_rustfmt_toolchain",
     _rust_analyzer_toolchain = "rust_analyzer_toolchain",
