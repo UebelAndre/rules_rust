@@ -181,7 +181,7 @@
 </ol>
 <h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
 <p>To use rules_rust in a project using bzlmod, add the following to your MODULE.bazel file:</p>
-<pre><code class="language-python">bazel_dep(name = "rules_rust", version = "0.71.3")
+<pre><code class="language-python">bazel_dep(name = "rules_rust", version = "0.72.0")
 </code></pre>
 <p>You find the latest version on the <a href="https://github.com/bazelbuild/rules_rust/releases">release page</a>.</p>
 <p>After adding <code>rules_rust</code> in your <code>MODULE.bazel</code>, set the following to begin using <code>crate_universe</code>:</p>
@@ -354,7 +354,7 @@ You find a complete example in the in the <a href="https://github.com/bazelbuild
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
 
 # https://github.com/bazelbuild/rules_rust/releases
-bazel_dep(name = "rules_rust", version = "0.71.3")
+bazel_dep(name = "rules_rust", version = "0.72.0")
 
 ###############################################################################
 # T O O L C H A I N S
@@ -642,7 +642,7 @@ can be found below where the supported keys for each template can be found in th
 <p><strong>Attributes</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="crate.render_config-build_file_template"></a>build_file_template</td><td style="text-align: left">The base template to use for BUILD file names. The available format keys are [<code>{name}</code>, {version}`].</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"//:BUILD.{name}-{version}.bazel"</code></td></tr>
-<tr><td style="text-align: left"><a id="crate.render_config-crate_alias_template"></a>crate_alias_template</td><td style="text-align: left">The base template to use for crate aliases. The available format keys are [<code>{repository}</code>, <code>{name}</code>, <code>{version}</code>, <code>{target}</code>]. Defaults to the per-alias subpackage layout (<code>//{name}-{version}</code>); set to <code>//:{name}-{version}</code> if you intentionally want <code>aliases()</code> / <code>all_crate_deps()</code> to point at the legacy root-package aliases (only valid while <code>incompatible_no_root_alias_targets</code> is off).</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"//{name}-{version}"</code></td></tr>
+<tr><td style="text-align: left"><a id="crate.render_config-crate_alias_template"></a>crate_alias_template</td><td style="text-align: left">The base template to use for crate aliases. The available format keys are [<code>{repository}</code>, <code>{name}</code>, <code>{version}</code>, <code>{target}</code>]. Defaults to the per-alias subpackage layout (<code>@{repository}//{name}-{version}</code>); set to <code>@{repository}//:{name}-{version}</code> to point <code>aliases()</code> / <code>all_crate_deps()</code> at the legacy root-package aliases (only valid while <code>incompatible_no_root_alias_targets</code> is off).</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@{repository}//{name}-{version}"</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.render_config-crate_label_template"></a>crate_label_template</td><td style="text-align: left">The base template to use for crate labels. The available format keys are [<code>{repository}</code>, <code>{name}</code>, <code>{version}</code>, <code>{target}</code>].</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@{repository}__{name}-{version}//:{target}"</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.render_config-crate_repository_template"></a>crate_repository_template</td><td style="text-align: left">The base template to use for Crate label repository names. The available format keys are [<code>{repository}</code>, <code>{name}</code>, <code>{version}</code>].</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"{repository}__{name}-{version}"</code></td></tr>
 <tr><td style="text-align: left"><a id="crate.render_config-crates_module_template"></a>crates_module_template</td><td style="text-align: left">The pattern to use for the <code>defs.bzl</code> and <code>BUILD.bazel</code> file names used for the crates module. The available format keys are [<code>{file}</code>].</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>"//:{file}"</code></td></tr>
@@ -696,7 +696,7 @@ can be found below where the supported keys for each template can be found in th
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="upstream_tooling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="coverage.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -710,7 +710,7 @@ can be found below where the supported keys for each template can be found in th
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="upstream_tooling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="coverage.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
