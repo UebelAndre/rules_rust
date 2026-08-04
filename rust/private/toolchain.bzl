@@ -353,6 +353,9 @@ def _generate_sysroot(
 def _experimental_use_cc_common_link(ctx):
     return ctx.attr.experimental_use_cc_common_link[BuildSettingInfo].value
 
+def _experimental_use_libtest_bzl(ctx):
+    return ctx.attr.experimental_use_libtest_bzl[BuildSettingInfo].value
+
 def _require_explicit_unstable_features(ctx):
     return ctx.attr.require_explicit_unstable_features[BuildSettingInfo].value
 
@@ -645,6 +648,7 @@ def _rust_toolchain_impl(ctx):
         _pipelined_compilation = pipelined_compilation,
         _experimental_link_std_dylib = _experimental_link_std_dylib(ctx),
         _experimental_use_cc_common_link = _experimental_use_cc_common_link(ctx),
+        _experimental_use_libtest_bzl = _experimental_use_libtest_bzl(ctx),
         _experimental_use_global_allocator = experimental_use_global_allocator,
         _experimental_compile_rustdoc_tests = ctx.attr._experimental_compile_rustdoc_tests[BuildSettingInfo].value,
         _experimental_use_coverage_metadata_files = ctx.attr._experimental_use_coverage_metadata_files[BuildSettingInfo].value,
@@ -740,6 +744,10 @@ rust_toolchain = rule(
         "experimental_use_cc_common_link": attr.label(
             default = Label("//rust/settings:experimental_use_cc_common_link"),
             doc = "Label to a boolean build setting that controls whether cc_common.link is used to link rust binaries.",
+        ),
+        "experimental_use_libtest_bzl": attr.label(
+            default = Label("//rust/settings:experimental_use_libtest_bzl"),
+            doc = "Label to a boolean build setting that controls whether `rust_test` targets link the `libtest_bzl` observer crate for JUnit XML output.",
         ),
         "extra_exec_rustc_flags": attr.string_list(
             doc = "Extra flags to pass to rustc in exec configuration. Subject to location expansion with respect to the srcs of the `rust_std` attribute. Subject to Make variable expansion with respect to RUST_SYSROOT, RUST_SYSROOT_SHORT, RUSTC, etc.",

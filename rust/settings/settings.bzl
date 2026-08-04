@@ -140,6 +140,50 @@ def experimental_use_cc_common_link():
     )
 
 # buildifier: disable=unnamed-macro
+def experimental_use_libtest_bzl():
+    """A flag that, when enabled, has `rust_test` targets write JUnit XML to `$XML_OUTPUT_FILE`.
+
+    No user source changes are required and no wrapper process is created.
+    The rule injects a small observer crate as a private dependency (kept
+    alive by an undefined-symbol linker argument); a pre-`main` constructor
+    activates only when `XML_OUTPUT_FILE` is set (i.e. under `bazel test`),
+    tees the process's stdout — the user-visible output passes through
+    unchanged — and parses libtest's default `pretty` output to maintain the
+    XML file incrementally. libtest remains the harness, so `#[should_panic]`,
+    `#[ignore]`, `Result`-returning tests, filtering, threading, and macros
+    that expand to `#[test]` (e.g. `#[tokio::test]`) are all reported
+    faithfully.
+
+    Requirements and degradation:
+
+    - Results are parsed from libtest's default `pretty` format. With
+      `--format=terse`/`-q` the XML degrades to suite-level counts;
+      unrecognized formats produce no XML (Bazel's fallback XML remains).
+    - Targets without an OS process model (wasm, wasi, emscripten) and
+      targets with `use_libtest_harness = False` are skipped.
+    - Set `RULES_RUST_NO_JUNIT=1` in the test environment to disable the
+      observer at runtime (e.g. for debugging under `bazel test`).
+    """
+    bool_flag(
+        name = "experimental_use_libtest_bzl",
+        build_setting_default = False,
+    )
+
+    native.config_setting(
+        name = "experimental_use_libtest_bzl_on",
+        flag_values = {
+            ":experimental_use_libtest_bzl": "true",
+        },
+    )
+
+    native.config_setting(
+        name = "experimental_use_libtest_bzl_off",
+        flag_values = {
+            ":experimental_use_libtest_bzl": "false",
+        },
+    )
+
+# buildifier: disable=unnamed-macro
 def default_allocator_library():
     """A flag that determines the default allocator library for `rust_toolchain` targets."""
 

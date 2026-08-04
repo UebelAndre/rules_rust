@@ -18,6 +18,7 @@ load(
     "experimental_use_cc_common_link",
     "experimental_use_coverage_metadata_files",
     "experimental_use_global_allocator",
+    "experimental_use_libtest_bzl",
     "experimental_use_sh_toolchain_for_bootstrap_process_wrapper",
     "extra_exec_rustc_env",
     "extra_exec_rustc_flag",
@@ -90,6 +91,8 @@ experimental_link_std_dylib()
 experimental_use_cc_common_link()
 
 experimental_use_coverage_metadata_files()
+
+experimental_use_libtest_bzl()
 
 experimental_use_global_allocator()
 

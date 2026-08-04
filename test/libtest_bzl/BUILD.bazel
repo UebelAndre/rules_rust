@@ -1,0 +1,31 @@
+load("//rust:defs.bzl", "rust_test")
+
+# These targets exercise the observer injected by the
+# `experimental_use_libtest_bzl` flag and are only meaningful with it on:
+#
+#   bazel test //test/libtest_bzl:verify_xml_test \
+#       --@rules_rust//rust/settings:experimental_use_libtest_bzl=true
+_COMPATIBLE_WITH_LIBTEST_BZL = select({
+    "//rust/settings:experimental_use_libtest_bzl_on": [],
+    "//conditions:default": ["@platforms//:incompatible"],
+})
+
+rust_test(
+    name = "fixture_test",
+    srcs = ["fixture_test.rs"],
+    edition = "2021",
+    # Not intended to be exercised on its own outside of the verifier below,
+    # but the fixture must still pass on its own (all failing behaviors are
+    # gated behind environment variables the verifier sets).
+    tags = ["manual"],
+    target_compatible_with = _COMPATIBLE_WITH_LIBTEST_BZL,
+)
+
+rust_test(
+    name = "verify_xml_test",
+    srcs = ["verify_xml.rs"],
+    data = [":fixture_test"],
+    edition = "2021",
+    target_compatible_with = _COMPATIBLE_WITH_LIBTEST_BZL,
+    deps = ["//rust/runfiles"],
+)

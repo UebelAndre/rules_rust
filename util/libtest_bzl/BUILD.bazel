@@ -1,0 +1,19 @@
+load("//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "libtest_bzl",
+    srcs = [
+        "junit.rs",
+        "lib.rs",
+        "observer.rs",
+        "parse.rs",
+    ],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+)
+
+rust_test(
+    name = "libtest_bzl_unit_test",
+    crate = ":libtest_bzl",
+    edition = "2021",
+)

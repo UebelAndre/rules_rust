@@ -399,6 +399,63 @@ def get_rust_test_flags(attr):
 
     return rust_flags
 
+# Systems where the observer's pre-`main` constructor and stdout tee are
+# implemented. Targets without an OS process model (wasm, wasi, emscripten,
+# no_std) are deliberately absent; they skip injection entirely.
+_LIBTEST_BZL_SUPPORTED_SYSTEMS = [
+    "android",
+    "darwin",
+    "dragonfly",
+    "freebsd",
+    "ios",
+    "linux",
+    "macos",
+    "netbsd",
+    "nto",
+    "openbsd",
+    "windows",
+]
+
+def _libtest_bzl_supported(toolchain):
+    """Whether the libtest observer supports the toolchain's target platform.
+
+    Args:
+        toolchain (rust_toolchain): The current target's toolchain.
+
+    Returns:
+        bool: True if the observer crate should be injected.
+    """
+    triple = toolchain.target_triple
+    if not triple:
+        # Custom `target_json` targets are unknown; don't inject.
+        return False
+    return triple.system in _LIBTEST_BZL_SUPPORTED_SYSTEMS
+
+def _libtest_bzl_link_flags(runner):
+    """Rustc flags that force the observer rlib to be linked in whole.
+
+    The test crate never references the observer, so rustc's normal
+    `--extern` machinery drops it from the link line as unused. Asking
+    rustc to link the rlib as a `+whole-archive,+verbatim` static library
+    pulls in every archive member (so the `.init_array` /
+    `__mod_init_func` / `.CRT$XCU` constructor entry survives) and passes
+    the rlib's real filename to the linker unchanged. Rustc handles the
+    per-linker translation (GNU `--whole-archive`, MSVC `/WHOLEARCHIVE:`,
+    Mach-O `-force_load`).
+
+    Note: the natural-looking alternative — `alwayslink = True` on the
+    observer's `rust_library` — only fires when the crate is consumed via
+    its `CcInfo` (i.e. from a C/C++ target). Rust-dep consumers take the
+    `CrateInfo` path and never see the `alwayslink` flag; they also need
+    the observer's `#[link(name = "c")]` metadata to be processed, which
+    only happens on the Rust-dep path.
+    """
+    rlib = runner[rust_common.crate_info].output
+    return [
+        "-Lnative={}".format(rlib.dirname),
+        "-lstatic:+whole-archive,+verbatim={}".format(rlib.basename),
+    ]
+
 def _rust_test_impl(ctx):
     """The implementation of the `rust_test` rule.
 
@@ -418,6 +475,15 @@ def _rust_test_impl(ctx):
     deps = transform_deps(ctx.attr.deps)
     if hasattr(ctx.attr, "link_deps"):
         deps += transform_link_deps(ctx.attr.link_deps)
+    inject_libtest_bzl = (
+        toolchain._experimental_use_libtest_bzl and
+        ctx.attr.use_libtest_harness and
+        _libtest_bzl_supported(toolchain) and
+        # The observer crate itself (and its unit test) must not depend on itself.
+        ctx.label != ctx.attr._libtest_bzl_runner.label
+    )
+    if inject_libtest_bzl:
+        deps = deps + transform_deps([ctx.attr._libtest_bzl_runner])
     proc_macro_deps = transform_deps(ctx.attr.proc_macro_deps)
 
     if ctx.attr.crate and ctx.attr.srcs:
@@ -554,13 +620,17 @@ def _rust_test_impl(ctx):
             cfgs = _collect_cfgs(ctx, toolchain, crate_root, crate_type, crate_is_test = True),
         )
 
+    rust_flags = get_rust_test_flags(ctx.attr)
+    if inject_libtest_bzl:
+        rust_flags = rust_flags + _libtest_bzl_link_flags(ctx.attr._libtest_bzl_runner)
+
     providers = rustc_compile_action(
         ctx = ctx,
         attr = ctx.attr,
         toolchain = toolchain,
         crate_info_dict = crate_info_dict,
         output_hash = output_hash,
-        rust_flags = get_rust_test_flags(ctx.attr),
+        rust_flags = rust_flags,
         skip_expanding_rustc_env = True,
     )
     data = getattr(ctx.attr, "data", [])
@@ -994,6 +1064,18 @@ _RUST_TEST_ATTRS = {
             Whether to use `libtest`. For targets using this flag, individual tests can be run by using the
             [--test_arg](https://docs.bazel.build/versions/4.0.0/command-line-reference.html#flag--test_arg) flag.
             E.g. `bazel test //src:rust_test --test_arg=foo::test::test_fn`.
+        """),
+    ),
+    "_libtest_bzl_runner": attr.label(
+        default = Label("//util/libtest_bzl"),
+        providers = [rust_common.crate_info],
+        doc = dedent("""\
+            Private observer crate injected as a dependency when the
+            `experimental_use_libtest_bzl` toolchain flag is enabled. Its
+            pre-`main` constructor (kept alive by an undefined-symbol linker
+            argument the rule also injects) writes JUnit XML to
+            `$XML_OUTPUT_FILE` by observing libtest's output. Test code never
+            references this crate.
         """),
     ),
 } | _COVERAGE_ATTRS | _EXPERIMENTAL_USE_CC_COMMON_LINK_ATTRS
