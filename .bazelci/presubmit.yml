@@ -393,16 +393,6 @@ tasks:
       - //...
     run_targets:
       - "//:publish_book"
-  clippy_failure:
-    name: Negative Clippy Tests
-    platform: ubuntu2204
-    run_targets:
-      - "//test/clippy:clippy_failure_tester"
-  rustfmt_failure:
-    name: Negative Rustfmt Tests
-    platform: ubuntu2204
-    run_targets:
-      - "//test/rustfmt:rustfmt_failure_tester"
   ide_integration_tests_linux:
     name: IDE VSCode Tests
     platform: ubuntu2204
@@ -414,6 +404,9 @@ tasks:
       - "//test/rust_analyzer:rust_analyzer_test"
       - "//test/rust_analyzer:partial_failure_test"
       - "//test/rust_analyzer:flycheck_clippy_test"
+      # Also run negative tests to reduce CI job count
+      - "//test/rustfmt:rustfmt_failure_tester"
+      - "//test/clippy:clippy_failure_tester"
   ide_integration_tests_macos:
     name: IDE VSCode Tests
     platform: macos_arm64
@@ -425,6 +418,9 @@ tasks:
       - "//test/rust_analyzer:rust_analyzer_test"
       - "//test/rust_analyzer:partial_failure_test"
       - "//test/rust_analyzer:flycheck_clippy_test"
+      # Also run negative tests to reduce CI job count
+      - "//test/rustfmt:rustfmt_failure_tester"
+      - "//test/clippy:clippy_failure_tester"
   ide_integration_tests_windows:
     name: IDE VSCode Tests
     platform: windows
