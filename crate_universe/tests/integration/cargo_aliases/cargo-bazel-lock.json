@@ -1,5 +1,5 @@
 {
-  "checksum": "114ce1d93fd6c39be0a94fbf02a520dd2cffc8de49c326479bf2c26a49f65f67",
+  "checksum": "bf3c6c22e1f9dfa326a1bd27b16b9dc65e8c488d059ba6f7f76888326d252af2",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -1970,21 +1970,10 @@
     },
     "syn 2.0.98": {
       "common_attrs": {
-        "crate_features": [
-          "clone-impls",
-          "derive",
-          "parsing",
-          "printing",
-          "proc-macro"
-        ],
         "deps": [
           {
             "id": "proc-macro2 1.0.93",
             "target": "proc_macro2"
-          },
-          {
-            "id": "quote 1.0.38",
-            "target": "quote"
           },
           {
             "id": "unicode-ident 1.0.6",
