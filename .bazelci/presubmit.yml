@@ -670,6 +670,31 @@ tasks:
     test_targets:
       - "//..."
 
+  # --- lockfile determinism ---
+  # Resolution must not depend on the machine it runs on: repin on every host
+  # platform and require the checked-in lockfile to be reproduced byte for byte.
+  cu_lockfile_determinism_ubuntu2204:
+    name: Crate Universe - lockfile determinism
+    platform: ubuntu2204
+    working_directory: crate_universe/tests/integration/multi_package
+    shell_commands:
+      - CARGO_BAZEL_REPIN=true bazel build --nobuild //...
+      - git diff --exit-code -- cargo-bazel-lock.json
+  cu_lockfile_determinism_macos:
+    name: Crate Universe - lockfile determinism
+    platform: macos_arm64
+    working_directory: crate_universe/tests/integration/multi_package
+    shell_commands:
+      - CARGO_BAZEL_REPIN=true bazel build --nobuild //...
+      - git diff --exit-code -- cargo-bazel-lock.json
+  cu_lockfile_determinism_windows:
+    name: Crate Universe - lockfile determinism
+    platform: windows
+    working_directory: crate_universe/tests/integration/multi_package
+    shell_commands:
+      - CARGO_BAZEL_REPIN=true bazel build --nobuild //...
+      - git diff --exit-code -- cargo-bazel-lock.json
+
   # --- no_cargo_manifests ---
   cu_integ_no_cargo_manifests_ubuntu2204:
     name: Crate Universe - no_cargo_manifests
