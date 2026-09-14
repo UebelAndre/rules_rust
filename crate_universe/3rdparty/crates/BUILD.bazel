@@ -32,14 +32,14 @@ filegroup(
 
 # Workspace Member Dependencies
 alias(
-    name = "anyhow-1.0.98",
-    actual = "@cui__anyhow-1.0.98//:anyhow",
+    name = "anyhow-1.0.104",
+    actual = "@cui__anyhow-1.0.104//:anyhow",
     tags = ["manual"],
 )
 
 alias(
     name = "anyhow",
-    actual = "@cui__anyhow-1.0.98//:anyhow",
+    actual = "@cui__anyhow-1.0.104//:anyhow",
     tags = ["manual"],
 )
 
@@ -52,6 +52,18 @@ alias(
 alias(
     name = "camino",
     actual = "@cui__camino-1.2.6//:camino",
+    tags = ["manual"],
+)
+
+alias(
+    name = "cargo-ext-resolver-0.100.0",
+    actual = "@cui__cargo-ext-resolver-0.100.0//:cargo_resolver",
+    tags = ["manual"],
+)
+
+alias(
+    name = "cargo-ext-resolver",
+    actual = "@cui__cargo-ext-resolver-0.100.0//:cargo_resolver",
     tags = ["manual"],
 )
 
@@ -76,6 +88,18 @@ alias(
 alias(
     name = "cargo-platform",
     actual = "@cui__cargo-platform-0.3.3//:cargo_platform",
+    tags = ["manual"],
+)
+
+alias(
+    name = "cargo-util-schemas-0.14.3",
+    actual = "@cui__cargo-util-schemas-0.14.3//:cargo_util_schemas",
+    tags = ["manual"],
+)
+
+alias(
+    name = "cargo-util-schemas",
+    actual = "@cui__cargo-util-schemas-0.14.3//:cargo_util_schemas",
     tags = ["manual"],
 )
 
@@ -248,14 +272,14 @@ alias(
 )
 
 alias(
-    name = "semver-1.0.26",
-    actual = "@cui__semver-1.0.26//:semver",
+    name = "semver-1.0.28",
+    actual = "@cui__semver-1.0.28//:semver",
     tags = ["manual"],
 )
 
 alias(
     name = "semver",
-    actual = "@cui__semver-1.0.26//:semver",
+    actual = "@cui__semver-1.0.28//:semver",
     tags = ["manual"],
 )
 
@@ -368,14 +392,14 @@ alias(
 )
 
 alias(
-    name = "tracing-0.1.41",
-    actual = "@cui__tracing-0.1.41//:tracing",
+    name = "tracing-0.1.44",
+    actual = "@cui__tracing-0.1.44//:tracing",
     tags = ["manual"],
 )
 
 alias(
     name = "tracing",
-    actual = "@cui__tracing-0.1.41//:tracing",
+    actual = "@cui__tracing-0.1.44//:tracing",
     tags = ["manual"],
 )
 
@@ -392,14 +416,14 @@ alias(
 )
 
 alias(
-    name = "url-2.5.4",
-    actual = "@cui__url-2.5.4//:url",
+    name = "url-2.5.8",
+    actual = "@cui__url-2.5.8//:url",
     tags = ["manual"],
 )
 
 alias(
     name = "url",
-    actual = "@cui__url-2.5.4//:url",
+    actual = "@cui__url-2.5.8//:url",
     tags = ["manual"],
 )
 
