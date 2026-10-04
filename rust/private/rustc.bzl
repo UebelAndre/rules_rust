@@ -1019,6 +1019,31 @@ def dlltool_path_from_linker_path(linker_path):
     suffix = linker_path[-4:].lower()
     return "{}dlltool{}".format(linker_path[:sep + 1], suffix if suffix == ".exe" else "")
 
+def is_coverage_instrumented(ctx, toolchain, is_test):
+    """Determine whether the current crate is compiled with `-Cinstrument-coverage`.
+
+    Bazel's standard instrumentation filter (`--instrumentation_filter`) decides
+    which targets get instrumented, consistent with how coverage works for other
+    languages (Java, C++). For `rust_test` targets with a `crate` attribute the
+    underlying crate is consulted as well: Rust compiles the crate sources
+    directly into the test binary, so the test must be instrumented for the
+    crate's code to produce coverage.
+
+    Args:
+        ctx (ctx): The rule's context object.
+        toolchain (rust_toolchain): The current `rust_toolchain`.
+        is_test (bool): Whether the crate is being compiled as a test harness.
+
+    Returns:
+        bool: True if the crate is instrumented for coverage.
+    """
+    if not toolchain.coverage_supported or not ctx.configuration.coverage_enabled:
+        return False
+    instrumented = ctx.coverage_instrumented()
+    if not instrumented and is_test and hasattr(ctx.attr, "crate") and ctx.attr.crate:
+        instrumented = ctx.coverage_instrumented(ctx.attr.crate)
+    return instrumented
+
 def construct_arguments(
         *,
         ctx,
@@ -1485,17 +1510,7 @@ def construct_arguments(
         rustc_flags.add("--extern")
         rustc_flags.add("proc_macro")
 
-    # Use Bazel's standard instrumentation filter (--instrumentation_filter)
-    # so that only targets matching the filter get instrumented, consistent
-    # with how coverage works for other languages (Java, C++).
-    # For rust_test targets with a `crate` attribute, also check if the
-    # underlying crate should be instrumented. Rust compiles the crate
-    # sources directly into the test binary, so the test must be built
-    # with -Cinstrument-coverage for the crate's code to produce coverage.
-    is_coverage_instrumented = ctx.coverage_instrumented()
-    if not is_coverage_instrumented and crate_info.is_test and hasattr(ctx.attr, "crate") and ctx.attr.crate:
-        is_coverage_instrumented = ctx.coverage_instrumented(ctx.attr.crate)
-    if toolchain.coverage_supported and ctx.configuration.coverage_enabled and is_coverage_instrumented:
+    if is_coverage_instrumented(ctx, toolchain, crate_info.is_test):
         # https://doc.rust-lang.org/rustc/instrument-coverage.html
         rustc_flags.add("--codegen=instrument-coverage")
 
@@ -2469,6 +2484,38 @@ def _add_codegen_units_flags(toolchain, emit, args):
 
     args.add("-Ccodegen-units={}".format(toolchain._codegen_units))
 
+def _bundles_coverage_instrumented_rust(ctx, attr, toolchain):
+    """Whether a `staticlib` archive carries LLVM coverage records from Rust code.
+
+    Coverage is enabled globally, but `--instrumentation_filter` decides per
+    target which crates are compiled with `-Cinstrument-coverage`. The archive
+    bundles the crate's own objects and its Rust dependencies, so it contains
+    records if the crate or one of its direct Rust dependencies is instrumented.
+
+    Bazel only answers `ctx.coverage_instrumented` for direct dependencies. A
+    filter that instruments nothing but a deeper transitive crate is therefore
+    not detected, and the consumer's own toolchain supplies the runtime in that
+    case, exactly as before. Non-Rust dependencies are ignored: their objects
+    are instrumented by the C/C++ compiler and belong to its runtime.
+
+    Args:
+        ctx (ctx): The rule's context object.
+        attr (struct): Attributes to use in gathering CcInfo.
+        toolchain (rust_toolchain): The current `rust_toolchain`.
+
+    Returns:
+        bool: True if the crate's archive contains `-Cinstrument-coverage` output.
+    """
+    if not toolchain.coverage_supported or not ctx.configuration.coverage_enabled:
+        return False
+    if ctx.coverage_instrumented():
+        return True
+    for dep in getattr(attr, "deps", []):
+        if rust_common.crate_info in dep or rust_common.crate_group_info in dep:
+            if ctx.coverage_instrumented(dep):
+                return True
+    return False
+
 def establish_cc_info(ctx, attr, crate_info, toolchain, cc_toolchain, feature_configuration, interface_library, use_pic, debug_context = None):
     """If the produced crate is suitable yield a CcInfo to allow for interop with cc rules
 
@@ -2596,6 +2643,24 @@ def establish_cc_info(ctx, attr, crate_info, toolchain, cc_toolchain, feature_co
         if libstd_and_allocator_cc_info:
             # TODO: if we already have an rlib in our deps, we could skip this
             cc_infos.append(libstd_and_allocator_cc_info)
+
+    # An instrumented `staticlib` needs the LLVM profile runtime from the same
+    # toolchain that produced its coverage records. `rlib` crates already receive
+    # it as part of the standard library linked above. The runtime is listed after
+    # the crate so the linker only pulls it in to satisfy references from the Rust
+    # objects. The linker input is owned by this crate, not the toolchain: rules
+    # such as `cc_shared_library` link by owner and would otherwise drop it.
+    if (crate_info.type == "staticlib" and toolchain.profiler_runtime_library_to_link and
+        _bundles_coverage_instrumented_rust(ctx, attr, toolchain)):
+        profiler_runtime_input = cc_common.create_linker_input(
+            owner = crate_info.owner or ctx.label,
+            libraries = depset([toolchain.profiler_runtime_library_to_link]),
+        )
+        cc_infos.append(CcInfo(
+            linking_context = cc_common.create_linking_context(
+                linker_inputs = depset([profiler_runtime_input]),
+            ),
+        ))
 
     providers = [cc_common.merge_cc_infos(cc_infos = cc_infos)]
     if crate_info.type == "staticlib":

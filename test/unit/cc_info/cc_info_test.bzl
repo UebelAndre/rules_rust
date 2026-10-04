@@ -130,7 +130,15 @@ rlib_with_dep_only_has_stdlib_linkflags_once_test = analysistest.make(
     _rlib_with_dep_only_has_stdlib_linkflags_once_test_impl,
 )
 bin_does_not_provide_cc_info_test = analysistest.make(_bin_does_not_provide_cc_info_test_impl)
-staticlib_provides_cc_info_test = analysistest.make(_staticlib_provides_cc_info_test_impl)
+
+# Pinned to a non-coverage configuration: under `bazel coverage` an instrumented
+# staticlib also carries the toolchain's profile runtime as a linker input.
+staticlib_provides_cc_info_test = analysistest.make(
+    _staticlib_provides_cc_info_test_impl,
+    config_settings = {
+        "//command_line_option:collect_code_coverage": False,
+    },
+)
 cdylib_provides_cc_info_test = analysistest.make(_cdylib_provides_cc_info_test_impl, attrs = {
     "_windows": attr.label(default = Label("@platforms//os:windows")),
 })

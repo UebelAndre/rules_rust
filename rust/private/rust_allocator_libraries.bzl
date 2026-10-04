@@ -37,6 +37,47 @@ def _ltl(library, actions, cc_toolchain, feature_configuration):
         pic_static_library = library,
     )
 
+def make_profiler_runtime_library_to_link(
+        *,
+        cc_toolchain,
+        feature_configuration,
+        actions,
+        rust_std):
+    """Make the `LibraryToLink` (if possible) for the LLVM profile runtime shipped with the standard library.
+
+    `rustc` links `profiler_builtins` into the binaries, `cdylib`s and `dylib`s it
+    produces itself, but it does not bundle it into `staticlib` archives. A
+    `staticlib` is linked by its C/C++ consumer, so the runtime that reads the
+    Rust coverage records at process exit has to be supplied separately. Without
+    it, the archive either fails to link (the instrumented objects reference
+    `__llvm_profile_runtime` on Mach-O and COFF) or is served by whichever profile
+    runtime the consumer's C/C++ toolchain ships. That runtime must come from the
+    same LLVM version as the `rustc` that emitted the records, otherwise the
+    record layout differs and the process crashes. Linking the toolchain's own
+    runtime keeps producer and runtime in lockstep.
+
+    The library is built once per toolchain. Consumers wrap it in a linker input
+    they own: rules such as `cc_shared_library` decide what to link by linker
+    input owner, and a toolchain label is not part of their dependency graph.
+
+    Args:
+        cc_toolchain (CcToolchainInfo): A cc toolchain provider to be used.
+        feature_configuration (feature_configuration): feature_configuration to be queried.
+        actions: The rule's ctx.actions object.
+        rust_std: The Rust standard library.
+
+    Returns:
+        A LibraryToLink for `profiler_builtins`, or None if the sysroot has no profiler
+        runtime or no cc toolchain is available.
+    """
+    if not cc_toolchain or not rust_common.stdlib_info in rust_std:
+        return None
+
+    for archive in rust_std[rust_common.stdlib_info].dot_a_files:
+        if "profiler_builtins" in archive.basename:
+            return _ltl(archive, actions, cc_toolchain, feature_configuration)
+    return None
+
 def make_libstd_and_allocator_ccinfo(
         *,
         cc_toolchain,

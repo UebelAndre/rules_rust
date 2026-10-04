@@ -1,0 +1,20 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
+# Validates that `bazel coverage` wrote real data into an LCOV report. Used by
+# CI after the coverage runs; see `.bazelci/presubmit.yml`.
+py_library(
+    name = "validate_lcov_report_lib",
+    srcs = ["validate_lcov_report.py"],
+)
+
+py_binary(
+    name = "validate_lcov_report",
+    srcs = ["validate_lcov_report.py"],
+    deps = [":validate_lcov_report_lib"],
+)
+
+py_test(
+    name = "validate_lcov_report_test",
+    srcs = ["validate_lcov_report_test.py"],
+    deps = [":validate_lcov_report_lib"],
+)

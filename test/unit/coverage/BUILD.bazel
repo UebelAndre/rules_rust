@@ -1,6 +1,17 @@
 load("@bazel_features//:features.bzl", "bazel_features")
-load("//rust:defs.bzl", "rust_test")
-load(":coverage_test.bzl", "collector_platform_test", "collector_probe", "platform_marker")
+load("//rust:defs.bzl", "rust_dylib_library", "rust_library", "rust_static_library", "rust_test")
+load(
+    ":coverage_test.bzl",
+    "collector_platform_test",
+    "collector_probe",
+    "dylib_does_not_duplicate_profiler_runtime_test",
+    "platform_marker",
+    "staticlib_links_profiler_runtime_test",
+    "staticlib_with_instrumented_dep_test",
+    "staticlib_with_only_transitive_instrumented_dep_test",
+    "staticlib_without_coverage_test",
+    "uninstrumented_staticlib_test",
+)
 
 collector_platform_test(
     name = "collector_platform_test",
@@ -48,4 +59,69 @@ platform(
     name = "test_platform",
     constraint_values = [":tester"],
     parents = ["@platforms//host"],
+)
+
+rust_static_library(
+    name = "staticlib",
+    srcs = ["staticlib.rs"],
+    edition = "2021",
+)
+
+rust_static_library(
+    name = "staticlib_with_dep",
+    srcs = ["staticlib_with_dep.rs"],
+    edition = "2021",
+    deps = ["//test/unit/coverage/instrumented_dep"],
+)
+
+staticlib_links_profiler_runtime_test(
+    name = "staticlib_links_profiler_runtime_test",
+    target_under_test = ":staticlib",
+)
+
+staticlib_without_coverage_test(
+    name = "staticlib_without_coverage_test",
+    target_under_test = ":staticlib",
+)
+
+uninstrumented_staticlib_test(
+    name = "uninstrumented_staticlib_test",
+    target_under_test = ":staticlib",
+)
+
+staticlib_with_instrumented_dep_test(
+    name = "staticlib_with_instrumented_dep_test",
+    target_under_test = ":staticlib_with_dep",
+)
+
+rust_dylib_library(
+    name = "dylib",
+    srcs = ["dylib.rs"],
+    edition = "2021",
+)
+
+dylib_does_not_duplicate_profiler_runtime_test(
+    name = "dylib_does_not_duplicate_profiler_runtime_test",
+    target_under_test = ":dylib",
+)
+
+# An uninstrumented crate standing between the archive and the instrumented
+# dependency, to document the direct-dependency limitation.
+rust_library(
+    name = "middle",
+    srcs = ["middle.rs"],
+    edition = "2021",
+    deps = ["//test/unit/coverage/instrumented_dep"],
+)
+
+rust_static_library(
+    name = "staticlib_with_transitive_dep",
+    srcs = ["staticlib_with_transitive_dep.rs"],
+    edition = "2021",
+    deps = [":middle"],
+)
+
+staticlib_with_only_transitive_instrumented_dep_test(
+    name = "staticlib_with_only_transitive_instrumented_dep_test",
+    target_under_test = ":staticlib_with_transitive_dep",
 )

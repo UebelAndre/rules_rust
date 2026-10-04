@@ -1,0 +1,10 @@
+load("//rust:defs.bzl", "rust_library")
+
+# A dependency living in its own package so tests can instrument it with
+# `--instrumentation_filter` without instrumenting the crate that bundles it.
+rust_library(
+    name = "instrumented_dep",
+    srcs = ["lib.rs"],
+    edition = "2021",
+    visibility = ["//test/unit/coverage:__pkg__"],
+)

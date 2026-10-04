@@ -59,30 +59,14 @@ default_windows_targets: &default_windows_targets
   # Panic backtraces appear not to work well on Windows.
   - "-//test/unit/remap_path_prefix:integration_test"
 coverage_validation_post_shell_commands: &coverage_validation_post_shell_commands
+  # Fail if the coverage run only produced baseline records. The mixed
+  # in-tree/generated-source crate is checked explicitly as a regression test
+  # for coverage being silently dropped for crates with generated sources.
   - |
-    grep -q '^SF:.*\.rs$' bazel-out/_coverage/_coverage_report.dat \
-    || { 1>&2 echo "Failed to find any Rust coverage" \
-      ; 1>&2 cat bazel-out/_coverage/_coverage_report.dat \
-      ; exit 1 \
-      ; }
-  - |
-    grep -q '^LF:[1-9]' bazel-out/_coverage/_coverage_report.dat \
-    || { 1>&2 echo "Coverage report has no line data" \
-      ; 1>&2 head -50 bazel-out/_coverage/_coverage_report.dat \
-      ; exit 1 \
-      ; }
-  # Regression check: mixed in-tree/generated-source crates must produce
-  # real coverage, not just the zero-LF baseline record.
-  - |
-    awk '/^SF:test\/generated_inputs\/lib\.rs$/,/^end_of_record$/' \
-        bazel-out/_coverage/_coverage_report.dat \
-      | grep -qE '^LF:[1-9]' \
-    || { 1>&2 echo "No coverage for mixed-source crate (test/generated_inputs/lib.rs)" \
-      ; 1>&2 echo "Coverage was silently dropped for crates with generated sources." \
-      ; 1>&2 awk '/^SF:test\/generated_inputs\/lib\.rs$/,/^end_of_record$/' \
-          bazel-out/_coverage/_coverage_report.dat \
-      ; exit 1 \
-      ; }
+    python3 util/coverage/validate_lcov_report.py \
+      --report bazel-out/_coverage/_coverage_report.dat \
+      --require-extension .rs \
+      --require-source test/generated_inputs/lib.rs
 split_coverage_postprocessing_shell_commands: &split_coverage_postprocessing_shell_commands
   - echo "coverage --experimental_fetch_all_coverage_outputs" >> user.bazelrc
   - echo "coverage --experimental_split_coverage_postprocessing" >> user.bazelrc

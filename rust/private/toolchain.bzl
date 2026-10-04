@@ -12,6 +12,7 @@ load("//rust/private:lto.bzl", "RustLtoInfo")
 load(
     "//rust/private:rust_allocator_libraries.bzl",
     "make_libstd_and_allocator_ccinfo",
+    "make_profiler_runtime_library_to_link",
 )
 load("//rust/private:semver.bzl", "semver")
 load(
@@ -614,6 +615,12 @@ def _rust_toolchain_impl(ctx):
         linker_preference = linker_preference,
         linker_type = ctx.attr.linker_type or None,
         coverage_supported = bool(ctx.file.llvm_cov) and ctx.attr.rust_std[rust_common.stdlib_info].has_profiler_builtins,
+        profiler_runtime_library_to_link = make_profiler_runtime_library_to_link(
+            cc_toolchain = cc_toolchain,
+            feature_configuration = feature_configuration,
+            actions = ctx.actions,
+            rust_std = ctx.attr.rust_std,
+        ),
         llvm_cov = ctx.file.llvm_cov,
         llvm_profdata = ctx.file.llvm_profdata,
         llvm_lib = ctx.files.llvm_lib,
