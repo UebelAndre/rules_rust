@@ -373,6 +373,7 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
             &splicing_manifest,
             &cargo,
             &opt.rustc,
+            Some(&cargo_lockfile),
         )?;
 
         write_lockfile(lock_content, &lockfile, opt.dry_run)?;
