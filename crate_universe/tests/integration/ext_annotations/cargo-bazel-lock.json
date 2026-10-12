@@ -1,5 +1,5 @@
 {
-  "checksum": "ca8bb5e122d4fc16764e3f20d59aafba8b88244db5ff7eb0b048be462736aa38",
+  "checksum": "2397e45354404f0683bf13a03742a3c7730aa8a1d6b2b894cb6207067a93af35",
   "crates": {
     "anstyle 1.0.14": {
       "common_attrs": {"edition": "2021"},
@@ -844,8 +844,6 @@
   "direct_dev_deps": [],
   "provenance": {
     "cargo_bazel_version": "0.18.0",
-    "cargo_version": "cargo 1.99.1 (5f94df478 2026-08-27)",
-    "rustc_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",

@@ -1,5 +1,5 @@
 {
-  "checksum": "c25f2f4c026bb9a64d25ffaf141f2727dcafbbf220194e0d989e9148a70fd28a",
+  "checksum": "5b26c338245a73cdac622e5c25a692ce55ee53d360520c312e54c74d3c3edd0b",
   "crates": {
     "aho-corasick 0.7.20": {
       "common_attrs": {
@@ -1596,8 +1596,6 @@
   "direct_dev_deps": ["env_logger 0.9.3"],
   "provenance": {
     "cargo_bazel_version": "0.18.0",
-    "cargo_version": "cargo 1.99.1 (5f94df478 2026-08-27)",
-    "rustc_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",

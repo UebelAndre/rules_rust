@@ -286,6 +286,11 @@ def rust_register_toolchains(
             toolchain_types[toolchain.name] = "@rules_rust//rust:toolchain"
             toolchain_target_settings[toolchain.name] = ["@rules_rust//rust/toolchain/channel:{}".format(toolchain.channel.name)] + target_settings
 
+            # `rust_repository_set` consumed aliases of the shared repositories
+            # of this channel from its own copy; take them out of ours too.
+            for suffix in _SHARED_REPOSITORIES:
+                aliases.pop("{}__{}__{}".format(name, toolchain.channel.name, suffix), None)
+
             for companion, companion_type in COMPANION_TOOLCHAIN_TYPES.items():
                 companion_name = _companion_hub_name(toolchain.name, companion)
                 toolchain_names.append(companion_name)
@@ -1295,7 +1300,66 @@ rustfmt_toolchain_tools_repository = repository_rule(
     implementation = _rustfmt_toolchain_tools_repository_impl,
 )
 
-# --- Internal helpers ---
+def host_cargo_repository_name(exec_triple):
+    """The repository holding the Cargo of `exec_triple`'s stable toolchain and nothing else of it.
+
+    `rust_repository_set` spreads a release over per-component repositories;
+    `<name>__stable__cargo` is the one `crate_universe` resolves with on a host
+    of `exec_triple`. The name is fixed so `MODULE.bazel` can list it in
+    `use_repo`; `ensure_host_cargo_repositories` declares it when no stable
+    toolchain was registered for the platform.
+
+    Args:
+        exec_triple (str): The Rust-style triple of the host.
+
+    Returns:
+        str: The repository name.
+    """
+    if exec_triple not in DEFAULT_TOOLCHAIN_TRIPLES:
+        fail("rules_rust has no toolchain repositories for the host platform `{}`".format(exec_triple))
+    return "{}__stable__cargo".format(DEFAULT_TOOLCHAIN_TRIPLES[exec_triple])
+
+def host_cargo_aliases(exec_triples):
+    """Aliases pinning the stable Cargo repositories of `exec_triples` to their plain names.
+
+    `rust_repository_set` hashes the names of Windows repositories to stay
+    under the path length limit; `crate_universe` reads these by name, so they
+    keep it.
+
+    Args:
+        exec_triples (list[str]): Host platforms whose stable toolchain is registered.
+
+    Returns:
+        dict[str, str]: Identity aliases for `rust_register_toolchains`.
+    """
+    return {host_cargo_repository_name(triple): host_cargo_repository_name(triple) for triple in exec_triples}
+
+def declare_host_cargo_repositories(*, exec_triples, sha256s, urls = DEFAULT_STATIC_RUST_URL_TEMPLATES):
+    """Declares the stable Cargo repository of each of `exec_triples`.
+
+    For host platforms whose stable toolchain `rust_register_toolchains` did
+    not register. The repository holds Cargo alone, at rules_rust's default
+    Rust version, under the name `host_cargo_repository_name` gives, so
+    `crate_universe` can resolve whether or not the root module registers a
+    stable toolchain. A module extension cannot ask whether a repository
+    exists, so the caller passes only the platforms which lack one.
+
+    Args:
+        exec_triples (list[str]): The host platforms.
+        sha256s (dict): Known sha256s of tool archives.
+        urls (list, optional): Mirror url templates for the Rust-lang static file server.
+    """
+    for exec_triple in exec_triples:
+        rust_toolchain_tools_repository(
+            name = host_cargo_repository_name(exec_triple),
+            exec_triple = exec_triple,
+            target_triple = exec_triple,
+            version = rust_common.default_version,
+            components = CARGO_COMPONENTS,
+            declare_toolchains = False,
+            sha256s = sha256s,
+            urls = urls,
+        )
 
 def _get_toolchain_repositories(
         *,

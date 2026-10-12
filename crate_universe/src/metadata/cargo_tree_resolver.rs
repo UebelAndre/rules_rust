@@ -1605,7 +1605,7 @@ mod test {
 
         let resolver = TreeResolver::new(Cargo::new(
             tempdir.join("nonexistent-cargo"),
-            tempdir.join("nonexistent-rustc"),
+            Some(tempdir.join("nonexistent-rustc")),
         ));
 
         let target_triples: BTreeSet<TargetTriple> =
