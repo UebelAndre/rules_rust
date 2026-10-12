@@ -1,6 +1,7 @@
 //! Command line interface entry points and utilities
 
 mod generate;
+mod pool;
 mod query;
 mod render;
 mod rustc_cfgs;
@@ -18,6 +19,7 @@ use tracing_subscriber::FmtSubscriber;
 pub use tracing::Level as LogLevel;
 
 pub use self::generate::GenerateOptions;
+pub use self::pool::PoolOptions;
 pub use self::query::QueryOptions;
 pub use self::render::RenderOptions;
 pub use self::splice::SpliceOptions;
@@ -25,6 +27,7 @@ pub use self::vendor::VendorOptions;
 
 // Entrypoints
 pub use generate::generate;
+pub use pool::pool;
 pub use query::query;
 pub use render::render;
 pub use rustc_cfgs::{rustc_cfgs, RustcCfgsOptions};
@@ -53,6 +56,9 @@ pub enum Options {
     /// Render a BUILD file for a single crate.
     Render(RenderOptions),
 
+    /// Render the shared crate repositories and hub alias layers of several hubs.
+    Pool(PoolOptions),
+
     /// Record `rustc --print=cfg` for the supported platforms (maintenance of `rules_rust` itself).
     #[clap(hide = true)]
     RustcCfgs(RustcCfgsOptions),
@@ -65,12 +71,13 @@ pub fn parse_args() -> Options {
     Options::parse()
 }
 
-const EXPECTED_LOGGER_NAMES: [&str; 6] = [
+const EXPECTED_LOGGER_NAMES: [&str; 7] = [
     "Generate",
     "Splice",
     "Query",
     "Vendor",
     "Render",
+    "Pool",
     "RustcCfgs",
 ];
 

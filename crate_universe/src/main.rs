@@ -38,6 +38,10 @@ fn main() -> cli::Result<()> {
             cli::init_logging("Render", level);
             cli::render(opt)
         }
+        cli::Options::Pool(opt) => {
+            cli::init_logging("Pool", level);
+            cli::pool(opt)
+        }
         cli::Options::RustcCfgs(opt) => {
             cli::init_logging("RustcCfgs", level);
             cli::rustc_cfgs(opt)
