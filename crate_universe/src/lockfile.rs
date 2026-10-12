@@ -25,9 +25,6 @@ pub(crate) struct Provenance {
     /// The version of `cargo-bazel`.
     pub(crate) cargo_bazel_version: String,
 
-    /// The feature resolver, `guppy` or `cargo-tree`.
-    pub(crate) resolver: String,
-
     /// The platforms resolved for.
     pub(crate) supported_platform_triples: BTreeSet<TargetTriple>,
 
@@ -42,18 +39,11 @@ impl Provenance {
     /// The provenance of a resolution performed now, with the given inputs.
     pub(crate) fn current(
         supported_platform_triples: &BTreeSet<TargetTriple>,
-        splicing_manifest: &SplicingManifest,
         cargo_bin: &Cargo,
         rustc_bin: &Path,
     ) -> Result<Self> {
         Ok(Self {
             cargo_bazel_version: env!("CARGO_PKG_VERSION").to_owned(),
-            resolver: if splicing_manifest.incompatible_guppy_resolver {
-                "guppy"
-            } else {
-                "cargo-tree"
-            }
-            .to_owned(),
             supported_platform_triples: supported_platform_triples.clone(),
             cargo_version: cargo_bin.full_version()?,
             rustc_version: Digest::bin_version(rustc_bin)?,
@@ -72,12 +62,7 @@ pub(crate) fn lock_context(
     context.checksum = None;
     context.provenance = None;
 
-    let provenance = Provenance::current(
-        supported_platform_triples,
-        splicing_manifest,
-        cargo_bin,
-        rustc_bin,
-    )?;
+    let provenance = Provenance::current(supported_platform_triples, cargo_bin, rustc_bin)?;
     let checksum = Digest::new(&context, &provenance, splicing_manifest)
         .context("Failed to generate context digest")?;
 
@@ -275,7 +260,7 @@ impl Digest {
         ));
         hasher.update(b"\0");
 
-        // The resolver, toolchain and platforms the context was produced with.
+        // The toolchain and platforms the context was produced with.
         hasher.update(Digest::compute_single_hash(
             &serde_json::to_string(provenance).unwrap(),
             "provenance",
@@ -369,7 +354,6 @@ mod test {
     fn provenance() -> Provenance {
         Provenance {
             cargo_bazel_version: "0.1.0".to_owned(),
-            resolver: "guppy".to_owned(),
             supported_platform_triples: BTreeSet::from([
                 TargetTriple::from_bazel("aarch64-apple-darwin".to_owned()),
                 TargetTriple::from_bazel("x86_64-unknown-linux-gnu".to_owned()),
@@ -388,7 +372,7 @@ mod test {
         );
 
         assert_eq!(
-            Digest("4dd2ae4e3aba7b44b73687cb72770ee7519ba9573fc9ab284fbb8186d61c7ae9".to_owned()),
+            Digest("a0151e01aa9344f798495fc6cc125b35e3eb3bfd35a35b5543257c0e985840c3".to_owned()),
             digest,
         );
     }
@@ -404,10 +388,6 @@ mod test {
         for changed in [
             Provenance {
                 cargo_bazel_version: "0.2.0".to_owned(),
-                ..provenance()
-            },
-            Provenance {
-                resolver: "cargo-tree".to_owned(),
                 ..provenance()
             },
             Provenance {
@@ -446,13 +426,12 @@ mod test {
             manifests: BTreeMap::new(),
             cargo_config: None,
             resolver_version: cargo_toml::Resolver::V2,
-            incompatible_guppy_resolver: true,
         };
 
         let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("3e476d54f900bae87a109fb1be23a214a754584fb9c3d57c39678867ae17df68".to_owned()),
+            Digest("ea60764e1051f645e322033ff63f214f81fff7a8e51b8b513295e5015303e762".to_owned()),
             digest,
         );
     }
@@ -487,14 +466,13 @@ mod test {
         let splicing_metadata = SplicingMetadata {
             cargo_config: Some(cargo_config),
             resolver_version: cargo_toml::Resolver::V2,
-            incompatible_guppy_resolver: true,
             ..SplicingMetadata::default()
         };
 
         let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("ae955e5abc0e218900dc6b4d5e6134f2f1f14476b324203df455558434f4b58e".to_owned()),
+            Digest("399d8023e720073b10c726fa31c3547ec7e323a94634d45128bf7509bee25e0b".to_owned()),
             digest,
         );
     }

@@ -75,24 +75,8 @@ const DEFAULT_TEST_TRIPLES: &[&str] = &[
     "x86_64-unknown-linux-gnu",
 ];
 
-/// Which feature resolver a test should run under, selected through
-/// `incompatible_guppy_resolver` in the splicing config.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Resolver {
-    /// The `guppy` based resolver.
-    Guppy,
-    /// The legacy `cargo tree` based resolver.
-    CargoTree,
-}
-
 fn run(repository_name: &str, manifests: HashMap<String, String>, lockfile: &str) -> Value {
-    run_with(
-        repository_name,
-        manifests,
-        lockfile,
-        DEFAULT_TEST_TRIPLES,
-        Resolver::Guppy,
-    )
+    run_with(repository_name, manifests, lockfile, DEFAULT_TEST_TRIPLES)
 }
 
 fn run_with(
@@ -100,14 +84,12 @@ fn run_with(
     manifests: HashMap<String, String>,
     lockfile: &str,
     supported_platform_triples: &[&str],
-    resolver: Resolver,
 ) -> Value {
     try_run_with(
         repository_name,
         manifests,
         lockfile,
         supported_platform_triples,
-        resolver,
     )
     .unwrap()
 }
@@ -119,7 +101,6 @@ fn try_run_with(
     manifests: HashMap<String, String>,
     lockfile: &str,
     supported_platform_triples: &[&str],
-    resolver: Resolver,
 ) -> Result<Value> {
     let scratch = tempfile::tempdir().unwrap();
     let runfiles = runfiles::Runfiles::create().unwrap();
@@ -133,7 +114,6 @@ fn try_run_with(
             "manifests": manifests,
             "direct_packages": {},
             "resolver_version": "2",
-            "incompatible_guppy_resolver": resolver == Resolver::Guppy,
         }))
         .unwrap(),
     )
@@ -182,7 +162,6 @@ fn try_run_with(
 /// `shellharden` ships only a binary. `cargo metadata` drops such a dependency
 /// with a warning; the package is put back from its downloaded source so its
 /// binary can be built, and the dependent is linked to it in the resolve graph.
-/// Both resolvers see the completed metadata.
 #[test]
 fn binary_only_dependency_is_resolved() {
     if should_skip_test() {
@@ -192,54 +171,46 @@ fn binary_only_dependency_is_resolved() {
 
     let (manifests, lockfile) = test_input("bin_only_dep");
 
-    for resolver in [Resolver::Guppy, Resolver::CargoTree] {
-        let metadata = run_with(
-            "bin_only_dep",
-            manifests.clone(),
-            &lockfile,
-            DEFAULT_TEST_TRIPLES,
-            resolver,
-        );
+    let metadata = run_with("bin_only_dep", manifests, &lockfile, DEFAULT_TEST_TRIPLES);
 
-        let packages = metadata["packages"].as_array().unwrap();
-        let shellharden = packages
-            .iter()
-            .find(|pkg| pkg["name"] == "shellharden")
-            .expect("the binary-only package should be in the metadata");
-        assert_eq!(
-            shellharden["id"],
-            "registry+https://github.com/rust-lang/crates.io-index#shellharden@4.3.2"
-        );
-        assert_eq!(
-            shellharden["source"],
-            "registry+https://github.com/rust-lang/crates.io-index"
-        );
-        let target_kinds: Vec<&Value> = shellharden["targets"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .flat_map(|target| target["kind"].as_array().unwrap())
-            .collect();
-        assert!(target_kinds.contains(&&json!("bin")));
-        assert!(!target_kinds.contains(&&json!("lib")));
+    let packages = metadata["packages"].as_array().unwrap();
+    let shellharden = packages
+        .iter()
+        .find(|pkg| pkg["name"] == "shellharden")
+        .expect("the binary-only package should be in the metadata");
+    assert_eq!(
+        shellharden["id"],
+        "registry+https://github.com/rust-lang/crates.io-index#shellharden@4.3.2"
+    );
+    assert_eq!(
+        shellharden["source"],
+        "registry+https://github.com/rust-lang/crates.io-index"
+    );
+    let target_kinds: Vec<&Value> = shellharden["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|target| target["kind"].as_array().unwrap())
+        .collect();
+    assert!(target_kinds.contains(&&json!("bin")));
+    assert!(!target_kinds.contains(&&json!("lib")));
 
-        let nodes = metadata["resolve"]["nodes"].as_array().unwrap();
-        assert!(nodes.iter().any(|node| node["id"] == shellharden["id"]));
-        let root = nodes
-            .iter()
-            .find(|node| node["id"] == metadata["resolve"]["root"])
-            .unwrap();
-        let edge = root["deps"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|dep| dep["pkg"] == shellharden["id"])
-            .expect("the workspace member should depend on the binary-only package");
-        // Nothing links against a binary-only package, so the edge carries no
-        // extern name, as Cargo reports for artifact dependencies.
-        assert_eq!(edge["name"], "");
-        assert_eq!(edge["dep_kinds"], json!([{"kind": null, "target": null}]));
-    }
+    let nodes = metadata["resolve"]["nodes"].as_array().unwrap();
+    assert!(nodes.iter().any(|node| node["id"] == shellharden["id"]));
+    let root = nodes
+        .iter()
+        .find(|node| node["id"] == metadata["resolve"]["root"])
+        .unwrap();
+    let edge = root["deps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|dep| dep["pkg"] == shellharden["id"])
+        .expect("the workspace member should depend on the binary-only package");
+    // Nothing links against a binary-only package, so the edge carries no
+    // extern name, as Cargo reports for artifact dependencies.
+    assert_eq!(edge["name"], "");
+    assert_eq!(edge["dep_kinds"], json!([{"kind": null, "target": null}]));
 }
 
 // See crate_universe/test_data/metadata/target_features/Cargo.toml for input.
@@ -785,11 +756,6 @@ struct Resolution {
     features: BTreeSet<String>,
 }
 
-/// Every crate `tree_metadata` holds an entry for.
-fn crate_ids(tree_metadata: &Value) -> BTreeSet<String> {
-    tree_metadata.as_object().unwrap().keys().cloned().collect()
-}
-
 /// Flattens the resolution of a single crate for a single platform.
 ///
 /// `tree_metadata` entries are stored as a `Select`: whatever is common to every
@@ -851,128 +817,6 @@ fn resolution_for(tree_metadata: &Value, triple: &str, root: &str) -> BTreeMap<S
     resolved
 }
 
-/// The `guppy` resolver resolves exactly what the legacy `cargo tree` resolver
-/// resolves, minus a known and intentional over-approximation.
-///
-/// `cargo tree` cannot express "this crate is built for the exec platform", so
-/// `TreeResolver` copies the workspace and injects a root package depending on every
-/// transitive proc-macro, forcing the whole proc-macro subtree to be resolved against
-/// each target in turn. The injection is unconditional: a proc-macro reached only
-/// under `cfg(target_arch = "wasm32")` is still made a root for every platform, so
-/// its dependencies get recorded against platforms which never build them, along with
-/// whatever features that implies elsewhere in the graph.
-///
-/// `guppy` models the host/target split natively, so a proc-macro subtree is resolved
-/// once per host and recorded against the host triple. That is narrower, and it is
-/// what makes the rendered `select()` correct: a proc-macro's dependencies are
-/// analyzed in the exec configuration, so they match on the exec platform's triple.
-///
-/// `guppy` therefore resolves a subset of what `cargo tree` does, and the difference
-/// is confined to crates only reachable by way of a proc-macro.
-#[test]
-fn resolvers_agree() {
-    if should_skip_test() {
-        eprintln!("Skipping!");
-        return;
-    }
-
-    let (manifests, lockfile) = test_input(TARGET_FEATURES);
-
-    let guppy = run_with(
-        "resolver_parity",
-        manifests.clone(),
-        &lockfile,
-        DEFAULT_TEST_TRIPLES,
-        Resolver::Guppy,
-    );
-    let cargo_tree = run_with(
-        "resolver_parity",
-        manifests,
-        &lockfile,
-        DEFAULT_TEST_TRIPLES,
-        Resolver::CargoTree,
-    );
-
-    let guppy_metadata = &guppy["metadata"]["cargo-bazel"]["tree_metadata"];
-    let cargo_tree_metadata = &cargo_tree["metadata"]["cargo-bazel"]["tree_metadata"];
-    let known_to_guppy = crate_ids(guppy_metadata);
-
-    // The `wasm-bindgen-macro` subtree. `wgpu` only depends on `wasm-bindgen` under
-    // `cfg(target_arch = "wasm32")`, so on any other platform it is reachable from
-    // the root package only by way of `cargo tree`'s injected proc-macro root.
-    // `once_cell` is in the subtree but is also a real dependency of `ahash`, so it
-    // stays reachable wherever `ahash` is.
-    let proc_macro_only = BTreeSet::from([
-        "bumpalo 3.11.1",
-        "once_cell 1.16.0",
-        "wasm-bindgen-backend 0.2.83",
-        "wasm-bindgen-macro 0.2.83",
-        "wasm-bindgen-macro-support 0.2.83",
-        "wasm-bindgen-shared 0.2.83",
-    ]);
-
-    for triple in DEFAULT_TEST_TRIPLES {
-        let guppy = resolution_for(guppy_metadata, triple, TARGET_FEATURES_ROOT);
-        let cargo_tree = resolution_for(cargo_tree_metadata, triple, TARGET_FEATURES_ROOT);
-
-        let extra: BTreeSet<&str> = cargo_tree
-            .keys()
-            .filter(|crate_id| !guppy.contains_key(*crate_id))
-            .map(String::as_str)
-            .collect();
-
-        if triple.starts_with("wasm32") {
-            assert!(
-                extra.is_empty(),
-                "the `wasm-bindgen` subtree is a real dependency on `{triple}`, so both \
-                 resolvers should reach it, but cargo tree resolved {extra:?} on top",
-            );
-        }
-        assert!(
-            extra.is_subset(&proc_macro_only),
-            "cargo tree resolved crates for `{triple}` which are not part of the \
-             proc-macro subtree its injected root is expected to pull in: {:?}",
-            extra.difference(&proc_macro_only).collect::<Vec<_>>(),
-        );
-        // Not reachable for this target, but still resolved: guppy files a proc-macro's
-        // dependencies under the exec platform that builds them.
-        let unknown: Vec<_> = extra
-            .iter()
-            .filter(|crate_id| !known_to_guppy.contains(**crate_id))
-            .collect();
-        assert!(
-            unknown.is_empty(),
-            "{unknown:?} are resolved for `{triple}` by cargo tree and are missing from \
-             guppy's output entirely, rather than recorded against a host",
-        );
-
-        for (crate_id, resolution) in guppy {
-            let Some(from_cargo_tree) = cargo_tree.get(&crate_id) else {
-                panic!(
-                    "`{crate_id}` was resolved for `{triple}` by guppy but not by cargo \
-                     tree; guppy must never resolve a crate cargo tree does not",
-                );
-            };
-
-            // The root package is where `cargo tree`'s proc-macro roots are injected,
-            // so it is the one crate whose dependencies are expected to differ.
-            if crate_id != TARGET_FEATURES_ROOT {
-                assert!(
-                    resolution.deps.is_subset(&from_cargo_tree.deps),
-                    "`{crate_id}` on `{triple}`: guppy resolved dependencies cargo tree \
-                     did not: {:?}",
-                    resolution.deps.difference(&from_cargo_tree.deps),
-                );
-            }
-            assert!(
-                resolution.features.is_subset(&from_cargo_tree.features),
-                "`{crate_id}` on `{triple}`: guppy enabled features cargo tree did not: {:?}",
-                resolution.features.difference(&from_cargo_tree.features),
-            );
-        }
-    }
-}
-
 /// Resolution has to cover every supported platform, not just the ones the machine
 /// running the generator happens to build for: dependencies pinned on a macOS host
 /// must be buildable on a Windows or Linux host targeting, say,
@@ -992,13 +836,7 @@ fn all_supported_platforms_resolve() {
 
     let all_triples = all_supported_triples();
 
-    let wide = run_with(
-        "all_platforms",
-        manifests.clone(),
-        &lockfile,
-        &all_triples,
-        Resolver::Guppy,
-    );
+    let wide = run_with("all_platforms", manifests.clone(), &lockfile, &all_triples);
 
     let wide = &wide["metadata"]["cargo-bazel"]["tree_metadata"];
 
@@ -1030,7 +868,6 @@ fn all_supported_platforms_resolve() {
         manifests.clone(),
         &lockfile,
         DEFAULT_TEST_TRIPLES,
-        Resolver::Guppy,
     );
     let narrow = &narrow["metadata"]["cargo-bazel"]["tree_metadata"];
 
@@ -1054,13 +891,7 @@ fn all_supported_platforms_resolve() {
     // host and target together, which is the one case where a `Select` is
     // unambiguous: `common` holds the whole resolution and `selects` is empty.
     for host in DEFAULT_TEST_HOST_TRIPLES {
-        let alone = run_with(
-            "all_platforms",
-            manifests.clone(),
-            &lockfile,
-            &[host],
-            Resolver::Guppy,
-        );
+        let alone = run_with("all_platforms", manifests.clone(), &lockfile, &[host]);
         let alone = &alone["metadata"]["cargo-bazel"]["tree_metadata"];
 
         for (crate_id, entry) in alone.as_object().unwrap() {

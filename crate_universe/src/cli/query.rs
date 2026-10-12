@@ -68,7 +68,6 @@ pub fn query(opt: QueryOptions) -> Result<()> {
     // Generate a new digest so we can compare it with the one in the lockfile
     let provenance = Provenance::current(
         &config.supported_platform_triples,
-        &splicing_manifest,
         &Cargo::new(opt.cargo, opt.rustc.clone()),
         &opt.rustc,
     )?;

@@ -1,6 +1,6 @@
 {
   "binary_crates": ["clap 4.6.0", "cxxbridge-cmd 1.0.194"],
-  "checksum": "8a38c15105b831067608439b02e8585f21d3cb814812d6be94622f541cd4cb31",
+  "checksum": "5207c27b47c92058c556be8b6c674b1d68d12819c0629cfcb825d5086c17cbae",
   "conditions": {
     "cfg(any())": [],
     "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"]
@@ -914,7 +914,6 @@
   "provenance": {
     "cargo_bazel_version": "0.18.0",
     "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
-    "resolver": "guppy",
     "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",

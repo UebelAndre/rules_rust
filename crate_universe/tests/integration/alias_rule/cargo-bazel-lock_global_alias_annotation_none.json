@@ -1,5 +1,5 @@
 {
-  "checksum": "5dae0394e3ea7931cb014710525dfbc326c4193362361f11f20a4342fb9a0fd0",
+  "checksum": "da8967a68b917be5a05f9ea913d5a1dfec7a55cb75fd3396cac24ea6704cfa72",
   "conditions": {},
   "crates": {
     "direct-cargo-bazel-deps 0.0.1": {
@@ -52,7 +52,6 @@
   "provenance": {
     "cargo_bazel_version": "0.18.0",
     "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
-    "resolver": "guppy",
     "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",

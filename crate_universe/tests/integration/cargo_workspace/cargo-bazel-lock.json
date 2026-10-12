@@ -1,5 +1,5 @@
 {
-  "checksum": "79219d166d265acebbbba5b643a4cf3b2e16633426b1114b64dd737ed4973fd3",
+  "checksum": "71c2bc9f4c865105404fed6f063cbb0980ed9fd37977a6d6069936e4e1b8f3ff",
   "conditions": {
     "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
     "cfg(not(target_os = \"emscripten\"))": [
@@ -1120,7 +1120,6 @@
   "provenance": {
     "cargo_bazel_version": "0.18.0",
     "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
-    "resolver": "guppy",
     "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",

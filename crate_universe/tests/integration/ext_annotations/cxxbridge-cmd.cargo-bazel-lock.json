@@ -1,6 +1,6 @@
 {
   "binary_crates": ["clap 4.3.21"],
-  "checksum": "8550c9228585d9972f619b31c0dda80ce8d95d22f2bee229dec12835f4e81e30",
+  "checksum": "55ab637a651ef7ad370773b00ba2ba2c318662e0b05e1325a466963d740b0348",
   "conditions": {
     "cfg(any())": [],
     "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
@@ -667,7 +667,6 @@
   "provenance": {
     "cargo_bazel_version": "0.18.0",
     "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
-    "resolver": "guppy",
     "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",

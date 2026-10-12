@@ -1,27 +1,13 @@
 //! Tools for producing Crate metadata using [guppy]'s simulation of Cargo's
 //! dependency and feature resolution.
 //!
-//! This is the default resolver. It computes [TreeResolverMetadata] in-process from a
-//! single `cargo metadata` invocation instead of spawning
-//! `{HOST_TRIPLES} * {TARGET_TRIPLES}` `cargo tree` processes. Setting
-//! `incompatible_guppy_resolver = False` in `splicing_config` falls back to the legacy
-//! [crate::metadata::TreeResolver].
-//!
-//! The two resolvers agree except where `cargo tree`'s workarounds leak into its
-//! output. The synthetic proc-macro root makes every proc-macro a root on every
-//! platform, so crates reachable only by way of a proc-macro get recorded against
-//! platforms which never build them. guppy resolves proc-macros once per host and
-//! records them under the host triple, so it reports a subset of what `cargo tree`
-//! does. That subset is the intended behavior rather than a gap to close: a
-//! proc-macro's dependencies are analyzed in the exec configuration, so they should
-//! match on the exec platform's triple. The `resolvers_agree` integration test pins
-//! the difference down.
-//!
-//! Because guppy takes the host and target platforms as independent parameters, this
-//! resolver needs neither the `RUSTC_WRAPPER` shim used to spoof the host platform nor
-//! the synthetic proc-macro root package used to force proc-macros to resolve on every
-//! platform. Both exist in [crate::metadata::cargo_tree_resolver] purely to work around
-//! `cargo tree` having a single, implicit host.
+//! [TreeResolverMetadata] is computed in-process from a single `cargo metadata`
+//! invocation, simulating one Cargo build per (host, target) platform pair. guppy
+//! takes the host and target platforms as independent parameters, so the host a
+//! crate's proc-macros and build scripts are built on is simply an input: their
+//! dependencies are resolved once per host and recorded under the host triple,
+//! which is where Bazel analyzes them (the exec configuration), rather than being
+//! fabricated onto every target platform.
 //!
 //! [guppy]: https://docs.rs/guppy
 
@@ -55,8 +41,7 @@ struct PairResolution {
 }
 
 /// Generates metadata about a Cargo workspace tree using guppy's Cargo build
-/// simulation. See the module documentation for how this differs from
-/// [crate::metadata::TreeResolver].
+/// simulation.
 pub(crate) struct GuppyResolver {
     /// The path to a `cargo` binary
     cargo_bin: Cargo,
@@ -69,9 +54,6 @@ impl GuppyResolver {
 
     /// Computes the set of enabled features and resolved dependencies for each
     /// target triplet for each crate.
-    ///
-    /// The signature and return value match [crate::metadata::TreeResolver::generate]
-    /// so the two are interchangeable.
     #[tracing::instrument(name = "GuppyResolver::generate", skip_all)]
     pub(crate) fn generate(
         &self,
@@ -83,10 +65,9 @@ impl GuppyResolver {
             pristine_manifest_path
         );
 
-        // Mirrors `TreeResolver::generate`: only platforms which ship host tools are
-        // considered as hosts. guppy itself has no such restriction (the host platform
-        // is just another parameter) but sharing the set keeps both resolvers keyed by
-        // the same host triples.
+        // Only platforms which ship host tools are considered as hosts. guppy itself
+        // has no such restriction (the host platform is just another parameter), but a
+        // platform without host tools can never be the one a build runs on.
         let host_triples = host_triples_with_tools(target_triples)?;
 
         // We only want to resolve once per unique cargo platform, then replicate the
@@ -165,8 +146,7 @@ impl GuppyResolver {
         })?;
 
         // Replicate outputs for any de-duplicated platforms. Target-side data is keyed
-        // by the target triple and host-side data by the host triple, matching how
-        // `TreeResolver` splits `cargo tree` output.
+        // by the target triple and host-side data by the host triple.
         let mut metadata = PerTripleMetadata::new();
         for ((cargo_host, cargo_target), resolution) in jobs.iter().zip(resolutions) {
             for target_plat in &cargo_target_triples[*cargo_target] {
@@ -247,7 +227,7 @@ fn resolve_pair<'g>(
 
     let mut opts = CargoOptions::new();
     opts.set_resolver(resolver)
-        // `cargo tree` was invoked with `--edges normal,build,dev`.
+        // Dev-dependencies of workspace members are rendered for their tests.
         .set_include_dev(true)
         .set_host_platform(platforms[cargo_host].clone())
         .set_target_platform(platforms[cargo_target].clone());
@@ -270,9 +250,9 @@ fn resolve_pair<'g>(
 
 /// The dependency edges belonging to the target side of a build.
 ///
-/// `cargo tree` attributes a dependency edge to the side its *parent* is built for,
-/// while a crate's features are attributed to the side that crate itself is built
-/// for. Proc-macro and build-dependency links cross from a target parent to a host
+/// A dependency edge is attributed to the side its *parent* is built for, while
+/// a crate's features are attributed to the side that crate itself is built for.
+/// Proc-macro and build-dependency links cross from a target parent to a host
 /// child, so the edges belong to the target side even though the child's features
 /// are reported under the host. guppy keeps those two categories out of both
 /// `target_links` and `host_links`, so they have to be folded back in explicitly.
@@ -292,10 +272,9 @@ fn target_side_links<'a, 'g>(
 /// `cargo metadata` drops any dependency on a package without a library target
 /// (`warning: ignoring invalid dependency ... which is missing a lib target`),
 /// together with everything reachable only through it. `cargo build` ignores such
-/// dependencies the same way, so this matches Cargo. `cargo tree` follows them,
-/// however, and the legacy resolver inherited that, so a package which only ships
-/// a binary could still shape feature resolution. Rather than let those features
-/// vanish silently, surface the discrepancy.
+/// dependencies the same way, so this matches Cargo. The features such a package
+/// would have enabled on its library dependencies are simply never applied, which
+/// is easy to mistake for a resolution bug, so surface the discrepancy instead.
 ///
 /// `Cargo.lock` is the complete package set, so anything in it that is not in the
 /// metadata was dropped this way. Only unconditional dependencies on such a package
@@ -422,7 +401,7 @@ fn crate_id(package: &PackageMetadata<'_>) -> CrateId {
 }
 
 /// Folds a resolved feature set and its dependency edges into the per-crate shape
-/// produced by parsing `cargo tree` output.
+/// of [TreeResolverMetadata].
 fn collect_tree_data<'g>(
     features: &FeatureSet<'g>,
     links: impl Iterator<Item = (PackageMetadata<'g>, PackageMetadata<'g>)>,
@@ -431,8 +410,8 @@ fn collect_tree_data<'g>(
 
     for feature_list in features.packages_with_features(DependencyDirection::Forward) {
         // `named_features` covers both features declared in `[features]` and the
-        // implicit features created by optional dependencies, which is exactly what
-        // `cargo tree --format={f}` prints. The `dep:name` labels guppy also tracks are
+        // implicit features created by optional dependencies, which is what Cargo
+        // reports as a crate's features. The `dep:name` labels guppy also tracks are
         // deliberately excluded.
         tree_data
             .entry(crate_id(feature_list.package()))
@@ -454,7 +433,7 @@ fn collect_tree_data<'g>(
 
 /// Reads the resolver version out of the workspace manifest.
 ///
-/// `cargo tree` picks this up implicitly from the manifest it is pointed at, so the
+/// Cargo picks this up implicitly from the manifest it is pointed at, so the
 /// guppy resolver has to read it explicitly to match. Getting this wrong is not a
 /// subtle error: the v1 resolver unions features across every platform and ignores
 /// target-specific dependency filtering, so target-gated optional dependencies leak

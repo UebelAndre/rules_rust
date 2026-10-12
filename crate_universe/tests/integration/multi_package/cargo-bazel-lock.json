@@ -1,6 +1,6 @@
 {
   "binary_crates": ["httpmock 0.6.7", "webpki-roots 0.22.6"],
-  "checksum": "f7bfd8ca68d1c049db4e8692b64c74ede3845490853b8b2c2ae1931e81973283",
+  "checksum": "062cd77ce3c49e8b06e58d9aebc8e9a26cadd6a236e07cb172b301ee25a34ef4",
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],
     "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
@@ -7851,7 +7851,6 @@
   "provenance": {
     "cargo_bazel_version": "0.18.0",
     "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
-    "resolver": "guppy",
     "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",
