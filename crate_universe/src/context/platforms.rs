@@ -160,6 +160,7 @@ mod test {
             extra_aliased_targets: BTreeMap::default(),
             alias_rule: None,
             override_targets: BTreeMap::default(),
+            package_metadata: None,
         };
 
         let configurations =
@@ -219,6 +220,7 @@ mod test {
             extra_aliased_targets: BTreeMap::default(),
             alias_rule: None,
             override_targets: BTreeMap::default(),
+            package_metadata: None,
         }
     }
 
@@ -306,6 +308,7 @@ mod test {
             extra_aliased_targets: BTreeMap::default(),
             alias_rule: None,
             override_targets: BTreeMap::default(),
+            package_metadata: None,
         };
 
         let configurations =
@@ -373,6 +376,7 @@ mod test {
             extra_aliased_targets: BTreeMap::default(),
             alias_rule: None,
             override_targets: BTreeMap::default(),
+            package_metadata: None,
         };
 
         let configurations =

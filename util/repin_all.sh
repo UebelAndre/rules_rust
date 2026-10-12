@@ -38,7 +38,7 @@ done
 # Querying the direct dependencies of `//...` forces the packages of those
 # repositories to load, which evaluates the extension and triggers the repin,
 # without descending into (and downloading) every transitive crate source.
-for d in crate_universe/tests/integration/* examples/cross_compile_musl test/integration/no_std
+for d in crate_universe/tests/integration/* examples/cross_compile_musl
 do
   # vendor/ is handled explicitly above via bazel run of crates_vendor targets
   [[ "${d}" == */vendor ]] && continue
