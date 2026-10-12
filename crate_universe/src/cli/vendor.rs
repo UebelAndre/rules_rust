@@ -15,8 +15,8 @@ use clap::Parser;
 use crate::config::{Config, VendorMode};
 use crate::context::Context;
 use crate::lockfile::{lock_context, write_lockfile};
-use crate::metadata::resolve_tree_metadata;
 use crate::metadata::CargoUpdateRequest;
+use crate::metadata::{locked_metadata, resolve_tree_metadata};
 use crate::metadata::{Annotations, Cargo, VendorGenerator};
 use crate::rendering::{render_module_label, write_outputs, Renderer};
 use crate::splicing::{generate_lockfile, Splicer, SplicingManifest, WorkspaceMetadata};
@@ -279,12 +279,12 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
     )?;
 
     // Write metadata to the workspace for future reuse
-    let cargo_metadata = cargo
-        .metadata_command_with_options(
-            manifest_path.as_path_buf().as_ref(),
-            vec!["--locked".to_owned()],
-        )?
-        .exec()?;
+    let cargo_metadata: cargo_metadata::Metadata = serde_json::from_str(&locked_metadata(
+        &cargo,
+        manifest_path.as_path_buf().as_std_path(),
+        false,
+    )?)
+    .context("Failed to parse cargo metadata")?;
 
     // Annotate metadata
     let annotations = Annotations::new(

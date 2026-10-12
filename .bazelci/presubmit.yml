@@ -551,7 +551,7 @@ tasks:
     test_targets:
       - "//..."
 
-  # --- cargo_bindeps (linux only, requires nightly) ---
+  # --- cargo_bindeps (linux only) ---
   cu_integ_cargo_bindeps_ubuntu2204:
     name: Crate Universe - cargo_bindeps
     platform: ubuntu2204
