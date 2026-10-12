@@ -422,20 +422,21 @@ def _get_or_insert(d, key, value):
         d[key] = value
     return d[key]
 
-def _annotations_for_repo(module_annotations, repo_specific_annotations):
-    """Merges the set of global annotations with the repo-specific ones
+def _annotations_for_repo(global_annotations, module_annotations, repo_specific_annotations):
+    """Merges the annotations which apply to a repository, broadest scope first.
 
     Args:
-        module_annotations (dict): The annotation tags that apply to all repos, keyed by crate.
-        repo_specific_annotations (dict): The annotation tags that apply to only this repo, keyed by crate.
+        global_annotations (dict): The root module's `repositories = ["*"]` annotations, keyed by crate.
+        module_annotations (dict): The annotations of the repository's own module, keyed by crate.
+        repo_specific_annotations (dict): The annotations naming this repository, keyed by crate.
+
+    Returns:
+        dict: The merged annotations, keyed by crate.
     """
-
-    if not repo_specific_annotations:
-        return module_annotations
-
-    annotations = dict(module_annotations)
-    for crate, values in repo_specific_annotations.items():
-        _get_or_insert(annotations, crate, []).extend(values)
+    annotations = {}
+    for scoped in [global_annotations, module_annotations, repo_specific_annotations]:
+        for crate, values in (scoped or {}).items():
+            _get_or_insert(annotations, crate, []).extend(values)
     return annotations
 
 def _collect_render_config(module, repository):
@@ -910,6 +911,88 @@ def _update_annotations(store, crate, version, triples, annotation_select_dict):
                 value,
             )
 
+def _annotation_tag_to_dict(annotation_tag):
+    """Converts an `annotation` tag into the keyword arguments of `crate.annotation`.
+
+    Args:
+        annotation_tag (struct): The tag.
+
+    Returns:
+        tuple: The crate name, version, `repositories` and the annotation dict.
+    """
+    annotation_dict = _resolve_label_attrs(structs.to_dict(annotation_tag))
+
+    repositories = annotation_dict.pop("repositories")
+    crate = annotation_dict.pop("crate")
+    version = annotation_dict.pop("version")
+
+    # The crate.annotation function can take in either a list or a bool.
+    # For the tag-based method, because it has type safety, we have to
+    # split it into two parameters.
+    if annotation_dict.pop("gen_all_binaries"):
+        annotation_dict["gen_binaries"] = True
+    annotation_dict["gen_build_script"] = _OPT_BOOL_VALUES[annotation_dict["gen_build_script"]]
+
+    # Convert the tri-state string values ("auto"/"on"/"off") into the
+    # `int` representation understood by `crate.annotation` (`None`, `1`,
+    # or `0` respectively).
+    for opt_bool_key in (
+        "build_script_use_cc_toolchain",
+        "build_script_use_default_shell_env",
+    ):
+        bool_value = _OPT_BOOL_VALUES[annotation_dict[opt_bool_key]]
+        if bool_value == None:
+            annotation_dict.pop(opt_bool_key)
+        else:
+            annotation_dict[opt_bool_key] = int(bool_value)
+
+    # Process the override targets for the annotation.
+    # In the non-bzlmod approach, this is given as a dict
+    # with the possible keys "`proc-macro`, `custom-build`, `lib`, `bin`".
+    # With the tag-based approach used in Bzlmod, we run into an issue
+    # where there is no dict type that takes a string as a key and a Label as the value.
+    # To work around this, we split the override option into four, and reconstruct the
+    # dictionary here during processing
+    annotation_dict["override_targets"] = dict()
+    replacement = annotation_dict.pop("override_target_lib")
+    if replacement:
+        annotation_dict["override_targets"]["lib"] = str(replacement)
+
+    replacement = annotation_dict.pop("override_target_proc_macro")
+    if replacement:
+        annotation_dict["override_targets"]["proc-macro"] = str(replacement)
+
+    replacement = annotation_dict.pop("override_target_build_script")
+    if replacement:
+        annotation_dict["override_targets"]["custom-build"] = str(replacement)
+
+    replacement = annotation_dict.pop("override_target_bin")
+    if replacement:
+        annotation_dict["override_targets"]["bin"] = str(replacement)
+
+    return crate, version, repositories, annotation_dict
+
+def _scope_of(mod, repositories):
+    """Classifies the `repositories` of an annotation tag.
+
+    Args:
+        mod (bazel_module): The module which declared the tag.
+        repositories (list): The tag's `repositories` attribute.
+
+    Returns:
+        str: `"global"` for `["*"]`, `"module"` when empty and `"repositories"` otherwise.
+    """
+    if repositories == ["*"]:
+        if not mod.is_root:
+            fail(
+                "`repositories = [\"*\"]` applies an annotation to every crate repository " +
+                "of every module and so may only be used by the root module, not `{}`.".format(mod.name),
+            )
+        return "global"
+    if not repositories:
+        return "module"
+    return "repositories"
+
 def _resolve_label_attrs(annotation_dict):
     """Stringify the label typed attributes of an annotation tag.
 
@@ -1017,6 +1100,12 @@ def _crate_impl(module_ctx):
 
     all_repos = []
 
+    # Annotations the root module applies to every crate repository of every
+    # module (`repositories = ["*"]`). The root module is always first in
+    # `module_ctx.modules`, so these are complete before any other module's
+    # repositories are generated.
+    global_annotations = {}
+
     for mod in module_ctx.modules:
         if not mod.tags.from_cargo and not mod.tags.from_specs:
             fail("`.from_cargo` or `.from_specs` are required. Please update {}".format(mod.name))
@@ -1025,57 +1114,11 @@ def _crate_impl(module_ctx):
         module_annotations = {}
         repo_specific_annotations = {}
         for annotation_tag in mod.tags.annotation:
-            annotation_dict = _resolve_label_attrs(structs.to_dict(annotation_tag))
-
-            repositories = annotation_dict.pop("repositories")
-            crate = annotation_dict.pop("crate")
-            version = annotation_dict.pop("version")
-
-            # The crate.annotation function can take in either a list or a bool.
-            # For the tag-based method, because it has type safety, we have to
-            # split it into two parameters.
-            if annotation_dict.pop("gen_all_binaries"):
-                annotation_dict["gen_binaries"] = True
-            annotation_dict["gen_build_script"] = _OPT_BOOL_VALUES[annotation_dict["gen_build_script"]]
-
-            # Convert the tri-state string values ("auto"/"on"/"off") into the
-            # `int` representation understood by `crate.annotation` (`None`, `1`,
-            # or `0` respectively).
-            for opt_bool_key in (
-                "build_script_use_cc_toolchain",
-                "build_script_use_default_shell_env",
-            ):
-                bool_value = _OPT_BOOL_VALUES[annotation_dict[opt_bool_key]]
-                if bool_value == None:
-                    annotation_dict.pop(opt_bool_key)
-                else:
-                    annotation_dict[opt_bool_key] = int(bool_value)
-
-            # Process the override targets for the annotation.
-            # In the non-bzlmod approach, this is given as a dict
-            # with the possible keys "`proc-macro`, `custom-build`, `lib`, `bin`".
-            # With the tag-based approach used in Bzlmod, we run into an issue
-            # where there is no dict type that takes a string as a key and a Label as the value.
-            # To work around this, we split the override option into four, and reconstruct the
-            # dictionary here during processing
-            annotation_dict["override_targets"] = dict()
-            replacement = annotation_dict.pop("override_target_lib")
-            if replacement:
-                annotation_dict["override_targets"]["lib"] = str(replacement)
-
-            replacement = annotation_dict.pop("override_target_proc_macro")
-            if replacement:
-                annotation_dict["override_targets"]["proc-macro"] = str(replacement)
-
-            replacement = annotation_dict.pop("override_target_build_script")
-            if replacement:
-                annotation_dict["override_targets"]["custom-build"] = str(replacement)
-
-            replacement = annotation_dict.pop("override_target_bin")
-            if replacement:
-                annotation_dict["override_targets"]["bin"] = str(replacement)
-
-            if not repositories:
+            crate, version, repositories, annotation_dict = _annotation_tag_to_dict(annotation_tag)
+            scope = _scope_of(mod, repositories)
+            if scope == "global":
+                _insert_annotation(global_annotations, crate, version, annotation_dict)
+            elif scope == "module":
                 _insert_annotation(module_annotations, crate, version, annotation_dict)
             else:
                 for repo in repositories:
@@ -1090,7 +1133,12 @@ def _crate_impl(module_ctx):
             triples = annotation_select_dict.pop("triples")
             version = annotation_select_dict.pop("version")
 
-            if repositories:
+            scope = _scope_of(mod, repositories)
+            if scope == "global":
+                _update_annotations(global_annotations, crate, version, triples, annotation_select_dict)
+            elif scope == "module":
+                _update_annotations(module_annotations, crate, version, triples, annotation_select_dict)
+            else:
                 for repo in repositories:
                     _update_annotations(
                         repo_specific_annotations.setdefault(repo, {}),
@@ -1099,17 +1147,10 @@ def _crate_impl(module_ctx):
                         triples,
                         annotation_select_dict,
                     )
-            else:
-                _update_annotations(
-                    module_annotations,
-                    crate,
-                    version,
-                    triples,
-                    annotation_select_dict,
-                )
 
         # Now transform the annotations into a format that the `_generate_hub_and_spokes` function expects.
         repo_specific_annotations, module_annotations = _collapse_versions(repo_specific_annotations, module_annotations)
+        collapsed_global_annotations = _collapse_crate_versions(global_annotations)
         common_specs = []
         repo_specific_specs = {}
         for spec in mod.tags.spec:
@@ -1166,6 +1207,7 @@ def _crate_impl(module_ctx):
             splicing_config = _collect_splicing_config(mod, cfg.name)
 
             annotations = _annotations_for_repo(
+                collapsed_global_annotations,
                 module_annotations,
                 repo_specific_annotations.get(cfg.name),
             )
@@ -1301,7 +1343,11 @@ _ANNOTATION_ATTRS = {
         ),
     ),
     "repositories": attr.string_list(
-        doc = "A list of repository names specified from `crate.from_cargo(name=...)` that this annotation is applied to. Defaults to all repositories.",
+        doc = (
+            "A list of repository names specified from `crate.from_cargo(name=...)` that this annotation is " +
+            "applied to. Defaults to every repository defined by the same module. `[\"*\"]` applies it to " +
+            "every repository of every module and may only be used by the root module."
+        ),
         default = [],
     ),
     "version": attr.string(
@@ -1522,7 +1568,7 @@ _spec = tag_class(
             doc = "The local path of the remote crate. Cannot be used with `version` or `git`.",
         ),
         "repositories": attr.string_list(
-            doc = "A list of repository names specified from `crate.from_cargo(name=...)` that this spec is applied to. Defaults to all repositories.",
+            doc = "A list of repository names specified from `crate.from_cargo(name=...)` that this spec is applied to. Defaults to every repository defined by the same module.",
             default = [],
         ),
         "rev": attr.string(
@@ -1541,7 +1587,11 @@ _splicing_config = tag_class(
     doc = "Various settings used to configure Cargo manifest splicing behavior.",
     attrs = {
         "repositories": attr.string_list(
-            doc = "A list of repository names specified from `crate.from_cargo(name=...)` that this annotation is applied to. Defaults to all repositories.",
+            doc = (
+                "A list of repository names specified from `crate.from_cargo(name=...)` that this annotation is " +
+                "applied to. Defaults to every repository defined by the same module. `[\"*\"]` applies it to " +
+                "every repository of every module and may only be used by the root module."
+            ),
             default = [],
         ),
     } | {
@@ -1570,7 +1620,11 @@ can be found below where the supported keys for each template can be found in th
 """,
     attrs = {
         "repositories": attr.string_list(
-            doc = "A list of repository names specified from `crate.from_cargo(name=...)` that this annotation is applied to. Defaults to all repositories.",
+            doc = (
+                "A list of repository names specified from `crate.from_cargo(name=...)` that this annotation is " +
+                "applied to. Defaults to every repository defined by the same module. `[\"*\"]` applies it to " +
+                "every repository of every module and may only be used by the root module."
+            ),
             default = [],
         ),
     } | {
