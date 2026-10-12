@@ -379,8 +379,6 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
             context,
             &config.supported_platform_triples,
             &splicing_manifest,
-            &cargo,
-            &opt.rustc,
             Some(&cargo_lockfile),
         )?;
 
