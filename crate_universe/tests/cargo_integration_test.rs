@@ -160,10 +160,10 @@ fn try_run_with(
 }
 
 /// `shellharden` ships only a binary. `cargo metadata` drops such a dependency
-/// with a warning, so nothing downstream of it can be resolved; the resolver must
-/// refuse rather than quietly resolve nothing for it.
+/// with a warning; the package is put back from its downloaded source so its
+/// binary can be built, and the dependent is linked to it in the resolve graph.
 #[test]
-fn binary_only_dependency_is_rejected() {
+fn binary_only_dependency_is_resolved() {
     if should_skip_test() {
         eprintln!("Skipping!");
         return;
@@ -171,13 +171,46 @@ fn binary_only_dependency_is_rejected() {
 
     let (manifests, lockfile) = test_input("bin_only_dep");
 
-    let err = try_run_with("bin_only_dep", manifests, &lockfile, DEFAULT_TEST_TRIPLES)
-        .expect_err("a binary-only dependency should be rejected");
-    let message = format!("{err:#}");
-    assert!(
-        message.contains("shellharden 4.3.2"),
-        "the error should name the dropped package, got: {message}",
+    let metadata = run_with("bin_only_dep", manifests, &lockfile, DEFAULT_TEST_TRIPLES);
+
+    let packages = metadata["packages"].as_array().unwrap();
+    let shellharden = packages
+        .iter()
+        .find(|pkg| pkg["name"] == "shellharden")
+        .expect("the binary-only package should be in the metadata");
+    assert_eq!(
+        shellharden["id"],
+        "registry+https://github.com/rust-lang/crates.io-index#shellharden@4.3.2"
     );
+    assert_eq!(
+        shellharden["source"],
+        "registry+https://github.com/rust-lang/crates.io-index"
+    );
+    let target_kinds: Vec<&Value> = shellharden["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|target| target["kind"].as_array().unwrap())
+        .collect();
+    assert!(target_kinds.contains(&&json!("bin")));
+    assert!(!target_kinds.contains(&&json!("lib")));
+
+    let nodes = metadata["resolve"]["nodes"].as_array().unwrap();
+    assert!(nodes.iter().any(|node| node["id"] == shellharden["id"]));
+    let root = nodes
+        .iter()
+        .find(|node| node["id"] == metadata["resolve"]["root"])
+        .unwrap();
+    let edge = root["deps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|dep| dep["pkg"] == shellharden["id"])
+        .expect("the workspace member should depend on the binary-only package");
+    // Nothing links against a binary-only package, so the edge carries no
+    // extern name, as Cargo reports for artifact dependencies.
+    assert_eq!(edge["name"], "");
+    assert_eq!(edge["dep_kinds"], json!([{"kind": null, "target": null}]));
 }
 
 // See crate_universe/test_data/metadata/target_features/Cargo.toml for input.
