@@ -352,8 +352,8 @@ pub(crate) struct WorkspaceMetadata {
 
     /// Feature set for each target triplet and crate.
     ///
-    /// We store this here because it's computed during the splicing phase via
-    /// calls to "cargo tree" which need the full spliced workspace.
+    /// We store this here because it's computed during the splicing phase,
+    /// which is where the full spliced workspace is available to resolve.
     pub(crate) tree_metadata: TreeResolverMetadata,
 }
 

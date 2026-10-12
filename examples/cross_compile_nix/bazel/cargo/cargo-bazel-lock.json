@@ -1,6 +1,6 @@
 {
   "binary_crates": ["cc 1.0.84"],
-  "checksum": "862f1ab4be286d9d158415ff849ff1903afef3a52c92e2dfa61c867f6f6249aa",
+  "checksum": "f6673ac94ffd9595bc427a6c49f02291f299336cff45b75ab3bea454e9e70fc1",
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],
     "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
@@ -1372,8 +1372,6 @@
   "direct_dev_deps": [],
   "provenance": {
     "cargo_bazel_version": "0.18.0",
-    "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
-    "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
