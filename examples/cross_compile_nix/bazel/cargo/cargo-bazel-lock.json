@@ -1,6 +1,6 @@
 {
   "binary_crates": ["cc 1.0.84"],
-  "checksum": "2685fe37dbd21f1f572d1a734c372b9d242b91c668922fc4916f70d22d80a09b",
+  "checksum": "862f1ab4be286d9d158415ff849ff1903afef3a52c92e2dfa61c867f6f6249aa",
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],
     "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],

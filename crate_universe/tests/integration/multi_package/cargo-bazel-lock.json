@@ -1,6 +1,6 @@
 {
   "binary_crates": ["httpmock 0.6.7", "webpki-roots 0.22.6"],
-  "checksum": "d6ab10467bbd5e0798152c450a4959af7f15d9cc9245cedf815ae15ceb2ea3c8",
+  "checksum": "32402f509d5ed162d2ebef0bce0375983232833e39f36cbef37ad17725735572",
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],
     "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],

@@ -1,5 +1,5 @@
 {
-  "checksum": "54c714d84590829ea02ece2cdb23707842efa12bb7541a488b3f691ce41110da",
+  "checksum": "7e7bd119f9088d20fc48fdda531b2a1d024b8325603d08223756e9151993aa07",
   "conditions": {
     "cfg(target_os = \"linux\")": [
       "aarch64-unknown-linux-gnu",

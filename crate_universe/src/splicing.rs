@@ -39,6 +39,11 @@ pub(crate) struct SplicingManifest {
     /// The path of a Cargo config file
     pub(crate) cargo_config: Option<Utf8PathBuf>,
 
+    /// The path of the `Cargo.lock` the workspace resolves against, when it
+    /// has one. Its package set is part of the lockfile digest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) cargo_lockfile: Option<Utf8PathBuf>,
+
     /// The Cargo resolver version to use for splicing
     pub(crate) resolver_version: cargo_toml::Resolver,
 }
@@ -61,6 +66,7 @@ impl SplicingManifest {
         let Self {
             manifests,
             cargo_config,
+            cargo_lockfile,
             ..
         } = self;
 
@@ -79,20 +85,178 @@ impl SplicingManifest {
             })
             .collect();
 
-        // Ensure the cargo config is located at an absolute path
-        let cargo_config = cargo_config.map(|path| {
+        // Ensure the cargo config and lockfile are located at absolute paths
+        let resolve_path = |path: Utf8PathBuf| {
             let resolved_path = path
                 .to_string()
                 .replace("${build_workspace_directory}", &workspace_dir_str)
                 .replace("${output_base}", &output_base_str);
             Utf8PathBuf::from(resolved_path)
-        });
+        };
+        let cargo_config = cargo_config.map(resolve_path);
+        let cargo_lockfile = cargo_lockfile.map(resolve_path);
 
         Self {
             manifests,
             cargo_config,
+            cargo_lockfile,
             ..self
         }
+    }
+}
+
+/// The parts of a manifest which can change what Cargo resolves.
+///
+/// The lockfile digest covers this projection rather than the whole manifest, so
+/// editing anything else - a description, a `[[bin]]`, lints, profiles - does
+/// not require a repin.
+#[derive(Debug, Default, Serialize)]
+pub(crate) struct ManifestProjection {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    package: Option<PackageProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace: Option<WorkspaceProjection>,
+    dependencies: cargo_toml::DepsSet,
+    dev_dependencies: cargo_toml::DepsSet,
+    build_dependencies: cargo_toml::DepsSet,
+    target: cargo_toml::TargetDepsSet,
+    features: cargo_toml::FeatureSet,
+    patch: cargo_toml::PatchSet,
+    replace: cargo_toml::DepsSet,
+}
+
+/// The resolution relevant parts of a `[package]` table.
+#[derive(Debug, Serialize)]
+struct PackageProjection {
+    name: String,
+    version: cargo_toml::Inheritable<String>,
+    edition: cargo_toml::Inheritable<cargo_toml::Edition>,
+    links: Option<String>,
+    resolver: Option<cargo_toml::Resolver>,
+    /// `[package.metadata.bazel]`, the crate's own annotation defaults.
+    bazel_metadata: Option<cargo_toml::Value>,
+}
+
+/// The resolution relevant parts of a `[workspace]` table.
+#[derive(Debug, Serialize)]
+struct WorkspaceProjection {
+    members: Vec<String>,
+    default_members: Vec<String>,
+    exclude: Vec<String>,
+    package: Option<cargo_toml::PackageTemplate>,
+    resolver: Option<cargo_toml::Resolver>,
+    dependencies: cargo_toml::DepsSet,
+}
+
+impl From<&cargo_toml::Manifest> for ManifestProjection {
+    // `[replace]` is deprecated in favor of `[patch]` but Cargo still honors it.
+    #[allow(deprecated)]
+    fn from(manifest: &cargo_toml::Manifest) -> Self {
+        Self {
+            package: manifest.package.as_ref().map(|package| PackageProjection {
+                name: package.name.clone(),
+                version: package.version.clone(),
+                edition: package.edition,
+                links: package.links.clone(),
+                resolver: package.resolver,
+                bazel_metadata: package
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("bazel"))
+                    .cloned(),
+            }),
+            workspace: manifest
+                .workspace
+                .as_ref()
+                .map(|workspace| WorkspaceProjection {
+                    members: workspace.members.clone(),
+                    default_members: workspace.default_members.clone(),
+                    exclude: workspace.exclude.clone(),
+                    package: workspace.package.clone(),
+                    resolver: workspace.resolver,
+                    dependencies: workspace.dependencies.clone(),
+                }),
+            dependencies: manifest.dependencies.clone(),
+            dev_dependencies: manifest.dev_dependencies.clone(),
+            build_dependencies: manifest.build_dependencies.clone(),
+            target: manifest.target.clone(),
+            features: manifest.features.clone(),
+            patch: manifest.patch.clone(),
+            replace: manifest.replace.clone(),
+        }
+    }
+}
+
+/// The parts of a `Cargo.lock` which pin what gets rendered: every package
+/// with its source and checksum, and the `[patch]` entries Cargo did not use.
+///
+/// The lockfile digest covers this projection rather than the file, so a change
+/// of lockfile format version or of Cargo's layout does not require a repin,
+/// while a package added, removed or moved to another version does.
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+pub(crate) struct LockfileProjection {
+    packages: Vec<LockedPackage>,
+    unused_patches: Vec<String>,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+struct LockedPackage {
+    name: String,
+    version: String,
+    source: Option<String>,
+    checksum: Option<String>,
+}
+
+impl From<&cargo_lock::Lockfile> for LockfileProjection {
+    fn from(lockfile: &cargo_lock::Lockfile) -> Self {
+        let mut packages: Vec<LockedPackage> = lockfile
+            .packages
+            .iter()
+            .map(|package| LockedPackage {
+                name: package.name.to_string(),
+                version: package.version.to_string(),
+                source: package.source.as_ref().map(|source| source.to_string()),
+                checksum: package
+                    .checksum
+                    .as_ref()
+                    .map(|checksum| checksum.to_string()),
+            })
+            .collect();
+        packages.sort();
+        let mut unused_patches: Vec<String> = lockfile
+            .patch
+            .unused
+            .iter()
+            .map(|patch| match &patch.source {
+                Some(source) => format!("{} {} ({})", patch.name, patch.version, source),
+                None => format!("{} {}", patch.name, patch.version),
+            })
+            .collect();
+        unused_patches.sort();
+        Self {
+            packages,
+            unused_patches,
+        }
+    }
+}
+
+impl LockfileProjection {
+    /// The projection of the `Cargo.lock` at `path`, or `None` when there is
+    /// none yet: a lockfile attribute may point at an empty file to be filled
+    /// in by the first resolution.
+    fn try_from_path(path: &Utf8Path) -> Result<Option<Self>> {
+        if !path.exists() {
+            return Ok(None);
+        }
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Failed to read Cargo lockfile '{}'", path))?;
+        if content.trim().is_empty() {
+            return Ok(None);
+        }
+        let lockfile: cargo_lock::Lockfile = content
+            .parse()
+            .with_context(|| format!("Failed to parse Cargo lockfile '{}'", path))?;
+        Ok(Some(Self::from(&lockfile)))
     }
 }
 
@@ -102,11 +266,16 @@ pub(crate) struct SplicingMetadata {
     /// A set of all packages directly written to the rule
     pub(crate) direct_packages: DirectPackageManifest,
 
-    /// A mapping of manifest paths to the labels representing them
-    pub(crate) manifests: BTreeMap<Label, cargo_toml::Manifest>,
+    /// The resolution relevant parts of each manifest, keyed by its label.
+    pub(crate) manifests: BTreeMap<Label, ManifestProjection>,
 
     /// The path of a Cargo config file
     pub(crate) cargo_config: Option<CargoConfig>,
+
+    /// The package set of the `Cargo.lock`, when the workspace has one. Left
+    /// out when it does not so such repositories keep their digest.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) cargo_lock: Option<LockfileProjection>,
 
     /// The Cargo resolver version used for splicing, which changes what gets
     /// resolved and so belongs in the lockfile digest.
@@ -133,9 +302,9 @@ impl TryFrom<SplicingManifest> for SplicingMetadata {
                     .with_context(|| format!("Failed to load manifest '{}'", path))?;
                 let manifest = cargo_toml::Manifest::from_slice(&manifest_content)
                     .with_context(|| format!("Failed to parse manifest '{}'", path))?;
-                Ok((label, manifest))
+                Ok((label, ManifestProjection::from(&manifest)))
             })
-            .collect::<Result<BTreeMap<Label, Manifest>>>()?;
+            .collect::<Result<BTreeMap<Label, ManifestProjection>>>()?;
 
         let cargo_config = match value.cargo_config {
             Some(path) => Some(
@@ -145,10 +314,16 @@ impl TryFrom<SplicingManifest> for SplicingMetadata {
             None => None,
         };
 
+        let cargo_lock = match &value.cargo_lockfile {
+            Some(path) => LockfileProjection::try_from_path(path)?,
+            None => None,
+        };
+
         Ok(Self {
             direct_packages,
             manifests,
             cargo_config,
+            cargo_lock,
             resolver_version: value.resolver_version,
         })
     }
@@ -498,6 +673,103 @@ pub(crate) fn generate_lockfile(
 mod test {
     use super::*;
 
+    fn projection(manifest: &str) -> serde_json::Value {
+        let manifest = cargo_toml::Manifest::from_slice(manifest.as_bytes()).unwrap();
+        serde_json::to_value(ManifestProjection::from(&manifest)).unwrap()
+    }
+
+    /// Only what can change the resolution is in the projection, so edits to
+    /// anything else leave the lockfile digest alone.
+    #[test]
+    fn manifest_projection_covers_only_resolution_inputs() {
+        let base = indoc::indoc! {r#"
+            [package]
+            name = "example"
+            version = "0.1.0"
+            edition = "2021"
+            description = "before"
+
+            [dependencies]
+            anyhow = "1"
+
+            [features]
+            default = []
+        "#};
+        let cosmetic = indoc::indoc! {r#"
+            [package]
+            name = "example"
+            version = "0.1.0"
+            edition = "2021"
+            description = "after"
+            license = "MIT"
+
+            [[bin]]
+            name = "tool"
+            path = "src/tool.rs"
+
+            [dependencies]
+            anyhow = "1"
+
+            [features]
+            default = []
+
+            [lints.rust]
+            unsafe_code = "forbid"
+
+            [profile.release]
+            lto = true
+        "#};
+        assert_eq!(projection(base), projection(cosmetic));
+
+        for changed in [
+            base.replace("anyhow = \"1\"", "anyhow = \"2\""),
+            base.replace("default = []", "default = [\"std\"]\nstd = []"),
+            base.replace("edition = \"2021\"", "edition = \"2018\""),
+            base.replace("[dependencies]", "[target.'cfg(unix)'.dependencies]"),
+            format!("{base}\n[package.metadata.bazel]\ngen_build_script = false\n"),
+        ] {
+            assert_ne!(projection(base), projection(&changed), "{changed}");
+        }
+    }
+
+    /// Only the package set is in the projection, so Cargo rewriting the file
+    /// in a newer lockfile format leaves the lockfile digest alone.
+    #[test]
+    fn lockfile_projection_covers_only_the_package_set() {
+        let projection =
+            |text: &str| LockfileProjection::from(&text.parse::<cargo_lock::Lockfile>().unwrap());
+        let base = indoc::indoc! {r#"
+            # This file is automatically @generated by Cargo.
+            # It is not intended for manual editing.
+            version = 3
+
+            [[package]]
+            name = "cfg-if"
+            version = "1.0.0"
+            source = "registry+https://github.com/rust-lang/crates.io-index"
+            checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+            [[package]]
+            name = "example"
+            version = "0.1.0"
+            dependencies = [
+             "cfg-if",
+            ]
+        "#};
+        let reformatted = base
+            .replace("version = 3", "version = 4")
+            .replace("# It is not intended for manual editing.\n", "");
+        assert_eq!(projection(base), projection(&reformatted));
+
+        for changed in [
+            base.replace("version = \"1.0.0\"", "version = \"1.0.1\""),
+            base.replace("checksum = \"baf1", "checksum = \"0af1"),
+            base.replace("name = \"example\"", "name = \"renamed\""),
+        ] {
+            assert_ne!(projection(base), projection(&changed), "{changed}");
+        }
+    }
+
     #[test]
     fn deserialize_splicing_manifest() {
         let runfiles = runfiles::Runfiles::create().unwrap();
@@ -652,6 +924,7 @@ mod test {
         .unwrap();
         let manifest = SplicingManifest {
             direct_packages: BTreeMap::new(),
+            cargo_lockfile: None,
             manifests: BTreeMap::from([
                 (
                     Utf8PathBuf::try_from(workspace_manifest_path).unwrap(),
