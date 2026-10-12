@@ -358,7 +358,8 @@ def determine_repin(
         config,
         splicing_manifest,
         lockfile_mode = "update",
-        repin_instructions = None):
+        repin_instructions = None,
+        allow_repin = True):
     """Use the `cargo-bazel` binary to determine whether or not dependencies need to be re-pinned
 
     Args:
@@ -370,13 +371,25 @@ def determine_repin(
         lockfile_path (path): The path to a "lock" file for reproducible outputs.
         lockfile_mode (str): What to do when the lockfile is out of date, one of `LOCKFILE_MODES`.
         repin_instructions (optional string): Instructions to re-pin dependencies in your repository. Will be shown when re-pinning is required.
+        allow_repin (bool): Whether the lockfile may be rewritten at all. False for lockfiles of other
+            repositories: an out of date one is then always an error, whatever the mode or environment.
 
     Returns:
         bool: True if dependencies need to be re-pinned
     """
 
+    if not allow_repin:
+        if not lockfile_path:
+            fail("A lockfile is required when repinning is not allowed")
+        lockfile_mode = "error"
+        if not repin_instructions:
+            repin_instructions = (
+                "The lockfile is in another repository, where files are never modified, so it " +
+                "cannot be repinned from this workspace. Update it in the repository that owns it."
+            )
+
     # If a repin environment variable is set, always repin
-    for var in REPIN_ENV_VARS:
+    for var in REPIN_ENV_VARS if allow_repin else []:
         if var in repository_ctx.os.environ and repository_ctx.os.environ[var].lower() not in ["false", "no", "0", "off"]:
             # If a repin allowlist is present only force repin if name is in list
             if REPIN_ALLOWLIST_ENV_VAR in repository_ctx.os.environ:
