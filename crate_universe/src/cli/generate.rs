@@ -13,7 +13,7 @@ use clap::Parser;
 use crate::config::Config;
 use crate::context::Context;
 use crate::lockfile::{lock_context, write_lockfile};
-use crate::metadata::{load_metadata, Annotations, Cargo, SourceAnnotation};
+use crate::metadata::{load_metadata, Annotations, SourceAnnotation};
 use crate::rendering::{write_outputs, Renderer};
 use crate::splicing::SplicingManifest;
 use crate::utils::normalize_cargo_file_paths;
@@ -23,14 +23,6 @@ use crate::utils::starlark::Label;
 #[derive(Parser, Debug)]
 #[clap(about = "Command line options for the `generate` subcommand", version)]
 pub struct GenerateOptions {
-    /// The path to a Cargo binary to use for gathering metadata
-    #[clap(long, env = "CARGO")]
-    pub cargo: Option<PathBuf>,
-
-    /// The path to a rustc binary for use with Cargo
-    #[clap(long, env = "RUSTC")]
-    pub rustc: Option<PathBuf>,
-
     /// The config file with information about the Bazel and Cargo workspace
     #[clap(long)]
     pub config: PathBuf,
@@ -167,20 +159,6 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         }
     }
 
-    // Ensure Cargo and Rustc are available for use during generation.
-    let rustc_bin = match &opt.rustc {
-        Some(bin) => bin,
-        None => bail!("The `--rustc` argument is required when generating unpinned content"),
-    };
-
-    let cargo_bin = Cargo::new(
-        match opt.cargo {
-            Some(bin) => bin,
-            None => bail!("The `--cargo` argument is required when generating unpinned content"),
-        },
-        rustc_bin.clone(),
-    );
-
     // Ensure a path to a metadata file was provided
     let metadata_path = match &opt.metadata {
         Some(path) => path,
@@ -246,8 +224,6 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
             context,
             &config.supported_platform_triples,
             &splicing_manifest,
-            &cargo_bin,
-            rustc_bin,
         )?;
 
         write_lockfile(lock_content, &lockfile, opt.dry_run)?;

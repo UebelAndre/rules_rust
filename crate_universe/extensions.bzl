@@ -623,6 +623,7 @@ def _resolve_hub(
         *,
         module_ctx,
         cargo_bazel_fn,
+        new_resolving_cargo_bazel_fn,
         cfg,
         annotations,
         render_config,
@@ -642,6 +643,8 @@ def _resolve_hub(
     Args:
         module_ctx (module_ctx): The module context object.
         cargo_bazel_fn (callable): A callback for invoking the `cargo-bazel` binary.
+        new_resolving_cargo_bazel_fn (callable): A callback producing a `cargo_bazel_fn` which also
+            has the host Rust toolchain. Only called when a resolution is needed.
         cfg (object): The module tag from `from_cargo` or `from_specs`
         annotations (dict): The set of annotation tag classes that apply to this closure, keyed by crate name.
         render_config (dict): The render config to use.
@@ -659,9 +662,9 @@ def _resolve_hub(
         is_root (bool): Whether the module owning this extension call is the workspace's root module.
             For non-root (transitive) modules the lockfile is trusted as-is — the digest check is
             skipped and repinning is never attempted, because the digest can legitimately differ
-            across rust / cargo / rules_rust versions between the producing module and the consumer,
-            and the producer's lockfile typically lives in a read-only bzlmod cache that can't be
-            repinned anyway.
+            across rules_rust versions between the producing module and the consumer, and the
+            producer's lockfile typically lives in a read-only bzlmod cache that can't be repinned
+            anyway.
         cargo_lockfile (path): Path to Cargo.lock, if we have one.
         manifests (dict): The set of Cargo.toml manifests that apply to this closure, if any, keyed by path.
         packages (dict): The set of extra cargo crate tags that apply to this closure, if any, keyed by package name.
@@ -717,10 +720,10 @@ def _resolve_hub(
     record_fact = False
 
     # Determine whether or not to repin dependencies. Transitive (non-root)
-    # modules are taken as-is: the digest check would fail across rust /
-    # cargo / rules_rust version differences between the producing module
-    # and the consumer, and the producer's lockfile typically lives in a
-    # read-only bzlmod cache so repinning isn't an option anyway.
+    # modules are taken as-is: the digest check would fail across rules_rust
+    # version differences between the producing module and the consumer, and
+    # the producer's lockfile typically lives in a read-only bzlmod cache so
+    # repinning isn't an option anyway.
     if not is_root:
         if not lockfile:
             fail(("The crate_universe repository `{}` is declared by a module consumed as a " +
@@ -767,7 +770,7 @@ def _resolve_hub(
         # Generate a top level Cargo workspace and manifest for use in generation
         splice_outputs = splice_workspace_manifest(
             repository_ctx = module_ctx,
-            cargo_bazel_fn = cargo_bazel_fn,
+            cargo_bazel_fn = new_resolving_cargo_bazel_fn(),
             cargo_lockfile = cargo_lockfile,
             splicing_manifest = splicing_manifest,
             config_path = config_file,
@@ -984,6 +987,8 @@ def _get_generator(module_ctx, host_triple):
 def _get_host_cargo_rustc(module_ctx, host_triple, host_tools_repo):
     """A helper function to get the path to the host cargo and rustc binaries.
 
+    Fetches `host_tools_repo`, so only call this when a resolution is needed.
+
     Args:
         module_ctx (module_ctx): The module extension's context.
         host_triple (triple): The platform triple for the machine executing this extension.
@@ -998,6 +1003,33 @@ def _get_host_cargo_rustc(module_ctx, host_triple, host_tools_repo):
     rustc_path = root.dirname.get_child("bin/rustc{}".format(binary_ext))
 
     return cargo_path, rustc_path
+
+def _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg):
+    """A callback producing a `cargo_bazel_fn` with the host `cargo` and `rustc` for `cfg`.
+
+    The toolchain repository is fetched when the callback runs, so hubs whose
+    lockfile is up to date never fetch it.
+
+    Args:
+        module_ctx (module_ctx): The module extension's context.
+        generator (path): The path to the `cargo-bazel` binary.
+        host_triple (triple): The platform triple for the machine executing this extension.
+        cfg (object): The module tag from `from_cargo` or `from_specs`.
+    Returns:
+        callable: A zero-argument function returning a `cargo_bazel_fn`.
+    """
+
+    def _new():
+        cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx, host_triple, cfg.host_tools)
+        return new_cargo_bazel_fn(
+            repository_ctx = module_ctx,
+            cargo_bazel_path = generator,
+            cargo_path = cargo_path,
+            rustc_path = rustc_path,
+            isolated = cfg.isolated,
+        )
+
+    return _new
 
 def _update_annotations(store, crate, version, triples, annotation_select_dict):
     """Insert build-script data/env for each target triple if keys exist."""
@@ -1324,12 +1356,9 @@ def _crate_impl(module_ctx):
             if hasattr(cfg, "manifests"):
                 for m in cfg.manifests:
                     module_ctx.watch(m)
-            cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx, host_triple, cfg.host_tools)
             cargo_bazel_fn = new_cargo_bazel_fn(
                 repository_ctx = module_ctx,
                 cargo_bazel_path = generator,
-                cargo_path = cargo_path,
-                rustc_path = rustc_path,
                 isolated = cfg.isolated,
             )
 
@@ -1369,6 +1398,7 @@ def _crate_impl(module_ctx):
             generated = _resolve_hub(
                 module_ctx = module_ctx,
                 cargo_bazel_fn = cargo_bazel_fn,
+                new_resolving_cargo_bazel_fn = _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg),
                 cfg = cfg,
                 annotations = annotations,
                 lockfile = lockfile_path,
@@ -1410,7 +1440,7 @@ _FROM_COMMON_ATTRS = {
     "generate_binaries": CRATES_VENDOR_ATTRS["generate_binaries"],
     "generate_build_scripts": CRATES_VENDOR_ATTRS["generate_build_scripts"],
     "host_tools": attr.label(
-        doc = "The `rust_host_tools` repository to use.",
+        doc = "The `rust_host_tools` repository to use. Only fetched when the repository is resolved.",
         default = "@rust_host_tools",
     ),
     "isolated": attr.bool(

@@ -1,18 +1,15 @@
 //! Utility module for interacting with the cargo-bazel lockfile.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::ffi::OsStr;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
-use anyhow::{bail, Context as AnyhowContext, Result};
+use anyhow::{Context as AnyhowContext, Result};
 use hex::ToHex;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as Sha2Digest, Sha256};
 
 use crate::context::Context;
-use crate::metadata::Cargo;
 use crate::splicing::{SplicingManifest, SplicingMetadata};
 use crate::utils::target_triple::TargetTriple;
 
@@ -20,6 +17,11 @@ use crate::utils::target_triple::TargetTriple;
 /// Cargo workspace nor in the splicing manifest. Recorded in the lockfile so a
 /// difference between two of them can be explained, and hashed into the digest
 /// so a change in any of them requires a repin.
+///
+/// The versions of `cargo` and `rustc` are deliberately absent. As with a
+/// `Cargo.lock`, a toolchain upgrade does not change the resolution, so it
+/// neither invalidates the lockfile nor requires the toolchain to be present
+/// when the lockfile is checked.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Provenance {
     /// The version of `cargo-bazel`.
@@ -27,27 +29,15 @@ pub(crate) struct Provenance {
 
     /// The platforms resolved for.
     pub(crate) supported_platform_triples: BTreeSet<TargetTriple>,
-
-    /// The output of `cargo --version`.
-    pub(crate) cargo_version: String,
-
-    /// The output of `rustc --version`.
-    pub(crate) rustc_version: String,
 }
 
 impl Provenance {
     /// The provenance of a resolution performed now, with the given inputs.
-    pub(crate) fn current(
-        supported_platform_triples: &BTreeSet<TargetTriple>,
-        cargo_bin: &Cargo,
-        rustc_bin: &Path,
-    ) -> Result<Self> {
-        Ok(Self {
+    pub(crate) fn current(supported_platform_triples: &BTreeSet<TargetTriple>) -> Self {
+        Self {
             cargo_bazel_version: env!("CARGO_PKG_VERSION").to_owned(),
             supported_platform_triples: supported_platform_triples.clone(),
-            cargo_version: cargo_bin.full_version()?,
-            rustc_version: Digest::bin_version(rustc_bin)?,
-        })
+        }
     }
 }
 
@@ -55,14 +45,12 @@ pub(crate) fn lock_context(
     mut context: Context,
     supported_platform_triples: &BTreeSet<TargetTriple>,
     splicing_manifest: &SplicingManifest,
-    cargo_bin: &Cargo,
-    rustc_bin: &Path,
 ) -> Result<Context> {
     // Ensure there is no existing checksum or provenance which could impact the lockfile results
     context.checksum = None;
     context.provenance = None;
 
-    let provenance = Provenance::current(supported_platform_triples, cargo_bin, rustc_bin)?;
+    let provenance = Provenance::current(supported_platform_triples);
     let checksum = Digest::new(&context, &provenance, splicing_manifest)
         .context("Failed to generate context digest")?;
 
@@ -280,56 +268,6 @@ impl Digest {
 
         Self(hash)
     }
-
-    pub(crate) fn bin_version(binary: &Path) -> Result<String> {
-        let safe_vars = [
-            OsStr::new("HOME"),
-            OsStr::new("HOMEDRIVE"),
-            OsStr::new("PATHEXT"),
-            OsStr::new("NIX_LD"),
-            OsStr::new("NIX_LD_LIBRARY_PATH"),
-        ];
-        let env = std::env::vars_os().filter(|(var, _)| safe_vars.contains(&var.as_os_str()));
-
-        let output = Command::new(binary)
-            .arg("--version")
-            .env_clear()
-            .envs(env)
-            .output()
-            .with_context(|| format!("Failed to run {} to get its version", binary.display()))?;
-
-        if !output.status.success() {
-            eprintln!("{}", String::from_utf8_lossy(&output.stdout));
-            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("Failed to query cargo version")
-        }
-
-        let version = String::from_utf8(output.stdout)?.trim().to_owned();
-
-        // TODO: There is a bug in the linux binary for Cargo 1.60.0 where
-        // the commit hash reported by the version is shorter than what's
-        // reported on other platforms. This conditional here is a hack to
-        // correct for this difference and ensure lockfile hashes can be
-        // computed consistently. If a new binary is released then this
-        // condition should be removed
-        // https://github.com/rust-lang/cargo/issues/10547
-        let corrections = BTreeMap::from([
-            (
-                "cargo 1.60.0 (d1fd9fe 2022-03-01)",
-                "cargo 1.60.0 (d1fd9fe2c 2022-03-01)",
-            ),
-            (
-                "cargo 1.61.0 (a028ae4 2022-04-29)",
-                "cargo 1.61.0 (a028ae42f 2022-04-29)",
-            ),
-        ]);
-
-        if corrections.contains_key(version.as_str()) {
-            Ok(corrections[version.as_str()].to_string())
-        } else {
-            Ok(version)
-        }
-    }
 }
 
 impl PartialEq<str> for Digest {
@@ -346,6 +284,8 @@ impl PartialEq<String> for Digest {
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeMap;
+
     use crate::splicing::cargo_config::{AdditionalRegistry, CargoConfig, Registry};
     use crate::utils::target_triple::TargetTriple;
 
@@ -358,8 +298,6 @@ mod test {
                 TargetTriple::from_bazel("aarch64-apple-darwin".to_owned()),
                 TargetTriple::from_bazel("x86_64-unknown-linux-gnu".to_owned()),
             ]),
-            cargo_version: "cargo 1.57.0 (b2e52d7ca 2021-10-21)".to_owned(),
-            rustc_version: "rustc 1.57.0 (f1edd0429 2021-11-29)".to_owned(),
         }
     }
 
@@ -372,7 +310,7 @@ mod test {
         );
 
         assert_eq!(
-            Digest("a0151e01aa9344f798495fc6cc125b35e3eb3bfd35a35b5543257c0e985840c3".to_owned()),
+            Digest("bff9b6a4d9774e4805af7a3d4886280efab5621b8c35efd06bec881df06d6461".to_owned()),
             digest,
         );
     }
@@ -394,14 +332,6 @@ mod test {
                 supported_platform_triples: BTreeSet::from([TargetTriple::from_bazel(
                     "aarch64-apple-darwin".to_owned(),
                 )]),
-                ..provenance()
-            },
-            Provenance {
-                cargo_version: "cargo 1.58.0".to_owned(),
-                ..provenance()
-            },
-            Provenance {
-                rustc_version: "rustc 1.58.0".to_owned(),
                 ..provenance()
             },
         ] {
@@ -431,7 +361,7 @@ mod test {
         let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("ea60764e1051f645e322033ff63f214f81fff7a8e51b8b513295e5015303e762".to_owned()),
+            Digest("c418d1b836b1c2fa5430d916a2cbf77188c1735adb83840ca2980ecd49949b69".to_owned()),
             digest,
         );
     }
@@ -472,7 +402,7 @@ mod test {
         let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("399d8023e720073b10c726fa31c3547ec7e323a94634d45128bf7509bee25e0b".to_owned()),
+            Digest("fa82dd5c4cffcfece4da6d269e4818698af4166e925839dba6a36e90779c8bc5".to_owned()),
             digest,
         );
     }

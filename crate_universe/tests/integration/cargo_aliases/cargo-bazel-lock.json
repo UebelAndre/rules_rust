@@ -1,6 +1,6 @@
 {
   "binary_crates": ["clap 3.2.23", "names 0.12.1-dev", "names 0.13.0", "unsafe-libyaml 0.2.11"],
-  "checksum": "af1ed85ca735223bf13fb2520048993e7b4e78c9424c3569cc3277228c3253d4",
+  "checksum": "c6cde0eaa4c0889ac102d3e44bb8fd11bb50b04d68fd4fe8e0512a9fd3241ded",
   "conditions": {
     "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
     "cfg(any())": [],
@@ -1749,8 +1749,6 @@
   "direct_dev_deps": ["env_logger 0.9.3"],
   "provenance": {
     "cargo_bazel_version": "0.18.0",
-    "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
-    "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",

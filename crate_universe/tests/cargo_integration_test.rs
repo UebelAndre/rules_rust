@@ -15,10 +15,10 @@ use cargo_bazel::cli::{splice, SpliceOptions};
 use serde_json::{json, Value};
 
 fn should_skip_test() -> bool {
-    // All test cases require network access to build pull crate metadata
-    // so that we can actually run `cargo tree`. However, RBE (and perhaps
-    // other environments) disallow or don't support this. In those cases,
-    // we just skip this test case.
+    // All test cases require network access to pull crate metadata so that
+    // the workspace can be resolved. However, RBE (and perhaps other
+    // environments) disallow or don't support this. In those cases, we just
+    // skip this test case.
     use std::net::ToSocketAddrs;
     if "github.com:443".to_socket_addrs().is_err() {
         eprintln!("This test case requires network access.");
@@ -822,9 +822,8 @@ fn resolution_for(tree_metadata: &Value, triple: &str, root: &str) -> BTreeMap<S
 /// must be buildable on a Windows or Linux host targeting, say,
 /// `wasm32-unknown-unknown`.
 ///
-/// This resolves against every triple in [all_supported_triples], a
-/// `{hosts with tools} * {targets}` matrix far too large for the legacy resolver,
-/// which spawns a `cargo tree` process per pair.
+/// This resolves against every triple in [all_supported_triples], the full
+/// `{hosts with tools} * {targets}` matrix.
 #[test]
 fn all_supported_platforms_resolve() {
     if should_skip_test() {

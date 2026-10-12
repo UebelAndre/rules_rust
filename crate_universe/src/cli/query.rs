@@ -9,7 +9,6 @@ use clap::Parser;
 use crate::config::Config;
 use crate::context::Context;
 use crate::lockfile::{Digest, Provenance};
-use crate::metadata::Cargo;
 use crate::splicing::SplicingManifest;
 
 /// Command line options for the `query` subcommand
@@ -27,14 +26,6 @@ pub struct QueryOptions {
     /// A generated manifest of splicing inputs
     #[clap(long)]
     pub splicing_manifest: PathBuf,
-
-    /// The path to a Cargo binary to use for gathering metadata
-    #[clap(long, env = "CARGO")]
-    pub cargo: PathBuf,
-
-    /// The path to a rustc binary for use with Cargo
-    #[clap(long, env = "RUSTC")]
-    pub rustc: PathBuf,
 }
 
 /// Determine if the current lockfile needs to be re-pinned
@@ -66,11 +57,7 @@ pub fn query(opt: QueryOptions) -> Result<()> {
     let splicing_manifest = SplicingManifest::try_from_path(&opt.splicing_manifest)?;
 
     // Generate a new digest so we can compare it with the one in the lockfile
-    let provenance = Provenance::current(
-        &config.supported_platform_triples,
-        &Cargo::new(opt.cargo, opt.rustc.clone()),
-        &opt.rustc,
-    )?;
+    let provenance = Provenance::current(&config.supported_platform_triples);
     let expected = Digest::new(&lockfile, &provenance, &splicing_manifest)?;
 
     if digest != expected {

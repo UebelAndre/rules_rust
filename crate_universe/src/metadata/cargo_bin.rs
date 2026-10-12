@@ -1,7 +1,7 @@
 //! Tools for invoking Cargo subcommands.
 
 use std::collections::BTreeMap;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
@@ -9,8 +9,6 @@ use std::sync::{Arc, Mutex};
 use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::MetadataCommand;
 use semver::Version;
-
-use crate::lockfile::Digest;
 
 /// Cargo encapsulates a path to a `cargo` binary.
 /// Any invocations of `cargo` (either as a `std::process::Command` or via `cargo_metadata`) should
@@ -93,12 +91,11 @@ impl Cargo {
         Ok(command)
     }
 
-    /// Returns the output of running `cargo version`, trimming any leading or trailing whitespace.
-    /// This function performs normalisation to work around `<https://github.com/rust-lang/cargo/issues/10547>`
-    pub(crate) fn full_version(&self) -> Result<String> {
+    /// Returns the output of running `cargo --version`, trimming any leading or trailing whitespace.
+    fn full_version(&self) -> Result<String> {
         let mut full_version = self.full_version.lock().unwrap();
         if full_version.is_none() {
-            let observed_version = Digest::bin_version(&self.path)?;
+            let observed_version = bin_version(&self.path)?;
             *full_version = Some(observed_version);
         }
         Ok(full_version.clone().unwrap())
@@ -167,4 +164,32 @@ impl Cargo {
 
         Ok(map)
     }
+}
+
+/// The output of `<binary> --version`, run in an environment scrubbed of
+/// everything but what the binary needs to start.
+fn bin_version(binary: &Path) -> Result<String> {
+    let safe_vars = [
+        OsStr::new("HOME"),
+        OsStr::new("HOMEDRIVE"),
+        OsStr::new("PATHEXT"),
+        OsStr::new("NIX_LD"),
+        OsStr::new("NIX_LD_LIBRARY_PATH"),
+    ];
+    let env = std::env::vars_os().filter(|(var, _)| safe_vars.contains(&var.as_os_str()));
+
+    let output = Command::new(binary)
+        .arg("--version")
+        .env_clear()
+        .envs(env)
+        .output()
+        .with_context(|| format!("Failed to run {} to get its version", binary.display()))?;
+
+    if !output.status.success() {
+        eprintln!("{}", String::from_utf8_lossy(&output.stdout));
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+        bail!("Failed to query cargo version")
+    }
+
+    Ok(String::from_utf8(output.stdout)?.trim().to_owned())
 }
