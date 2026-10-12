@@ -710,6 +710,7 @@ def _generate_hub_and_spokes(
     paths_to_track_file = tag_path.get_child("paths_to_track.json")
     warnings_output_file = tag_path.get_child("warnings_output.json")
     hub_packages_output_file = tag_path.get_child("hub_packages.json")
+    rendered_context_output_file = tag_path.get_child("rendered_context.json")
 
     # Run the generator
     module_ctx.report_progress("Generating crate BUILD files for `{}`".format(cfg.name))
@@ -724,6 +725,7 @@ def _generate_hub_and_spokes(
         paths_to_track_file = paths_to_track_file,
         warnings_output_file = warnings_output_file,
         hub_packages_output_file = hub_packages_output_file,
+        rendered_context_output_file = rendered_context_output_file,
         skip_cargo_lockfile_overwrite = skip_cargo_lockfile_overwrite,
         strip_internal_dependencies_from_cargo_lockfile = strip_internal_dependencies_from_cargo_lockfile,
         **kwargs
@@ -762,7 +764,10 @@ def _generate_hub_and_spokes(
         contents = hub_contents,
     )
 
-    contents = json.decode(module_ctx.read(lockfile))
+    # The context as rendered, not the lockfile: annotations apply at render
+    # time, and a crate's source carries the patches they name while a path
+    # crate renders from its entry.
+    contents = json.decode(module_ctx.read(rendered_context_output_file))
 
     for crate in contents["crates"].values():
         repo = crate["repository"]

@@ -471,6 +471,7 @@ def execute_generator(
         skip_cargo_lockfile_overwrite,
         strip_internal_dependencies_from_cargo_lockfile,
         metadata = None,
+        rendered_context_output_file = None,
         generator_label = None):
     """Execute the `cargo-bazel` binary to produce `BUILD` and `.bzl` files.
 
@@ -487,6 +488,8 @@ def execute_generator(
         hub_packages_output_file (path): Path to file where the generator should write the names of hub alias
             subpackages it produced. Always populated; the bzlmod extension reads it to learn which
             `<name>/BUILD.bazel` files to slurp into the hub repository.
+        rendered_context_output_file (path): Path to file where the generator should write the context as
+            rendered, with annotations applied, which declares the crates' sources.
         skip_cargo_lockfile_overwrite (bool): Whether to skip writing the cargo lockfile back after resolving.
             You may want to set this if your dependency versions are maintained externally through a non-trivial set-up.
             But you probably don't want to set this.
@@ -540,6 +543,9 @@ def execute_generator(
 
     if strip_internal_dependencies_from_cargo_lockfile:
         args.append("--strip-internal-dependencies-from-cargo-lockfile")
+
+    if rendered_context_output_file:
+        args.extend(["--rendered-context-output-path", rendered_context_output_file])
 
     # Some components are not required unless re-pinning is enabled
     if metadata:

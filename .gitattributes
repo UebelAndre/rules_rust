@@ -17,3 +17,4 @@ extensions/prost/private/3rdparty/crates/** linguist-generated
 extensions/wasm_bindgen/3rdparty/crates/** linguist-generated
 tools/rust_analyzer/3rdparty/crates/** linguist-generated
 util/import/3rdparty/crates/** linguist-generated
+**/*.patch -text

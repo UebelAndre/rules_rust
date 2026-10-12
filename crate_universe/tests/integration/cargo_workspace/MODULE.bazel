@@ -26,3 +26,13 @@ use_repo(
     crate,
     "crate_index_cargo_workspace",
 )
+
+# A `crate.annotation` applies at render time, not at pin time, so its patches
+# must reach the crate's repository from the rendered context: `rng` tests the
+# function this patch adds.
+crate.annotation(
+    crate = "rand",
+    patch_args = ["-p1"],
+    patches = ["//:rand_patched_by_annotation.patch"],
+    repositories = ["crate_index_cargo_workspace"],
+)

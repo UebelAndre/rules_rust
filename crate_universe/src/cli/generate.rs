@@ -105,6 +105,13 @@ pub struct GenerateOptions {
     #[clap(long)]
     pub hub_packages_output_path: PathBuf,
 
+    /// Path to write the context as rendered, with the workspace's annotations
+    /// applied, as JSON. The lockfile holds the context before they are, so a
+    /// repository rule declaring the crates' sources, or rendering a path
+    /// crate from its entry, reads this instead.
+    #[clap(long)]
+    pub rendered_context_output_path: Option<PathBuf>,
+
     /// Whether to skip writing the cargo lockfile back after resolving.
     /// You may want to set this if your dependency versions are maintained externally through a non-trivial set-up.
     /// But you probably don't want to set this.
@@ -121,13 +128,6 @@ pub struct GenerateOptions {
 }
 
 pub fn generate(opt: GenerateOptions) -> Result<()> {
-    // Load the config. `config.label_injection_mapping` is the per-session
-    // apparent -> canonical map reflecting the root module's current
-    // `single_version_override` / `multiple_version_override` choices. It is
-    // applied to the Context just before rendering and is sanitized out of
-    // the digest hash in `Digest::new`, so consumer-side overrides don't
-    // force a producer-side repin (the producer's lockfile may live in a
-    // read-only bzlmod cache).
     let config = Config::try_from_path(&opt.config)?;
 
     // Go straight to rendering if there is no need to repin
@@ -135,6 +135,7 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         if let Some(lockfile) = &opt.lockfile {
             // Lockfile stores apparent labels; rewrite to canonical here.
             let context = Context::try_from_path(lockfile)?
+                .for_rendering(&config)?
                 .apply_label_injection_mapping(&config.label_injection_mapping)?;
 
             // Render build files
@@ -148,6 +149,7 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
                 opt.generator.clone(),
                 &opt.repository_dir,
                 &opt.hub_packages_output_path,
+                opt.rendered_context_output_path.as_deref(),
                 opt.dry_run,
             )?;
 
@@ -207,7 +209,6 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         cargo_metadata,
         &Some(lockfile_path),
         cargo_lockfile.clone(),
-        config.clone(),
         &opt.nonhermetic_root_bazel_workspace_dir,
     )?;
 
@@ -222,18 +223,15 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         &opt.nonhermetic_root_bazel_workspace_dir,
     )?;
 
-    // Generate renderable contexts for each package. The Context here holds
-    // the user's APPARENT labels (e.g. `@openssl//:install`) because the
-    // label_injection mapping was detached at config load.
-    let context = Context::new(annotations, config.rendering.are_sources_present())?;
-
-    // Render build files. Apply the apparent -> canonical mapping just for
-    // rendering — the lockfile written below uses the original apparent
-    // Context, so consumer-side overrides stay sound without producer-side
-    // repin.
+    // The context of the resolution, which the lockfile records, and the one
+    // rendered from it with this workspace's configuration applied.
+    let context = Context::new(annotations, &config.supported_platform_triples)?;
     let render_context = context
         .clone()
+        .for_rendering(&config)?
         .apply_label_injection_mapping(&config.label_injection_mapping)?;
+
+    // Render build files
     let renderer = Renderer::new(
         Arc::new(config.rendering.clone()),
         Arc::new(config.supported_platform_triples.clone()),
@@ -244,13 +242,19 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         opt.generator.clone(),
         &opt.repository_dir,
         &opt.hub_packages_output_path,
+        opt.rendered_context_output_path.as_deref(),
         opt.dry_run,
     )?;
 
     // Ensure Bazel lockfiles are written to disk so future generations can be short-circuited.
     if let Some(lockfile) = opt.lockfile {
-        let lock_content =
-            lock_context(context, &config, &splicing_manifest, &cargo_bin, rustc_bin)?;
+        let lock_content = lock_context(
+            context,
+            &config.supported_platform_triples,
+            &splicing_manifest,
+            &cargo_bin,
+            rustc_bin,
+        )?;
 
         write_lockfile(lock_content, &lockfile, opt.dry_run)?;
     }
@@ -302,12 +306,17 @@ fn render_and_write_outputs(
     generator: Option<Label>,
     repository_dir: &Path,
     hub_packages_output_path: &Path,
+    rendered_context_output_path: Option<&Path>,
     dry_run: bool,
 ) -> Result<()> {
     let rendered = renderer.render_hub(context, generator)?;
     let normalized_outputs = normalize_cargo_file_paths(rendered.files, repository_dir);
     write_outputs(normalized_outputs, dry_run)?;
     write_hub_packages(hub_packages_output_path, &rendered.hub_packages)?;
+    if let Some(path) = rendered_context_output_path {
+        fs::write(path, serde_json::to_string(context)?)
+            .with_context(|| format!("Failed to write rendered context to {}", path.display()))?;
+    }
     Ok(())
 }
 

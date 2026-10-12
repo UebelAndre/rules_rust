@@ -1,0 +1,11 @@
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -721,3 +721,8 @@
+         assert!(((sum - expected) as i32).abs() < 500);
+     }
+ }
++
++/// Added by the `patches` of a `crate.annotation`, to show the patch reached the crate.
++pub fn patched_by_annotation() -> bool {
++    true
++}
