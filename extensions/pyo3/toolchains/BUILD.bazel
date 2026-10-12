@@ -4,14 +4,14 @@ load("//:defs.bzl", "pyo3_toolchain", "rust_pyo3_toolchain")
 rust_library_group(
     name = "pyo3",
     deps = [
-        "@rpyo3c//:pyo3",
+        "@rpyo3c//pyo3",
     ],
 )
 
 rust_pyo3_toolchain(
     name = "rust_pyo3_toolchain",
     pyo3 = ":pyo3",
-    pyo3_introspection = "@rpyo3c//:pyo3-introspection",
+    pyo3_introspection = "@rpyo3c//pyo3-introspection",
 )
 
 toolchain(

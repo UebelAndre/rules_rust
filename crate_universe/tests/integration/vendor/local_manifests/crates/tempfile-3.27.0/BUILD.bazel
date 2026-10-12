@@ -112,28 +112,28 @@ rust_library(
     }),
     version = "3.27.0",
     deps = [
-        "//local_manifests/crates/fastrand-2.4.1:fastrand",
+        "//local_manifests/crates/fastrand-2.5.0:fastrand",
         "//local_manifests/crates/once_cell-1.21.4:once_cell",
     ] + select({
         "@rules_rust//rust/platform:aarch64-apple-darwin": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-apple-darwin
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-apple-ios": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-apple-ios
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-apple-ios-macabi": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-apple-ios-macabi
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-apple-ios-sim": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-apple-ios-sim
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-linux-android": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-linux-android
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-pc-windows-msvc": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-pc-windows-msvc
@@ -141,43 +141,43 @@ rust_library(
         ],
         "@rules_rust//rust/platform:aarch64-unknown-fuchsia": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-unknown-fuchsia
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-unknown-nixos-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-unknown-linux-gnu, aarch64-unknown-nixos-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:aarch64-unknown-nto-qnx710": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # aarch64-unknown-nto-qnx710
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:arm-unknown-linux-gnueabi": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # arm-unknown-linux-gnueabi
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:arm-unknown-linux-musleabi": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # arm-unknown-linux-musleabi
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:armv7-linux-androideabi": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # armv7-linux-androideabi
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:armv7-unknown-linux-gnueabi": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # armv7-unknown-linux-gnueabi
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:i686-apple-darwin": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # i686-apple-darwin
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:i686-linux-android": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # i686-linux-android
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:i686-pc-windows-msvc": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # i686-pc-windows-msvc
@@ -185,75 +185,75 @@ rust_library(
         ],
         "@rules_rust//rust/platform:i686-unknown-freebsd": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # i686-unknown-freebsd
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:i686-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # i686-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:loongarch64-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # loongarch64-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:mips-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # mips-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:powerpc-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # powerpc-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # riscv64gc-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:s390x-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # s390x-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:sparc64-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # sparc64-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:sparc64-unknown-netbsd": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # sparc64-unknown-netbsd
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:sparc64-unknown-openbsd": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # sparc64-unknown-openbsd
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:wasm32-unknown-emscripten": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # wasm32-unknown-emscripten
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:wasm32-wasip1": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # wasm32-wasip1
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:wasm32-wasip1-threads": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # wasm32-wasip1-threads
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:wasm32-wasip2": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # wasm32-wasip2
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-apple-darwin": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-apple-darwin
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-apple-ios": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-apple-ios
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-apple-ios-macabi": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-apple-ios-macabi
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-linux-android": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-linux-android
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-pc-windows-msvc": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-pc-windows-msvc
@@ -261,19 +261,19 @@ rust_library(
         ],
         "@rules_rust//rust/platform:x86_64-unknown-freebsd": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-unknown-freebsd
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-unknown-fuchsia": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-unknown-fuchsia
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-unknown-linux-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-unknown-linux-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "@rules_rust//rust/platform:x86_64-unknown-nixos-gnu": [
             "//local_manifests/crates/getrandom-0.4.3:getrandom",  # x86_64-unknown-linux-gnu, x86_64-unknown-nixos-gnu
-            "//local_manifests/crates/rustix-1.1.4:rustix",  # cfg(any(unix, target_os = "wasi"))
+            "//local_manifests/crates/rustix-1.1.5:rustix",  # cfg(any(unix, target_os = "wasi"))
         ],
         "//conditions:default": [],
     }),

@@ -16,7 +16,7 @@ rust_binary(
     name = "hello_world_from_workspace_vendored",
     srcs = ["src/main.rs"],
     deps = [
-        "//third-party-in-workspace/crates:anyhow",
+        "@vendor//anyhow",
     ],
 )
 
