@@ -5,6 +5,7 @@ load(
     "LOCKFILE_MODES",
     "LOCKFILE_MODE_DOC",
     "get_rust_tools",
+    "is_within_workspace",
     "new_cargo_bazel_fn",
 )
 load(
@@ -62,6 +63,16 @@ def _crates_repository_impl(repository_ctx):
     # Create a manifest of all dependency inputs
     splicing_manifest = create_splicing_manifest(repository_ctx)
 
+    nonhermetic_root_bazel_workspace_dir = repository_ctx.workspace_root
+
+    # Files of other repositories are never modified. A `Cargo.lock` from one
+    # is used as-is and the resolution must hold to it exactly; a lockfile
+    # from one cannot be repinned, so an out of date one is an error.
+    skip_cargo_lockfile_overwrite = repository_ctx.attr.skip_cargo_lockfile_overwrite
+    if not is_within_workspace(lockfiles.cargo, nonhermetic_root_bazel_workspace_dir):
+        skip_cargo_lockfile_overwrite = True
+    lockfile_is_writable = lockfiles.bazel == None or is_within_workspace(lockfiles.bazel, nonhermetic_root_bazel_workspace_dir)
+
     # Determine whether or not to repin depednencies
     repin = determine_repin(
         repository_ctx = repository_ctx,
@@ -72,9 +83,8 @@ def _crates_repository_impl(repository_ctx):
         splicing_manifest = splicing_manifest,
         lockfile_mode = repository_ctx.attr.lockfile_mode,
         repin_instructions = repository_ctx.attr.repin_instructions,
+        allow_repin = lockfile_is_writable,
     )
-
-    nonhermetic_root_bazel_workspace_dir = repository_ctx.workspace_root
 
     # If re-pinning is enabled, gather additional inputs for the generator
     kwargs = dict()
@@ -89,7 +99,7 @@ def _crates_repository_impl(repository_ctx):
             splicing_manifest = splicing_manifest,
             config_path = config_path,
             output_dir = repository_ctx.path("splicing-output"),
-            skip_cargo_lockfile_overwrite = repository_ctx.attr.skip_cargo_lockfile_overwrite,
+            skip_cargo_lockfile_overwrite = skip_cargo_lockfile_overwrite,
             nonhermetic_root_bazel_workspace_dir = nonhermetic_root_bazel_workspace_dir,
             repository_name = repository_ctx.name,
         )
@@ -121,7 +131,7 @@ def _crates_repository_impl(repository_ctx):
         paths_to_track_file = paths_to_track_file,
         warnings_output_file = warnings_output_file,
         hub_packages_output_file = hub_packages_output_file,
-        skip_cargo_lockfile_overwrite = repository_ctx.attr.skip_cargo_lockfile_overwrite,
+        skip_cargo_lockfile_overwrite = skip_cargo_lockfile_overwrite,
         strip_internal_dependencies_from_cargo_lockfile = repository_ctx.attr.strip_internal_dependencies_from_cargo_lockfile,
         # sysroot = tools.sysroot,
         **kwargs
@@ -315,9 +325,9 @@ CARGO_BAZEL_REPIN=1 CARGO_BAZEL_REPIN_ONLY=crate_index bazel sync --only=crate_i
         "lockfile": attr.label(
             doc = (
                 "The path to a file to use for reproducible renderings. " +
-                "If set, this file must exist within the workspace (but can be empty) before this rule will work." +
-                "If you already have a `MODULE.bazel.lock` file, you don't need this." +
-                "If you don't have a `MODULE.bazel.lock` file, the `lockfile` will save you generation time."
+                "If set, this file must exist within the workspace (but can be empty) before this rule will work. " +
+                "Without one, dependencies are resolved every time the repository is fetched. " +
+                "Files of other repositories are never modified, so a lockfile from one cannot be repinned."
             ),
         ),
         "lockfile_mode": attr.string(
