@@ -108,6 +108,6 @@ rust_library(
     }),
     version = "0.1.7",
     deps = [
-        "//local_pkgs/crates/lazy_static-1.5.0:lazy_static",
+        "//local_pkgs/crates/lazy_static-1.5.1:lazy_static",
     ],
 )

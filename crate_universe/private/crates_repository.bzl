@@ -294,10 +294,6 @@ CARGO_BAZEL_REPIN=1 CARGO_BAZEL_REPIN_ONLY=crate_index bazel sync --only=crate_i
             ),
             default = True,
         ),
-        "generate_target_compatible_with": attr.bool(
-            doc = "DEPRECATED: Moved to `render_config`.",
-            default = True,
-        ),
         "generator": attr.string(
             doc = (
                 "The absolute label of a generator. Eg. `@cargo_bazel_bootstrap//:cargo-bazel`. " +
