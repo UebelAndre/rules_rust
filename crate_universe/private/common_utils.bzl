@@ -197,6 +197,25 @@ def cargo_environ(repository_ctx, isolated = True):
 
     return env
 
+def is_within_workspace(path, workspace_root):
+    """Whether a path is inside the workspace being built.
+
+    Files of other repositories (other modules, `http_archive`s, ...) are never
+    modified by `cargo-bazel`; lockfiles found there are read-only inputs.
+    Paths are compared by where they really live so that `local_path_override`
+    and other symlinks are judged correctly.
+
+    Args:
+        path (path): The path to check.
+        workspace_root (path): The root of the workspace being built.
+
+    Returns:
+        bool: True if `path` is inside `workspace_root`.
+    """
+    real_path = str(path.realpath)
+    real_root = str(workspace_root.realpath).rstrip("/")
+    return real_path == real_root or real_path.startswith(real_root + "/")
+
 def parse_alias_rule(value):
     """Attempts to parse an `AliasRule` from supplied string.
 

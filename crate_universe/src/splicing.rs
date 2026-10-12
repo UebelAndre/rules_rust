@@ -558,6 +558,37 @@ pub(crate) fn registry_index_url(
     }
 }
 
+/// Install a read-only `Cargo.lock` into the spliced workspace and load it.
+///
+/// Used in place of [generate_lockfile] when the lockfile must not change:
+/// nothing is resolved or fetched, and the metadata commands which follow run
+/// with `--locked` so a lockfile which does not satisfy the manifests is an
+/// error rather than an update.
+pub(crate) fn install_lockfile(
+    manifest_path: &SplicedManifest,
+    lockfile_path: &Path,
+) -> Result<cargo_lock::Lockfile> {
+    let manifest_dir = manifest_path
+        .as_path_buf()
+        .parent()
+        .expect("Every manifest should be contained in a parent directory");
+    let root_lockfile_path = manifest_dir.join("Cargo.lock");
+
+    // Remove the file so it's not overwritten if it happens to be a symlink.
+    if root_lockfile_path.exists() {
+        fs::remove_file(&root_lockfile_path)?;
+    }
+    fs::copy(lockfile_path, &root_lockfile_path).with_context(|| {
+        format!(
+            "Failed to copy lockfile {} into the spliced workspace",
+            lockfile_path.display()
+        )
+    })?;
+
+    cargo_lock::Lockfile::load(lockfile_path)
+        .with_context(|| format!("Failed to load lockfile: {}", lockfile_path.display()))
+}
+
 pub(crate) fn generate_lockfile(
     manifest_path: &SplicedManifest,
     existing_lock: &Option<PathBuf>,
