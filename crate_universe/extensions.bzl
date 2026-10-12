@@ -229,12 +229,43 @@ bazel run @bindeps//cargo-machete__cargo-machete
 
 Cargo's unstable [artifact dependencies](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies),
 `artifact = "bin"` on a spec or in `Cargo.toml`, are supported as well, for a build script or a
-library which needs the binary of another package. `-Zbindeps` needs a nightly Cargo, so such a
-hub sets `host_tools` to a nightly toolchain, as `crate_universe/tests/integration/cargo_bindeps`
-does.
+library which needs the binary of another package. `-Zbindeps` needs a nightly Cargo, see
+Nightly Cargo below.
 
 Notice, direct dependencies do not need repining.
 Only a cargo workspace needs updating whenever the underlying Cargo.toml file changed.
+
+### Nightly Cargo
+
+Resolving runs the Cargo of the host's stable toolchain, whichever toolchains are registered.
+A workspace which uses unstable Cargo features, `cargo-features = [...]` in a manifest, an
+`[unstable]` table in its Cargo config or `artifact` dependencies, needs a nightly Cargo. The
+root module registers a nightly toolchain and names its Cargo with `crate.host_tools`. The
+repository is named after the host platform and the channel,
+`rust_<os>_<arch>__<channel>__cargo`, and `use_repo` makes it visible:
+
+```python
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2021",
+    versions = ["1.99.1", "nightly/2026-11-01"],
+)
+use_repo(rust, "rust_linux_x86_64__nightly__cargo", "rust_toolchains")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.host_tools(cargo = "@rust_linux_x86_64__nightly__cargo//:bin/cargo")
+```
+
+`cargo-bazel` passes `-Zbindeps` to a nightly Cargo; other `-Z` flags go in the `[unstable]`
+table of a hub's `cargo_config`. Builds keep using the stable toolchain unless
+`--@rules_rust//rust/toolchain/channel=nightly` selects the nightly one.
+
+Only the root module may name the Cargo, and it resolves every hub, since resolving runs on the
+root's machine. A dependency module's `host_tools` is ignored and a hub without a lockfile is
+resolved by the root module's Cargo, so a module needing a nightly Cargo must ship a lockfile.
+The repository is per host platform and only fetched when a hub is repinned, so with a lockfile
+every other host stays off the nightly Cargo; repinning from another platform means naming that
+platform's repository.
 
 ### Vendored Dependencies
 
@@ -427,6 +458,9 @@ load("//crate_universe/private:urls.bzl", "CARGO_BAZEL_SHA256S", "CARGO_BAZEL_UR
 load("//rust/platform:triple.bzl", "get_host_triple")
 load("//rust/platform:triple_mappings.bzl", "SUPPORTED_PLATFORM_TRIPLES", "system_to_binary_ext")
 
+# buildifier: disable=bzl-visibility
+load("//rust/private:repositories.bzl", "DEFAULT_TOOLCHAIN_TRIPLES", "host_cargo_repository_name")
+
 _OPT_BOOL_VALUES = {
     "auto": None,
     "off": False,
@@ -549,6 +583,7 @@ def _generate_hub_and_spokes(
         *,
         module_ctx,
         cargo_bazel_fn,
+        new_resolving_cargo_bazel_fn,
         cfg,
         annotations,
         render_config,
@@ -566,6 +601,8 @@ def _generate_hub_and_spokes(
     Args:
         module_ctx (module_ctx): The module context object.
         cargo_bazel_fn (callable): A callback for invoking the `cargo-bazel` binary.
+        new_resolving_cargo_bazel_fn (callable): A callback producing a `cargo_bazel_fn` which also
+            has the host Rust toolchain. Only called when a resolution is needed.
         cfg (object): The module tag from `from_cargo` or `from_specs`
         annotations (dict): The set of annotation tag classes that apply to this closure, keyed by crate name.
         render_config (dict): The render config to use.
@@ -707,7 +744,7 @@ def _generate_hub_and_spokes(
         # Generate a top level Cargo workspace and manifest for use in generation
         splice_outputs = splice_workspace_manifest(
             repository_ctx = module_ctx,
-            cargo_bazel_fn = cargo_bazel_fn,
+            cargo_bazel_fn = new_resolving_cargo_bazel_fn(),
             cargo_lockfile = cargo_lockfile,
             splicing_manifest = splicing_manifest,
             config_path = config_file,
@@ -942,23 +979,130 @@ def _get_generator(module_ctx, host_triple):
     module_ctx.download(**download_kwargs)
     return output
 
-def _get_host_cargo_rustc(module_ctx, host_triple, host_tools_repo):
-    """A helper function to get the path to the host cargo and rustc binaries.
+def _collect_host_tools(module_ctx):
+    """The Cargo the root module resolves every hub with, if it named one.
+
+    Args:
+        module_ctx (module_ctx): The module extension's context.
+
+    Returns:
+        struct: `cargo` and `rustc` labels (`rustc` may be `None`), or `None` when
+            the downloaded Cargo is to be used.
+    """
+    tags = []
+    for mod in module_ctx.modules:
+        for tag in mod.tags.host_tools:
+            if not mod.is_root:
+                fail(("`crate.host_tools` may only be used by the root module, not by `{}`: resolving " +
+                      "runs on the machine running Bazel, whose Cargo is the root module's to choose.").format(mod.name))
+            tags.append(tag)
+    if len(tags) > 1:
+        fail("Only one `crate.host_tools` is allowed.")
+    for tag in tags:
+        return struct(cargo = tag.cargo, rustc = tag.rustc)
+    return None
+
+def _check_cargo_runs(module_ctx, cargo_path):
+    """Fails with an explanation when `cargo_path` cannot be executed on this host.
+
+    A Cargo downloaded from the Rust distribution needs the host's dynamic
+    loader at its conventional path, which a NixOS host lacks unless `nix-ld`
+    provides it. Without this check that surfaces as a loader error from deep
+    inside `cargo metadata`.
+
+    Args:
+        module_ctx (module_ctx): The module extension's context.
+        cargo_path (path): The Cargo about to resolve crates.
+    """
+    result = module_ctx.execute([cargo_path, "-vV"], timeout = 120)
+    if result.return_code != 0:
+        fail(("The Cargo at `{}` does not run on this host (exit code {}):\n{}\n" +
+              "Resolving crates runs Cargo on the machine running Bazel. A Cargo from the Rust " +
+              "distribution needs the host's dynamic loader, which NixOS has only with nix-ld. Give the " +
+              "`crate` extension a Cargo built for this host instead, in the root module: " +
+              "`crate.host_tools(cargo = \"@<repository>//:bin/cargo\")`, for example a repository " +
+              "created by rules_nixpkgs.").format(cargo_path, result.return_code, result.stderr.strip()))
+
+def _get_host_cargo_rustc(module_ctx, host_triple, host_tools_repo, host_tools):
+    """A helper function to get the path to the host cargo, and rustc when there is one.
+
+    Fetches the repository the Cargo comes from, so only call this when a
+    resolution is needed, and checks that the Cargo runs.
 
     Args:
         module_ctx (module_ctx): The module extension's context.
         host_triple (triple): The platform triple for the machine executing this extension.
-        host_tools_repo (Label): The `rust_host_tools` repository to use.
+        host_tools_repo (Label): A repository providing `bin/cargo` and `bin/rustc` (a hub's
+            `host_tools`), or `None`.
+        host_tools (struct): The root module's `crate.host_tools`, or `None`.
     Returns:
-        tuple[Path, Path]: A tuple of path to cargo, path to rustc.
+        tuple[Path, Path]: The path to cargo and the path to rustc, `None` without one.
     """
     binary_ext = system_to_binary_ext(host_triple.system)
-    root = module_ctx.path(host_tools_repo)
 
-    cargo_path = root.dirname.get_child("bin/cargo{}".format(binary_ext))
-    rustc_path = root.dirname.get_child("bin/rustc{}".format(binary_ext))
+    if host_tools_repo:
+        root = module_ctx.path(host_tools_repo).dirname
+        cargo_path = root.get_child("bin/cargo{}".format(binary_ext))
+        rustc_path = root.get_child("bin/rustc{}".format(binary_ext))
+    elif host_tools:
+        cargo_path = module_ctx.path(host_tools.cargo)
+        rustc_path = module_ctx.path(host_tools.rustc) if host_tools.rustc else None
+    else:
+        # Resolving needs only Cargo, as cargo-bazel stands in for rustc. The
+        # host's stable Cargo has a repository of its own, which the `rust`
+        # extension declares even when no toolchain is registered. `host_triple`
+        # is the musl generator triple on Linux, so Cargo is looked up by the
+        # platform's own triple.
+        cargo_triple = get_host_triple(module_ctx).str
+        if cargo_triple not in DEFAULT_TOOLCHAIN_TRIPLES:
+            fail(
+                ("rules_rust registers no Cargo for the host platform `{}`. Name one with " +
+                 "`crate.host_tools(cargo = ...)` in the root module.").format(cargo_triple),
+            )
+        repo = host_cargo_repository_name(cargo_triple)
+        root = module_ctx.path(Label("@{}//:BUILD.bazel".format(repo))).dirname
+        cargo_path = root.get_child("bin/cargo{}".format(binary_ext))
+        rustc_path = None
 
+    _check_cargo_runs(module_ctx, cargo_path)
     return cargo_path, rustc_path
+
+def _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg, is_root, host_tools):
+    """A callback producing a `cargo_bazel_fn` with the host `cargo` for `cfg`.
+
+    The Cargo repository is fetched when the callback runs, so hubs whose
+    lockfile is up to date never fetch it.
+
+    Args:
+        module_ctx (module_ctx): The module extension's context.
+        generator (path): The path to the `cargo-bazel` binary.
+        host_triple (triple): The platform triple for the machine executing this extension.
+        cfg (object): The module tag from `from_cargo` or `from_specs`.
+        is_root (bool): Whether the root module declared `cfg`.
+        host_tools (struct): The root module's `crate.host_tools`, or `None`.
+    Returns:
+        callable: A zero-argument function returning a `cargo_bazel_fn`.
+    """
+
+    # Which Cargo runs is the root module's choice: it is the root's machine.
+    host_tools_repo = cfg.host_tools
+    if host_tools_repo and not is_root:
+        # buildifier: disable=print
+        print(("WARN: `host_tools` of hub `{}` is ignored; the root module decides the Cargo " +
+               "that resolves, with `crate.host_tools`.").format(cfg.name))
+        host_tools_repo = None
+
+    def _new():
+        cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx, host_triple, host_tools_repo, host_tools)
+        return new_cargo_bazel_fn(
+            repository_ctx = module_ctx,
+            cargo_bazel_path = generator,
+            cargo_path = cargo_path,
+            rustc_path = rustc_path,
+            isolated = cfg.isolated,
+        )
+
+    return _new
 
 def _update_annotations(store, crate, version, triples, annotation_select_dict):
     """Insert build-script data/env for each target triple if keys exist."""
@@ -1185,6 +1329,9 @@ def _crate_impl(module_ctx):
     # Returned as facts so Bazel persists them in `MODULE.bazel.lock`.
     facts = {}
 
+    # The Cargo the root module resolves with, if not the downloaded one.
+    host_tools = _collect_host_tools(module_ctx)
+
     for mod in module_ctx.modules:
         if not mod.tags.from_cargo and not mod.tags.from_specs:
             fail("`.from_cargo` or `.from_specs` are required. Please update {}".format(mod.name))
@@ -1273,12 +1420,9 @@ def _crate_impl(module_ctx):
             if hasattr(cfg, "manifests"):
                 for m in cfg.manifests:
                     module_ctx.watch(m)
-            cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx, host_triple, cfg.host_tools)
             cargo_bazel_fn = new_cargo_bazel_fn(
                 repository_ctx = module_ctx,
                 cargo_bazel_path = generator,
-                cargo_path = cargo_path,
-                rustc_path = rustc_path,
                 isolated = cfg.isolated,
             )
 
@@ -1318,6 +1462,7 @@ def _crate_impl(module_ctx):
             generated = _generate_hub_and_spokes(
                 module_ctx = module_ctx,
                 cargo_bazel_fn = cargo_bazel_fn,
+                new_resolving_cargo_bazel_fn = _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg, mod.is_root, host_tools),
                 cfg = cfg,
                 annotations = annotations,
                 lockfile = lockfile_path,
@@ -1354,8 +1499,12 @@ _FROM_COMMON_ATTRS = {
     "generate_binaries": CRATES_VENDOR_ATTRS["generate_binaries"],
     "generate_build_scripts": CRATES_VENDOR_ATTRS["generate_build_scripts"],
     "host_tools": attr.label(
-        doc = "The `rust_host_tools` repository to use.",
-        default = "@rust_host_tools",
+        doc = (
+            "A repository providing the `bin/cargo` and `bin/rustc` to resolve this hub with, in place of " +
+            "the Cargo `crate.host_tools` names or the registered toolchain's. Honored for the root " +
+            "module's hubs only, since resolving runs on the root's machine. Only fetched when the hub is " +
+            "resolved."
+        ),
     ),
     "isolated": attr.bool(
         doc = (
@@ -1686,6 +1835,39 @@ _splicing_config = tag_class(
     },
 )
 
+_host_tools = tag_class(
+    doc = """\
+The Cargo the root module resolves every hub with.
+
+Resolving crates runs Cargo on the machine running Bazel. By default that is the
+Cargo of the host's stable toolchain, fetched on its own from the Rust
+distribution (at rules_rust's default Rust version when no stable toolchain is
+registered); it runs wherever those binaries run. A root module whose host
+cannot run them, a NixOS host without `nix-ld` for example, names a Cargo built
+for the host instead, such as one `rules_nixpkgs` provides:
+
+```python
+crate.host_tools(cargo = "@nix_cargo//:bin/cargo")
+```
+
+Resolving needs Cargo alone: `cargo-bazel` stands in for rustc. A `rustc` is
+consulted only for platforms with no recorded `rustc --print=cfg`. A workspace
+using unstable Cargo features names a nightly Cargo here, the
+`rust_<os>_<arch>__nightly__cargo` repository of a registered nightly toolchain.
+A hub's own `host_tools` overrides this for that hub. Only the root module may
+use this tag.
+""",
+    attrs = {
+        "cargo": attr.label(
+            doc = "The `cargo` binary to resolve with.",
+            mandatory = True,
+        ),
+        "rustc": attr.label(
+            doc = "A `rustc` to pair with it, for platforms with no recorded `rustc --print=cfg`.",
+        ),
+    },
+)
+
 _render_config = tag_class(
     doc = """\
 Various settings used to configure rendered outputs.
@@ -1818,6 +2000,7 @@ Environment Variables:
         "annotation_select": _annotation_select,
         "from_cargo": _from_cargo,
         "from_specs": _from_specs,
+        "host_tools": _host_tools,
         "render_config": _render_config,
         "spec": _spec,
         "splicing_config": _splicing_config,

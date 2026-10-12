@@ -7,6 +7,9 @@ load("//rust/private:channel_manifest.bzl", "CHANNEL_MANIFEST_FACTS_KEY", "resol
 load(
     "//rust/private:repositories.bzl",
     "DEFAULT_TOOLCHAIN_TRIPLES",
+    "declare_host_cargo_repositories",
+    "host_cargo_aliases",
+    "host_cargo_repository_name",
     "rust_register_toolchains",
     "rust_repository_set",
     "rust_toolchain_tools_repository",
@@ -144,6 +147,13 @@ def _rust_impl(module_ctx):
         if toolchain_triples.get(repository_set["exec_triple"]) == repository_set["name"]:
             toolchain_triples.pop(repository_set["exec_triple"], None)
 
+    # The `<name>__stable__cargo` repositories the repository sets above
+    # created, so the host Cargo repositories below are declared once.
+    stable_cargo_repositories = {}
+    for repository_set in grouped_repository_sets.values():
+        if any([not version.startswith(("nightly", "beta")) for version in repository_set["versions"]]):
+            stable_cargo_repositories["{}__stable__cargo".format(repository_set["name"])] = True
+
     toolchains = root.tags.toolchain or rules_rust.tags.toolchain
 
     for toolchain in toolchains:
@@ -151,6 +161,7 @@ def _rust_impl(module_ctx):
             fail("Cannot define both extra_rustc_flags and extra_rustc_flags_triples")
         if toolchain.extra_exec_rustc_flags and toolchain.extra_exec_rustc_flags_triples:
             fail("Cannot define both extra_exec_rustc_flags and extra_exec_rustc_flags_triples")
+
         if len(toolchain.versions) == 0:
             # If the root module has asked for rules_rust to not register default
             # toolchains, an empty repository named `rust_toolchains` is created
@@ -158,6 +169,19 @@ def _rust_impl(module_ctx):
             # valid.
             _empty_repository(name = "rust_toolchains")
 
+            # `crate_universe` resolves with the host's Cargo alone, which must
+            # exist whether or not toolchains are registered.
+            declare_host_cargo_repositories(
+                exec_triples = [triple for triple in DEFAULT_TOOLCHAIN_TRIPLES if host_cargo_repository_name(triple) not in stable_cargo_repositories],
+                sha256s = resolve_sha256s(
+                    module_ctx,
+                    requests = [struct(version = rust_common.default_version, targets = DEFAULT_TOOLCHAIN_TRIPLES.keys())],
+                    urls = toolchain.urls,
+                    sha256s = toolchain.sha256s,
+                    facts = facts,
+                ),
+                urls = toolchain.urls,
+            )
         else:
             extra_rustc_flags = toolchain.extra_rustc_flags if toolchain.extra_rustc_flags else toolchain.extra_rustc_flags_triples
             extra_exec_rustc_flags = toolchain.extra_exec_rustc_flags if toolchain.extra_exec_rustc_flags else toolchain.extra_exec_rustc_flags_triples
@@ -182,6 +206,14 @@ def _rust_impl(module_ctx):
                 facts = facts,
             )
 
+            # `crate_universe` reads the stable Cargo repositories of the host
+            # platforms by name: keep the ones this registration creates at
+            # their plain names, and declare the rest afterwards.
+            has_stable = any([not version.startswith(("nightly", "beta")) for version in toolchain.versions])
+            host_aliases = host_cargo_aliases(
+                [triple for triple in toolchain_triples if triple in DEFAULT_TOOLCHAIN_TRIPLES],
+            ) if has_stable else {}
+
             rust_register_toolchains(
                 hub_name = "rust_toolchains",
                 dev_components = toolchain.dev_components,
@@ -200,11 +232,20 @@ def _rust_impl(module_ctx):
                 urls = toolchain.urls,
                 versions = toolchain.versions,
                 compact_windows_names = True,
-                aliases = toolchain.aliases,
+                aliases = host_aliases | toolchain.aliases,
                 toolchain_triples = toolchain_triples,
                 rustfmt_toolchain_triples = toolchain.rustfmt_toolchain_triples if toolchain.rustfmt_toolchain_triples else DEFAULT_TOOLCHAIN_TRIPLES,
                 target_settings = [str(v) for v in toolchain.target_settings],
                 extra_toolchain_infos = extra_toolchain_infos,
+            )
+            if has_stable:
+                for triple in toolchain_triples:
+                    if triple in DEFAULT_TOOLCHAIN_TRIPLES:
+                        stable_cargo_repositories[host_cargo_repository_name(triple)] = True
+            declare_host_cargo_repositories(
+                exec_triples = [triple for triple in DEFAULT_TOOLCHAIN_TRIPLES if host_cargo_repository_name(triple) not in stable_cargo_repositories],
+                sha256s = sha256s,
+                urls = toolchain.urls,
             )
     return _extension_metadata(module_ctx, facts)
 
