@@ -102,8 +102,7 @@ def render_config(
         platforms_template = "@rules_rust//rust/platform:{triple}",
         regen_command = None,
         vendor_mode = None,
-        generate_rules_license_metadata = False,
-        incompatible_no_root_alias_targets = False):
+        generate_rules_license_metadata = False):
     """Various settings used to configure rendered outputs
 
     The template parameters each support a select number of format keys. A description of each key
@@ -146,11 +145,6 @@ def render_config(
         regen_command (str, optional): An optional command to demonstrate how generated files should be regenerated.
         vendor_mode (str, optional): An optional configuration for rendirng content to be rendered into repositories.
         generate_rules_license_metadata (bool, optional): Whether to generate rules license metadata
-        incompatible_no_root_alias_targets (bool, optional): Incompatibility flag. Suppresses the top-level
-            `alias()` rules in the hub repository's root `BUILD.bazel` (e.g. `@crate_index//:clap`). Per-alias
-            subpackages (e.g. `@crate_index//clap`) are always emitted, so flipping this flag on lets users
-            keep consuming aliases through the subpackage path while the root version disappears. Planned to
-            flip to default-on in a future release.
 
     Returns:
         string: A json encoded struct to match the Rust `config::RenderConfig` struct
@@ -166,7 +160,6 @@ def render_config(
         generate_cargo_toml_env_vars = generate_cargo_toml_env_vars,
         generate_rules_license_metadata = generate_rules_license_metadata,
         generate_target_compatible_with = generate_target_compatible_with,
-        incompatible_no_root_alias_targets = incompatible_no_root_alias_targets,
         platforms_template = platforms_template,
         regen_command = regen_command,
         vendor_mode = vendor_mode,
@@ -251,7 +244,6 @@ def compile_config(
         crate_annotations,
         generate_binaries,
         generate_build_scripts,
-        generate_target_compatible_with,
         cargo_config,
         render_config,
         supported_platform_triples,
@@ -266,7 +258,6 @@ def compile_config(
             `crates_repository.annotations` or `crates_vendor.annotations`.
         generate_binaries (bool): Whether to generate `rust_binary` targets for all bins.
         generate_build_scripts (bool): Whether or not to globally disable build scripts.
-        generate_target_compatible_with (bool): DEPRECATED: Moved to `render_config`.
         cargo_config (str): The optional contents of a [Cargo config][cargo_config].
         render_config (dict): The deserialized dict of the `render_config` function.
         supported_platform_triples (list): A list of platform triples
@@ -296,12 +287,6 @@ def compile_config(
     if unexpected:
         fail("The following annotations use `additive_build_file` which is not supported for {}: {}".format(repository_name, unexpected))
 
-    # Deprecated: Apply `generate_target_compatible_with` to `render_config`.
-    if not generate_target_compatible_with:
-        # buildifier: disable=print
-        print("DEPRECATED: 'generate_target_compatible_with' has been moved to 'render_config'")
-        render_config.update({"generate_target_compatible_with": False})
-
     config = struct(
         generate_binaries = generate_binaries,
         generate_build_scripts = generate_build_scripts,
@@ -330,7 +315,6 @@ def generate_config(repository_ctx):
         crate_annotations = repository_ctx.attr.annotations,
         generate_binaries = repository_ctx.attr.generate_binaries,
         generate_build_scripts = repository_ctx.attr.generate_build_scripts,
-        generate_target_compatible_with = repository_ctx.attr.generate_target_compatible_with,
         cargo_config = _read_cargo_config(repository_ctx),
         render_config = _get_render_config(repository_ctx),
         supported_platform_triples = repository_ctx.attr.supported_platform_triples,

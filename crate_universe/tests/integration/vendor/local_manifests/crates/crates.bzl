@@ -316,7 +316,7 @@ _CRATE_EDITIONS = {
 _NORMAL_DEPENDENCIES = {
     "local_manifests": {
         _COMMON_CONDITION: {
-            "tokio": Label("//local_manifests/crates/tokio-1.52.3:tokio"),
+            "tokio": Label("//local_manifests/crates/tokio-1.53.2:tokio"),
         },
     },
 }
@@ -332,7 +332,7 @@ _NORMAL_DEV_DEPENDENCIES = {
     "local_manifests": {
         _COMMON_CONDITION: {
             "tempfile": Label("//local_manifests/crates/tempfile-3.27.0:tempfile"),
-            "tokio-test": Label("//local_manifests/crates/tokio-test-0.4.5:tokio_test"),
+            "tokio-test": Label("//local_manifests/crates/tokio-test-0.4.6:tokio_test"),
         },
     },
 }

@@ -329,9 +329,9 @@ basic
 ```
 
 Suppose you have an application in `basic/src` that is defined in `basic/BUILD.bazel` and
-that depends on a vendored dependency. You find a list of all available vendored dependencies
-in the BUILD file of the generated folder: `basic/3rdparty/crates/BUILD.bazel`
-You declare a vendored dependency in you target as following:
+that depends on a vendored dependency. The vendored crates are exposed through the hub
+repository named by `repository_name` (`basic_sys` here), one subpackage per crate. You
+declare a vendored dependency in your target as follows:
 
 ```python
 load("@rules_rust//rust:defs.bzl", "rust_binary")
@@ -339,7 +339,7 @@ load("@rules_rust//rust:defs.bzl", "rust_binary")
 rust_binary(
     name = "hello_sys",
     srcs = ["src/main.rs"],
-    deps = ["//basic/3rdparty/crates:bzip2"],
+    deps = ["@basic_sys//bzip2"],
     visibility = ["//visibility:public"],
 )
 ```
@@ -381,7 +381,6 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load(
     "//crate_universe/private:common_utils.bzl",
     "new_cargo_bazel_fn",
-    "sanitize_label_injections",
 )
 load("//crate_universe/private:crate.bzl", _crate_universe_crate = "crate")
 load("//crate_universe/private:crates_repository.bzl", "SUPPORTED_PLATFORM_TRIPLES")
@@ -585,7 +584,6 @@ def _generate_hub_and_spokes(
             annotations = annotations,
             generate_build_scripts = cfg.generate_build_scripts,
             supported_platform_triples = cfg.supported_platform_triples,
-            generate_target_compatible_with = True,
             repository_name = cfg.name,
             output_pkg = cfg.name,
             workspace_name = cfg.name,
@@ -895,6 +893,12 @@ def _update_annotations(store, crate, version, triples, annotation_select_dict):
 
     filtered_annotation_select_dict = _filter_dict(annotation_select_dict)
 
+    # `labels` name targets for the strings of every triple rather than
+    # being selected on, so they merge into the annotation as a whole.
+    version_info.setdefault("labels", {}).update(
+        filtered_annotation_select_dict.pop("labels", {}),
+    )
+
     for triple in triples:
         for field, value in filtered_annotation_select_dict.items():
             _insert_select(
@@ -905,6 +909,23 @@ def _update_annotations(store, crate, version, triples, annotation_select_dict):
                 field,
                 value,
             )
+
+def _resolve_label_attrs(annotation_dict):
+    """Stringify the label typed attributes of an annotation tag.
+
+    Labels become their canonical form, which is valid from any repository, and
+    each `<name>_str` list is folded into `<name>`.
+
+    Args:
+        annotation_dict (dict): The attributes of an `annotation` or `annotation_select` tag.
+
+    Returns:
+        dict: The same dict with only string valued label attributes.
+    """
+    for name in _LABEL_LIST_ATTRS:
+        annotation_dict[name] = [str(label) for label in annotation_dict[name]] + annotation_dict.pop(name + "_str")
+    annotation_dict["labels"] = {str(label): name for label, name in annotation_dict["labels"].items()}
+    return annotation_dict
 
 def _insert_annotation(store, crate, version, annotation):
     """Insert `annotation` (dict) into `store[crate][version]`.
@@ -1004,35 +1025,11 @@ def _crate_impl(module_ctx):
         module_annotations = {}
         repo_specific_annotations = {}
         for annotation_tag in mod.tags.annotation:
-            annotation_dict = structs.to_dict(annotation_tag)
-            if "build_script_data_select" in annotation_dict:
-                annotation_dict["build_script_data"] = struct(
-                    common = annotation_dict["build_script_data"],
-                    selects = annotation_dict["build_script_data_select"],
-                )
-                annotation_dict.pop("build_script_data_select")
-            if "build_script_env_select" in annotation_dict:
-                annotation_dict["build_script_env"] = struct(
-                    common = annotation_dict["build_script_env"],
-                    selects = {
-                        k: json.decode(v)
-                        for k, v in annotation_dict["build_script_env_select"].items()
-                    },
-                )
-                annotation_dict.pop("build_script_env_select")
+            annotation_dict = _resolve_label_attrs(structs.to_dict(annotation_tag))
 
             repositories = annotation_dict.pop("repositories")
             crate = annotation_dict.pop("crate")
             version = annotation_dict.pop("version")
-
-            # `label_injections` is left on `annotation_dict` so it flows through
-            # to the cargo-bazel config JSON. The Rust side reads it during
-            # config load and substitutes apparent labels for their canonical
-            # form across every string in this annotation, then strips the
-            # field. See `crate_universe/src/config/label_injection.rs`.
-            annotation_dict["label_injections"] = sanitize_label_injections(
-                annotation_dict.pop("label_injections", {}),
-            )
 
             # The crate.annotation function can take in either a list or a bool.
             # For the tag-based method, because it has type safety, we have to
@@ -1087,7 +1084,7 @@ def _crate_impl(module_ctx):
                     _insert_annotation(repo_map, crate, version, annotation_dict)
 
         for annotation_select_tag in mod.tags.annotation_select:
-            annotation_select_dict = structs.to_dict(annotation_select_tag)
+            annotation_select_dict = _resolve_label_attrs(structs.to_dict(annotation_select_tag))
             repositories = annotation_select_dict.pop("repositories")
             crate = annotation_select_dict.pop("crate")
             triples = annotation_select_dict.pop("triples")
@@ -1293,6 +1290,16 @@ _ANNOTATION_ATTRS = {
         doc = "The name of the crate the annotation is applied to",
         mandatory = True,
     ),
+    "labels": attr.label_keyed_string_dict(
+        doc = (
+            "Labels which the annotation's strings may reference by name. Every `@{name}` in a string " +
+            "attribute (`build_script_env`, `rustc_env`, `additive_build_file_content`, ...) is replaced " +
+            "with the canonical form of the label mapped to `name`. E.g. `labels = {\"@openssl//:install\": " +
+            "\"openssl\"}` with `build_script_env = {\"OPENSSL_DIR\": \"$(execpath @{openssl})\"}`. This is " +
+            "needed because strings are copied into a generated repository whose repository mapping does not " +
+            "include the calling module's dependencies."
+        ),
+    ),
     "repositories": attr.string_list(
         doc = "A list of repository names specified from `crate.from_cargo(name=...)` that this annotation is applied to. Defaults to all repositories.",
         default = [],
@@ -1363,15 +1370,6 @@ _ANNOTATION_NORMAL_ATTRS = {
         values = _OPT_BOOL_VALUES.keys(),
         default = "auto",
     ),
-    "label_injections": attr.label_keyed_string_dict(
-        doc = (
-            "A mapping of canonical repository labels to the apparent repository prefix used in the annotation's strings. This is necessary for cases where a `build_script_data` " +
-            "annotation is given and the new label is used in location expansion via `build_script_env`. E.g. `build_script_data = [\"@xz//:lzma\"]` and `build_script_env = " +
-            "{\"LZMA_BIN\": \"$(execpath @xz//:lzma)\"}`. This example would require `label_injections = {\"@xz\": \"@xz\"}` where the key resolves to a canonical repo and the value is " +
-            "the apparent repo prefix used throughout this annotation. Target portions (`//pkg:target`) on either side are ignored; the cargo-bazel generator rewrites the apparent repo " +
-            "prefix to its canonical form and leaves any user-written target verbatim."
-        ),
-    ),
     "override_target_bin": attr.label(
         doc = "An optional alternate target to use when something depends on this crate to allow the parent repo to provide its own version of this dependency.",
     ),
@@ -1398,37 +1396,61 @@ _ANNOTATION_NORMAL_ATTRS = {
     ),
 }
 
-# A list of labels which may be relative (and if so, is within the repo the rule is generated in).
-#
-# If I were to write ":foo", with attr.label_list, it would evaluate to
-# "@@//:foo". However, for a tag such as deps, ":foo" should refer to
-# "@@rules_rust~crates~<crate>//:foo".
-_relative_label_list = attr.string_list
+def _label_list_attrs(name, doc):
+    """A label list attribute paired with a `<name>_str` string list.
+
+    `attr.label_list` resolves through the calling module's repository mapping,
+    which is what a reference to another module's target needs, and yields the
+    canonical form, which is valid from any repository. It cannot express a
+    target which only exists inside the generated crate repository, such as one
+    declared by `additive_build_file`: `":foo"` would resolve against the calling
+    module rather than the generated repository. The `_str` form is written
+    verbatim for exactly that case.
+
+    Args:
+        name (str): The attribute name.
+        doc (str): The attribute documentation.
+
+    Returns:
+        dict: The two attributes.
+    """
+    return {
+        name: attr.label_list(doc = doc),
+        name + "_str": attr.string_list(
+            doc = (
+                "Like `{}`, but strings written verbatim into the generated BUILD file. For targets " +
+                "which only exist in the generated repository, such as those declared by `additive_build_file`."
+            ).format(name),
+        ),
+    }
+
+# The documentation of every annotation attribute which takes labels. Each is
+# declared through `_label_list_attrs` and so has a `_str` counterpart.
+_LABEL_LIST_ATTR_DOCS = {
+    "build_script_compile_data": "A list of labels to add to a crate's `cargo_build_script::compile_data` attribute.",
+    "build_script_data": "A list of labels to add to a crate's `cargo_build_script::data` attribute.",
+    "build_script_deps": "A list of labels to add to a crate's `cargo_build_script::deps` attribute.",
+    "build_script_env_files": "A list of labels to set on a crate's `cargo_build_script::build_script_env_files` attribute.",
+    "build_script_link_deps": "A list of labels to add to a crate's `cargo_build_script::link_deps` attribute.",
+    "build_script_proc_macro_deps": "A list of labels to add to a crate's `cargo_build_script::proc_macro_deps` attribute.",
+    "build_script_tools": "A list of labels to add to a crate's `cargo_build_script::tools` attribute.",
+    "compile_data": "A list of labels to add to a crate's `rust_library::compile_data` attribute.",
+    "data": "A list of labels to add to a crate's `rust_library::data` attribute.",
+    "deps": "A list of labels to add to a crate's `rust_library::deps` attribute.",
+    "link_deps": "A list of labels to add to a crate's `rust_library::link_deps` attribute.",
+    "proc_macro_deps": "A list of labels to add to a crate's `rust_library::proc_macro_deps` attribute.",
+    "rustc_env_files": "A list of labels to set on a crate's `rust_library::rustc_env_files` attribute.",
+}
+
+# The names of every annotation attribute which takes labels.
+_LABEL_LIST_ATTRS = _LABEL_LIST_ATTR_DOCS.keys()
 
 _ANNOTATION_SELECT_ATTRS = {
-    "build_script_compile_data": _relative_label_list(
-        doc = "A list of labels to add to a crate's `cargo_build_script::compile_data` attribute.",
-    ),
-    "build_script_data": _relative_label_list(
-        doc = "A list of labels to add to a crate's `cargo_build_script::data` attribute.",
-    ),
-    "build_script_deps": _relative_label_list(
-        doc = "A list of labels to add to a crate's `cargo_build_script::deps` attribute.",
-    ),
     "build_script_env": attr.string_dict(
         doc = "Additional environment variables to set on a crate's `cargo_build_script::env` attribute.",
     ),
-    "build_script_env_files": _relative_label_list(
-        doc = "A list of labels to set on a crate's `cargo_build_script::build_script_env_files` attribute.",
-    ),
     "build_script_exec_properties": attr.string_dict(
         doc = "Execution properties to set on a crate's `cargo_build_script::exec_properties` attribute.",
-    ),
-    "build_script_link_deps": _relative_label_list(
-        doc = "A list of labels to add to a crate's `cargo_build_script::link_deps` attribute.",
-    ),
-    "build_script_proc_macro_deps": _relative_label_list(
-        doc = "A list of labels to add to a crate's `cargo_build_script::proc_macro_deps` attribute.",
     ),
     "build_script_rundir": attr.string(
         doc = "An override for the build script's rundir attribute.",
@@ -1436,36 +1458,19 @@ _ANNOTATION_SELECT_ATTRS = {
     "build_script_rustc_env": attr.string_dict(
         doc = "Additional environment variables to set on a crate's `cargo_build_script::env` attribute.",
     ),
-    "build_script_tools": _relative_label_list(
-        doc = "A list of labels to add to a crate's `cargo_build_script::tools` attribute.",
-    ),
-    "compile_data": _relative_label_list(
-        doc = "A list of labels to add to a crate's `rust_library::compile_data` attribute.",
-    ),
     "crate_features": attr.string_list(
         doc = "A list of strings to add to a crate's `rust_library::crate_features` attribute.",
-    ),
-    "data": _relative_label_list(
-        doc = "A list of labels to add to a crate's `rust_library::data` attribute.",
-    ),
-    "deps": _relative_label_list(
-        doc = "A list of labels to add to a crate's `rust_library::deps` attribute.",
-    ),
-    "link_deps": _relative_label_list(
-        doc = "A list of labels to add to a crate's `rust_library::link_deps` attribute.",
-    ),
-    "proc_macro_deps": _relative_label_list(
-        doc = "A list of labels to add to a crate's `rust_library::proc_macro_deps` attribute.",
     ),
     "rustc_env": attr.string_dict(
         doc = "Additional variables to set on a crate's `rust_library::rustc_env` attribute.",
     ),
-    "rustc_env_files": _relative_label_list(
-        doc = "A list of labels to set on a crate's `rust_library::rustc_env_files` attribute.",
-    ),
     "rustc_flags": attr.string_list(
         doc = "A list of strings to set on a crate's `rust_library::rustc_flags` attribute.",
     ),
+} | {
+    attr_name: attr_def
+    for name, doc in _LABEL_LIST_ATTR_DOCS.items()
+    for attr_name, attr_def in _label_list_attrs(name, doc).items()
 }
 
 _annotation = tag_class(
@@ -1577,10 +1582,7 @@ can be found below where the supported keys for each template can be found in th
             doc = (
                 "The base template to use for crate aliases. The available format keys are " +
                 "[`{repository}`, `{name}`, `{version}`, `{target}`]. Defaults to the per-alias " +
-                "subpackage layout (`@{repository}//{name}-{version}`); set to " +
-                "`@{repository}//:{name}-{version}` to point `aliases()` / `all_crate_deps()` at " +
-                "the legacy root-package aliases (only valid while " +
-                "`incompatible_no_root_alias_targets` is off)."
+                "subpackage layout (`@{repository}//{name}-{version}`)."
             ),
             default = "@{repository}//{name}-{version}",
         ),
@@ -1618,16 +1620,6 @@ can be found below where the supported keys for each template can be found in th
         "generate_target_compatible_with": attr.bool(
             doc = "Whether to generate `target_compatible_with` annotations on the generated BUILD files.  This catches a `target_triple` being targeted that isn't declared in `supported_platform_triples`.",
             default = True,
-        ),
-        "incompatible_no_root_alias_targets": attr.bool(
-            doc = (
-                "Incompatibility flag. Suppresses the top-level `alias()` rules in the hub " +
-                "repository's root `BUILD.bazel` (e.g. `@crate_index//:clap`). Per-alias " +
-                "subpackages (e.g. `@crate_index//clap`) are always emitted, so flipping this " +
-                "flag on lets users keep consuming aliases through the subpackage path while " +
-                "the root version disappears."
-            ),
-            default = False,
         ),
         "platforms_template": attr.string(
             doc = "The base template to use for platform names. See [platforms documentation](https://docs.bazel.build/versions/main/platforms.html). The available format keys are [`{triple}`].",

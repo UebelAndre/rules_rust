@@ -112,7 +112,7 @@ rust_proc_macro(
     }),
     version = "1.0.4",
     deps = [
-        "@crates_vendor__proc-macro-error-attr-1.0.4//:build_script_build",
+        ":build_script_build",
         "@crates_vendor__proc-macro2-1.0.36//:proc_macro2",
         "@crates_vendor__quote-1.0.15//:quote",
     ],
@@ -124,6 +124,9 @@ cargo_build_script(
         include = ["**/*.rs"],
         allow_empty = True,
     ),
+    build_script_env_files = [
+        ":cargo_toml_env_vars",
+    ],
     compile_data = glob(
         include = ["**"],
         allow_empty = True,

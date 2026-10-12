@@ -45,7 +45,7 @@ rust_binary(
     name = "keyring",
     srcs = ["src/keyring.rs"],
     tags = ["manual"],
-    deps = ["@cu//:keyring"],
+    deps = ["@cu//keyring"],
 )
 
 platform_transition_binary(

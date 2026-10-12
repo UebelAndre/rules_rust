@@ -126,7 +126,7 @@ def _annotation(
         rustc_flags = None,
         shallow_since = None,
         override_targets = None,
-        label_injections = None):
+        labels = None):
     """A collection of extra attributes and settings for a particular crate
 
     Args:
@@ -192,9 +192,10 @@ def _annotation(
             instead of a crate registry. This flag optimizes fetching the source code.
         override_targets (dict, optional): A dictionary of alternate targets to use when something depends on this crate to allow
             the parent repo to provide its own version of this dependency. Keys can be `proc-macro`, `custom-build`, `lib`, `bin`.
-        label_injections (dict, optional): A mapping of canonical repository prefix to apparent label, applied by the
-            `cargo-bazel` generator to every string in this annotation. Populated by `sanitize_label_injections` in
-            `crate_universe/private/common_utils.bzl`.
+        labels (dict, optional): A mapping of label to name. Every `@{name}` in the strings of this annotation
+            (`build_script_env`, `rustc_env`, `additive_build_file_content`, ...) is replaced with the canonical
+            form of the corresponding label, which is valid from the generated repository where the calling
+            package's apparent repository names are not.
 
     Returns:
         string: A json encoded string containing the specified version and separately all other inputs.
@@ -205,51 +206,106 @@ def _annotation(
         for patch in patches:
             _assert_absolute(patch)
 
-    return json.encode((
-        version,
-        struct(
-            additive_build_file = _stringify_label(additive_build_file),
-            additive_build_file_content = additive_build_file_content,
-            alias_rule = parse_alias_rule(alias_rule),
-            build_script_compile_data = _stringify_list(build_script_compile_data),
-            build_script_data = _stringify_list(build_script_data),
-            build_script_tools = _stringify_list(build_script_tools),
-            build_script_data_glob = build_script_data_glob,
-            build_script_deps = _stringify_list(build_script_deps),
-            build_script_env = build_script_env,
-            build_script_env_files = _stringify_list(build_script_env_files),
-            build_script_exec_properties = build_script_exec_properties,
-            build_script_link_deps = build_script_link_deps,
-            build_script_proc_macro_deps = _stringify_list(build_script_proc_macro_deps),
-            build_script_rundir = build_script_rundir,
-            build_script_rustc_env = build_script_rustc_env,
-            build_script_toolchains = _stringify_list(build_script_toolchains),
-            build_script_use_default_shell_env = build_script_use_default_shell_env,
-            build_script_use_cc_toolchain = build_script_use_cc_toolchain,
-            compile_data = _stringify_list(compile_data),
-            compile_data_glob = compile_data_glob,
-            compile_data_glob_excludes = compile_data_glob_excludes,
-            crate_features = crate_features,
-            data = _stringify_list(data),
-            data_glob = data_glob,
-            deps = _stringify_list(deps),
-            link_deps = _stringify_list(link_deps),
-            extra_aliased_targets = extra_aliased_targets,
-            gen_binaries = gen_binaries,
-            disable_pipelining = disable_pipelining,
-            gen_build_script = gen_build_script,
-            patch_args = patch_args,
-            patch_tool = patch_tool,
-            patches = _stringify_list(patches),
-            proc_macro_deps = _stringify_list(proc_macro_deps),
-            rustc_env = rustc_env,
-            rustc_env_files = _stringify_list(rustc_env_files),
-            rustc_flags = rustc_flags,
-            shallow_since = shallow_since,
-            override_targets = override_targets,
-            label_injections = label_injections,
-        ),
-    ))
+    annotation = struct(
+        additive_build_file = _stringify_label(additive_build_file),
+        additive_build_file_content = additive_build_file_content,
+        alias_rule = parse_alias_rule(alias_rule),
+        build_script_compile_data = _stringify_list(build_script_compile_data),
+        build_script_data = _stringify_list(build_script_data),
+        build_script_tools = _stringify_list(build_script_tools),
+        build_script_data_glob = build_script_data_glob,
+        build_script_deps = _stringify_list(build_script_deps),
+        build_script_env = build_script_env,
+        build_script_env_files = _stringify_list(build_script_env_files),
+        build_script_exec_properties = build_script_exec_properties,
+        build_script_link_deps = build_script_link_deps,
+        build_script_proc_macro_deps = _stringify_list(build_script_proc_macro_deps),
+        build_script_rundir = build_script_rundir,
+        build_script_rustc_env = build_script_rustc_env,
+        build_script_toolchains = _stringify_list(build_script_toolchains),
+        build_script_use_default_shell_env = build_script_use_default_shell_env,
+        build_script_use_cc_toolchain = build_script_use_cc_toolchain,
+        compile_data = _stringify_list(compile_data),
+        compile_data_glob = compile_data_glob,
+        compile_data_glob_excludes = compile_data_glob_excludes,
+        crate_features = crate_features,
+        data = _stringify_list(data),
+        data_glob = data_glob,
+        deps = _stringify_list(deps),
+        link_deps = _stringify_list(link_deps),
+        extra_aliased_targets = extra_aliased_targets,
+        gen_binaries = gen_binaries,
+        disable_pipelining = disable_pipelining,
+        gen_build_script = gen_build_script,
+        patch_args = patch_args,
+        patch_tool = patch_tool,
+        patches = _stringify_list(patches),
+        proc_macro_deps = _stringify_list(proc_macro_deps),
+        rustc_env = rustc_env,
+        rustc_env_files = _stringify_list(rustc_env_files),
+        rustc_flags = rustc_flags,
+        shallow_since = shallow_since,
+        override_targets = override_targets,
+    )
+    return json.encode((version, _substitute_labels(annotation, labels)))
+
+def _substitute_in_string(value, labels):
+    """Replace `@{name}` placeholders in a string with canonical labels."""
+    for label, name in labels.items():
+        value = value.replace("@{" + name + "}", str(label))
+    return value
+
+def _substitute_in_value(value, labels):
+    """Replace `@{name}` placeholders in a string, a list of strings or a dict of strings.
+
+    Starlark has no recursion, so this handles exactly the shapes annotation
+    attributes take.
+    """
+    value_type = type(value)
+    if value_type == "string":
+        return _substitute_in_string(value, labels)
+    if value_type == "list":
+        return [
+            _substitute_in_string(item, labels) if type(item) == "string" else item
+            for item in value
+        ]
+    if value_type == "dict":
+        return {
+            _substitute_in_string(key, labels) if type(key) == "string" else key: (
+                _substitute_in_string(item, labels) if type(item) == "string" else item
+            )
+            for key, item in value.items()
+        }
+    return value
+
+def _substitute_labels(annotation, labels):
+    """Replace `@{name}` placeholders in every string of an annotation with canonical labels.
+
+    Args:
+        annotation (struct): The annotation to rewrite.
+        labels (dict): A mapping of label (or label string) to the name it is referenced by.
+
+    Returns:
+        struct: The rewritten annotation.
+    """
+    if not labels:
+        return annotation
+    fields = {}
+    for field in dir(annotation):
+        value = getattr(annotation, field)
+        if type(value) == "struct":
+            # A `crate.select`: a common value plus per-triple values.
+            value = struct(
+                common = _substitute_in_value(value.common, labels),
+                selects = {
+                    triple: _substitute_in_value(selected, labels)
+                    for triple, selected in value.selects.items()
+                },
+            )
+        else:
+            value = _substitute_in_value(value, labels)
+        fields[field] = value
+    return struct(**fields)
 
 def _stringify_label(value):
     if not value:

@@ -176,16 +176,24 @@ impl Renderer {
             ),
         ]);
 
-        // Per-alias subpackage `BUILD.bazel`s let consumers migrate to
-        // `@<repo>//<alias>` independently of the hub owner flipping
-        // `incompatible_no_root_alias_targets`. Skip in local-vendor mode,
-        // where the per-crate paths `<output_pkg>/<name>-<version>/BUILD.bazel`
-        // are already occupied by the vendored `rust_library` `BUILD.bazel`s.
-        if self.config.vendor_mode != Some(VendorMode::Local) {
+        // Aliases are per-alias subpackages, `@<repo>//<alias>`, except in
+        // local-vendor mode, where the per-crate paths
+        // `<output_pkg>/<name>-<version>/BUILD.bazel` are already occupied by
+        // the vendored `rust_library` `BUILD.bazel`s and the aliases live in the
+        // root package instead.
+        if !self.root_aliases() {
             map.extend(self.render_alias_subpackages(engine, aliases)?);
         }
 
         Ok(map)
+    }
+
+    /// Whether hub aliases are rendered into the root package rather than as
+    /// per-alias subpackages. Only local vendoring does so: its
+    /// `<name>-<version>/` directories are the vendored crates themselves, so
+    /// there is nowhere else for the aliases to go.
+    fn root_aliases(&self) -> bool {
+        self.config.vendor_mode == Some(VendorMode::Local)
     }
 
     /// Render one `<alias>/BUILD.bazel` per hub alias. Each subpackage holds
@@ -244,10 +252,9 @@ impl Renderer {
         starlark.push(Starlark::Verbatim(header));
 
         // Load any `alias_rule`s referenced by the hub aliases. Per-alias
-        // subpackage `BUILD.bazel`s each carry their own scoped load, so when
-        // `incompatible_no_root_alias_targets` is on the root needs no
-        // alias-rule loads.
-        if !self.config.incompatible_no_root_alias_targets {
+        // subpackage `BUILD.bazel`s each carry their own scoped load, so the
+        // root only needs them when it holds the aliases itself.
+        if self.root_aliases() {
             let mut loads: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
             for alias_rule in std::iter::once(&self.config.default_alias_rule).chain(
                 aliases
@@ -292,11 +299,7 @@ impl Renderer {
         };
         starlark.push(Starlark::Filegroup(filegroup));
 
-        // `incompatible_no_root_alias_targets` drops the duplicate root-level
-        // `alias()` rules. Subpackage `BUILD.bazel`s always exist, so consumers
-        // can still use `@<repo>//<name>` — the flag just stops emitting the
-        // parallel `@<repo>//:<name>` form.
-        if !self.config.incompatible_no_root_alias_targets {
+        if self.root_aliases() {
             if !aliases.workspace_member.is_empty() {
                 let comment = "# Workspace Member Dependencies".to_owned();
                 starlark.push(Starlark::Verbatim(comment));
@@ -1724,10 +1727,15 @@ mod test {
         let renderer = Renderer::new(mock_render_config(None), mock_supported_platform_triples());
         let output = renderer.render(&context, None).unwrap();
 
-        let build_file_content = output.get(&PathBuf::from("BUILD.bazel")).unwrap();
-
-        assert!(build_file_content.contains(r#"name = "names-0.12.1-dev__names","#));
-        assert!(build_file_content.contains(r#"name = "names-0.13.0__names","#));
+        // Aliases are per-alias subpackages; the root package holds none.
+        let root = output.get(&PathBuf::from("BUILD.bazel")).unwrap();
+        assert!(!root.contains("alias("));
+        for alias in ["names-0.12.1-dev__names", "names-0.13.0__names"] {
+            let subpackage = output
+                .get(&PathBuf::from(format!("{alias}/BUILD.bazel")))
+                .unwrap_or_else(|| panic!("missing subpackage for `{alias}`"));
+            assert!(subpackage.contains(&format!(r#"name = "{alias}","#)));
+        }
     }
 
     #[test]
@@ -2413,23 +2421,20 @@ mod test {
                     ],
                 ),
             )
-
-            # Workspace Member Dependencies
-            alias(
-                name = "mock_crate-0.1.0",
-                actual = "@test_rendering__mock_crate-0.1.0//:library_name",
-                tags = ["manual"],
-            )
-
-            alias(
-                name = "mock_crate",
-                actual = "@test_rendering__mock_crate-0.1.0//:library_name",
-                tags = ["manual"],
-            )
         "#};
         assert!(build_file_content
             .replace(' ', "")
             .contains(&expected.replace(' ', "")));
+        assert!(!build_file_content.contains("alias("));
+
+        for alias in ["mock_crate-0.1.0", "mock_crate"] {
+            let subpackage = output
+                .get(&PathBuf::from(format!("{alias}/BUILD.bazel")))
+                .unwrap_or_else(|| panic!("missing subpackage for `{alias}`"));
+            assert!(subpackage.contains(&format!(r#"name = "{alias}","#)));
+            assert!(subpackage
+                .contains(r#"actual = "@test_rendering__mock_crate-0.1.0//:library_name","#));
+        }
     }
 
     /// Tests a situation where there are two dependencies referencing the same
@@ -2547,35 +2552,25 @@ mod test {
                     ],
                 ),
             )
-
-            # Workspace Member Dependencies
-            alias(
-                name = "my_dependency-0.1.0",
-                actual = "@test_rendering__my_dependency-0.1.0//:my_dependency",
-                tags = ["manual"],
-            )
-
-            alias(
-                name = "my_dependency",
-                actual = "@test_rendering__my_dependency-0.1.0//:my_dependency",
-                tags = ["manual"],
-            )
-
-            alias(
-                name = "my_dependency_other-0.1.0",
-                actual = "@test_rendering__my_dependency-0.1.0//:my_dependency",
-                tags = ["manual"],
-            )
-
-            alias(
-                name = "my_dependency_other",
-                actual = "@test_rendering__my_dependency-0.1.0//:my_dependency",
-                tags = ["manual"],
-            )
         "#};
         assert!(build_file_content
             .replace(' ', "")
             .contains(&expected.replace(' ', "")));
+        assert!(!build_file_content.contains("alias("));
+
+        for alias in [
+            "my_dependency-0.1.0",
+            "my_dependency",
+            "my_dependency_other-0.1.0",
+            "my_dependency_other",
+        ] {
+            let subpackage = output
+                .get(&PathBuf::from(format!("{alias}/BUILD.bazel")))
+                .unwrap_or_else(|| panic!("missing subpackage for `{alias}`"));
+            assert!(subpackage.contains(&format!(r#"name = "{alias}","#)));
+            assert!(subpackage
+                .contains(r#"actual = "@test_rendering__my_dependency-0.1.0//:my_dependency","#));
+        }
     }
 
     /// Binary targets of a proc-macro crate must list the proc-macro lib in

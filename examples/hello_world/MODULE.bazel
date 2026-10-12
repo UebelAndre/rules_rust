@@ -32,8 +32,9 @@ use_repo(crate, "crates_in_workspace")
 crate.annotation(
     additive_build_file = "//:BUILD.anyhow.bazel",
     crate = "anyhow",
-    # Defined in additive_build_file.
-    data = [":cargo_toml"],
+    # Defined in `additive_build_file`, so it only exists inside the generated
+    # repository and is written verbatim rather than resolved as a label here.
+    data_str = [":cargo_toml"],
     # Optional, you probably don't need this. Defaults to all from_cargo
     # invocations in this module.
     repositories = [

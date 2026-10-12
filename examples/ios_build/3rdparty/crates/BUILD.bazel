@@ -29,10 +29,3 @@ filegroup(
         allow_empty = True,
     ),
 )
-
-# Workspace Member Dependencies
-alias(
-    name = "zstd",
-    actual = "@ios_build__zstd-0.13.2//:zstd",
-    tags = ["manual"],
-)

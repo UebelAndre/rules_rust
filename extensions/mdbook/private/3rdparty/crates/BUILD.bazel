@@ -29,10 +29,3 @@ filegroup(
         allow_empty = True,
     ),
 )
-
-# Binaries
-alias(
-    name = "mdbook__mdbook",
-    actual = "@rmdbi__mdbook-0.5.4//:mdbook__bin",
-    tags = ["manual"],
-)

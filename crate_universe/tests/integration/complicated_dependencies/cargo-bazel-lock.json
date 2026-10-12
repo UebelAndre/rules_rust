@@ -1,5 +1,5 @@
 {
-  "checksum": "ecd31b2782959560f61ec8ba3738d970e527c0db9f42442a9be5192c24900182",
+  "checksum": "b572cfda6f1449e1fccf2d2465914edddc49aaad7128c26fbc48aea59e56525e",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -403,12 +403,12 @@
     "openssl-sys 0.9.116": {
       "build_script_attrs": {
         "build_script_env": {
-          "OPENSSL_DIR": "$(execpath @openssl//:install)",
+          "OPENSSL_DIR": "$(execpath @@openssl+//:install)",
           "OPENSSL_NO_VENDOR": "1",
           "OPENSSL_STATIC": "1"
         },
         "data": [
-          "@openssl//:install"
+          "@@openssl+//:install"
         ],
         "deps": [
           {
@@ -428,7 +428,7 @@
       },
       "common_attrs": {
         "compile_data": [
-          "@openssl//:install"
+          "@@openssl+//:install"
         ],
         "deps": [
           {
