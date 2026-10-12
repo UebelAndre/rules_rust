@@ -126,7 +126,7 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
     // Go straight to rendering if there is no need to repin
     if !opt.repin {
         if let Some(lockfile) = &opt.lockfile {
-            let context = Context::try_from_path(lockfile)?;
+            let context = Context::try_from_path(lockfile)?.for_rendering(&config)?;
 
             // Render build files
             let renderer = Renderer::new(
@@ -198,7 +198,6 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         cargo_metadata,
         &Some(lockfile_path),
         cargo_lockfile.clone(),
-        config.clone(),
         &opt.nonhermetic_root_bazel_workspace_dir,
     )?;
 
@@ -213,8 +212,10 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         &opt.nonhermetic_root_bazel_workspace_dir,
     )?;
 
-    // Generate renderable contexts for each package
-    let context = Context::new(annotations, config.rendering.are_sources_present())?;
+    // The context of the resolution, which the lockfile records, and the one
+    // rendered from it with this workspace's configuration applied.
+    let context = Context::new(annotations, &config.supported_platform_triples)?;
+    let render_context = context.clone().for_rendering(&config)?;
 
     // Render build files
     let renderer = Renderer::new(
@@ -223,7 +224,7 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
     );
     render_and_write_outputs(
         &renderer,
-        &context,
+        &render_context,
         opt.generator.clone(),
         &opt.repository_dir,
         &opt.hub_packages_output_path,
@@ -232,8 +233,13 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
 
     // Ensure Bazel lockfiles are written to disk so future generations can be short-circuited.
     if let Some(lockfile) = opt.lockfile {
-        let lock_content =
-            lock_context(context, &config, &splicing_manifest, &cargo_bin, rustc_bin)?;
+        let lock_content = lock_context(
+            context,
+            &config.supported_platform_triples,
+            &splicing_manifest,
+            &cargo_bin,
+            rustc_bin,
+        )?;
 
         write_lockfile(lock_content, &lockfile, opt.dry_run)?;
     }
