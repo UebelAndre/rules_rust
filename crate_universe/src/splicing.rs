@@ -106,14 +106,96 @@ impl SplicingManifest {
     }
 }
 
+/// The parts of a manifest which can change what Cargo resolves.
+///
+/// The lockfile digest covers this projection rather than the whole manifest, so
+/// editing anything else - a description, a `[[bin]]`, lints, profiles - does
+/// not require a repin.
+#[derive(Debug, Default, Serialize)]
+pub(crate) struct ManifestProjection {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    package: Option<PackageProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace: Option<WorkspaceProjection>,
+    dependencies: cargo_toml::DepsSet,
+    dev_dependencies: cargo_toml::DepsSet,
+    build_dependencies: cargo_toml::DepsSet,
+    target: cargo_toml::TargetDepsSet,
+    features: cargo_toml::FeatureSet,
+    patch: cargo_toml::PatchSet,
+    replace: cargo_toml::DepsSet,
+}
+
+/// The resolution relevant parts of a `[package]` table.
+#[derive(Debug, Serialize)]
+struct PackageProjection {
+    name: String,
+    version: cargo_toml::Inheritable<String>,
+    edition: cargo_toml::Inheritable<cargo_toml::Edition>,
+    links: Option<String>,
+    resolver: Option<cargo_toml::Resolver>,
+    /// `[package.metadata.bazel]`, the crate's own annotation defaults.
+    bazel_metadata: Option<cargo_toml::Value>,
+}
+
+/// The resolution relevant parts of a `[workspace]` table.
+#[derive(Debug, Serialize)]
+struct WorkspaceProjection {
+    members: Vec<String>,
+    default_members: Vec<String>,
+    exclude: Vec<String>,
+    package: Option<cargo_toml::PackageTemplate>,
+    resolver: Option<cargo_toml::Resolver>,
+    dependencies: cargo_toml::DepsSet,
+}
+
+impl From<&cargo_toml::Manifest> for ManifestProjection {
+    // `[replace]` is deprecated in favor of `[patch]` but Cargo still honors it.
+    #[allow(deprecated)]
+    fn from(manifest: &cargo_toml::Manifest) -> Self {
+        Self {
+            package: manifest.package.as_ref().map(|package| PackageProjection {
+                name: package.name.clone(),
+                version: package.version.clone(),
+                edition: package.edition,
+                links: package.links.clone(),
+                resolver: package.resolver,
+                bazel_metadata: package
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("bazel"))
+                    .cloned(),
+            }),
+            workspace: manifest
+                .workspace
+                .as_ref()
+                .map(|workspace| WorkspaceProjection {
+                    members: workspace.members.clone(),
+                    default_members: workspace.default_members.clone(),
+                    exclude: workspace.exclude.clone(),
+                    package: workspace.package.clone(),
+                    resolver: workspace.resolver,
+                    dependencies: workspace.dependencies.clone(),
+                }),
+            dependencies: manifest.dependencies.clone(),
+            dev_dependencies: manifest.dev_dependencies.clone(),
+            build_dependencies: manifest.build_dependencies.clone(),
+            target: manifest.target.clone(),
+            features: manifest.features.clone(),
+            patch: manifest.patch.clone(),
+            replace: manifest.replace.clone(),
+        }
+    }
+}
+
 /// The result of fully resolving a [SplicingManifest] in preparation for splicing.
 #[derive(Debug, Serialize, Default)]
 pub(crate) struct SplicingMetadata {
     /// A set of all packages directly written to the rule
     pub(crate) direct_packages: DirectPackageManifest,
 
-    /// A mapping of manifest paths to the labels representing them
-    pub(crate) manifests: BTreeMap<Label, cargo_toml::Manifest>,
+    /// The resolution relevant parts of each manifest, keyed by its label.
+    pub(crate) manifests: BTreeMap<Label, ManifestProjection>,
 
     /// The path of a Cargo config file
     pub(crate) cargo_config: Option<CargoConfig>,
@@ -147,9 +229,9 @@ impl TryFrom<SplicingManifest> for SplicingMetadata {
                     .with_context(|| format!("Failed to load manifest '{}'", path))?;
                 let manifest = cargo_toml::Manifest::from_slice(&manifest_content)
                     .with_context(|| format!("Failed to parse manifest '{}'", path))?;
-                Ok((label, manifest))
+                Ok((label, ManifestProjection::from(&manifest)))
             })
-            .collect::<Result<BTreeMap<Label, Manifest>>>()?;
+            .collect::<Result<BTreeMap<Label, ManifestProjection>>>()?;
 
         let cargo_config = match value.cargo_config {
             Some(path) => Some(
@@ -512,6 +594,65 @@ pub(crate) fn generate_lockfile(
 #[cfg(test)]
 mod test {
     use super::*;
+
+    fn projection(manifest: &str) -> serde_json::Value {
+        let manifest = cargo_toml::Manifest::from_slice(manifest.as_bytes()).unwrap();
+        serde_json::to_value(ManifestProjection::from(&manifest)).unwrap()
+    }
+
+    /// Only what can change the resolution is in the projection, so edits to
+    /// anything else leave the lockfile digest alone.
+    #[test]
+    fn manifest_projection_covers_only_resolution_inputs() {
+        let base = indoc::indoc! {r#"
+            [package]
+            name = "example"
+            version = "0.1.0"
+            edition = "2021"
+            description = "before"
+
+            [dependencies]
+            anyhow = "1"
+
+            [features]
+            default = []
+        "#};
+        let cosmetic = indoc::indoc! {r#"
+            [package]
+            name = "example"
+            version = "0.1.0"
+            edition = "2021"
+            description = "after"
+            license = "MIT"
+
+            [[bin]]
+            name = "tool"
+            path = "src/tool.rs"
+
+            [dependencies]
+            anyhow = "1"
+
+            [features]
+            default = []
+
+            [lints.rust]
+            unsafe_code = "forbid"
+
+            [profile.release]
+            lto = true
+        "#};
+        assert_eq!(projection(base), projection(cosmetic));
+
+        for changed in [
+            base.replace("anyhow = \"1\"", "anyhow = \"2\""),
+            base.replace("default = []", "default = [\"std\"]\nstd = []"),
+            base.replace("edition = \"2021\"", "edition = \"2018\""),
+            base.replace("[dependencies]", "[target.'cfg(unix)'.dependencies]"),
+            format!("{base}\n[package.metadata.bazel]\ngen_build_script = false\n"),
+        ] {
+            assert_ne!(projection(base), projection(&changed), "{changed}");
+        }
+    }
 
     #[test]
     fn deserialize_splicing_manifest() {

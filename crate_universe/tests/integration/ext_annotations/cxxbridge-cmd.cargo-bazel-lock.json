@@ -1,6 +1,6 @@
 {
   "binary_crates": ["clap 4.3.21"],
-  "checksum": "e003b16cd7e8ae84cf967fb74a50ef0b17cb0499d61c62cb760e845420ae8c62",
+  "checksum": "8550c9228585d9972f619b31c0dda80ce8d95d22f2bee229dec12835f4e81e30",
   "conditions": {
     "cfg(any())": [],
     "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],

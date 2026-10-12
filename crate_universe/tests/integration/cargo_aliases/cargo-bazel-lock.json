@@ -1,6 +1,6 @@
 {
   "binary_crates": ["clap 3.2.23", "names 0.12.1-dev", "names 0.13.0", "unsafe-libyaml 0.2.11"],
-  "checksum": "0f0c2dad475a2317682295525c51b3455a7e398f962639f95ab706228186b687",
+  "checksum": "218d7124660568f8e0131168c229604b00c3589e8a0adfb1dd0258bb747171e6",
   "conditions": {
     "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
     "cfg(any())": [],
