@@ -28,7 +28,7 @@ rust_binary(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = [
-        "@rrwbd//:serde_json",
+        "@rrwbd//serde_json",
         "@rules_rust//rust/runfiles",
     ],
 )

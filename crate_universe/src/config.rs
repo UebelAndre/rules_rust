@@ -1,7 +1,5 @@
 //! A module for configuration information
 
-pub(crate) mod label_injection;
-
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Formatter;
@@ -112,16 +110,6 @@ pub(crate) struct RenderConfig {
     /// This is expected to always be true except for bootstrapping.
     pub(crate) generate_cargo_toml_env_vars: bool,
 
-    /// Incompatibility flag. Suppresses the top-level `alias()` rules in the
-    /// hub repository's root `BUILD.bazel` (e.g. `@crate_index//:clap`).
-    /// Per-alias subpackages (e.g. `@crate_index//clap`) are always emitted,
-    /// so flipping this flag on lets users keep consuming aliases through
-    /// the subpackage path while the root version disappears. Default
-    /// `false`; planned to flip to `true` (and ultimately have the
-    /// root-emitting code removed) in a future release.
-    #[serde(default)]
-    pub(crate) incompatible_no_root_alias_targets: bool,
-
     /// Internal: true when the rendered output is destined for the
     /// `crates_vendor` workflow (committed into the user's workspace
     /// alongside `crates.bzl`). The renderer routes per-alias subpackage
@@ -154,7 +142,6 @@ impl Default for RenderConfig {
             regen_command: String::default(),
             vendor_mode: Option::default(),
             generate_rules_license_metadata: default_generate_rules_license_metadata(),
-            incompatible_no_root_alias_targets: false,
             crates_vendor_synthesizes_subpackages: false,
         }
     }
@@ -181,8 +168,6 @@ fn default_crate_label_template() -> String {
 fn default_crate_alias_template() -> String {
     // The `@{repository}` prefix ensures labels resolve through the hub even
     // when `defs.bzl` is loaded from a workspace path (vendor mode).
-    // Subpackage `BUILD.bazel`s are always emitted, so this default works
-    // whether or not the user sets `incompatible_no_root_alias_targets`.
     "@{repository}//{name}-{version}".to_owned()
 }
 
@@ -767,18 +752,6 @@ pub(crate) struct Config {
     /// A set of platform triples to use in generated select statements
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub(crate) supported_platform_triples: BTreeSet<TargetTriple>,
-
-    /// Apparent -> canonical label_injection map extracted from each
-    /// annotation's `label_injections` field at load time. Populated by
-    /// `Config::try_from_path`; not present in config.json itself
-    /// (`deny_unknown_fields` is fine because `extract_global_mapping`
-    /// strips `label_injections` before deserialization). Sanitized to
-    /// `Default::default()` in `Digest::new` before hashing — same trick
-    /// as `Context.checksum = None` in `lockfile.rs` — so consumer-side
-    /// `single_version_override` shifts (which change the canonical names
-    /// here) don't perturb the digest and force a producer-side repin.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub(crate) label_injection_mapping: LabelInjectionMapping,
 }
 
 // rules_rust/crate_universe/private/generate_utils.bzl:generate_config
@@ -804,33 +777,11 @@ where
 }
 
 impl Config {
-    /// Load a config JSON and extract its per-annotation `label_injections`
-    /// into a single `label_injection_mapping` on the Config. The Config
-    /// itself keeps the user's APPARENT labels in annotation strings — the
-    /// rewrite to canonical happens via
-    /// [`label_injection::apply_mapping_to_value`] just before each render
-    /// (see [`crate::context::Context::apply_label_injection_mapping`]),
-    /// using whatever mapping the current bazel session resolved (reflecting
-    /// any root-level `single_version_override` / `multiple_version_override`).
-    ///
-    /// The mapping is excluded from the digest hash via
-    /// [`crate::lockfile::Digest::new`], mirroring the
-    /// `Context.checksum = None` clear in the same file. That's what keeps
-    /// the digest stable across consumer-side overrides.
     pub(crate) fn try_from_path<T: AsRef<Path>>(path: T) -> Result<Self> {
         let data = fs::read_to_string(path)?;
-        let mut value: serde_json::Value = serde_json::from_str(&data)?;
-        let mapping = label_injection::extract_global_mapping(&mut value)?;
-        let mut config: Self = serde_json::from_value(value)?;
-        config.label_injection_mapping = mapping;
-        Ok(config)
+        Ok(serde_json::from_str(&data)?)
     }
 }
-
-/// Apparent-repo-prefix -> canonical-repo-prefix map carried on
-/// [`Config::label_injection_mapping`]. See [`label_injection`] for the WHY
-/// of the deferred-substitution design.
-pub(crate) type LabelInjectionMapping = std::collections::BTreeMap<String, String>;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CrateNameAndVersionReq {

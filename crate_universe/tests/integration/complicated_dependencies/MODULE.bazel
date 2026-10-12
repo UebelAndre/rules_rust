@@ -25,7 +25,7 @@ crate.annotation(
         "@openssl//:install",
     ],
     build_script_env = {
-        "OPENSSL_DIR": "$(execpath @openssl//:install)",
+        "OPENSSL_DIR": "$(execpath @{openssl})",
         "OPENSSL_NO_VENDOR": "1",
         "OPENSSL_STATIC": "1",
     },
@@ -33,8 +33,8 @@ crate.annotation(
         "@openssl//:install",
     ],
     crate = "openssl-sys",
-    label_injections = {
-        "@openssl": "@openssl",
+    labels = {
+        "@openssl//:install": "openssl",
     },
     repositories = ["complicated_dependencies"],
 )

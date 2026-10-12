@@ -14,12 +14,12 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":gen_rust_project_lib",
-        "//tools/rust_analyzer/3rdparty/crates:anyhow",
-        "//tools/rust_analyzer/3rdparty/crates:camino",
-        "//tools/rust_analyzer/3rdparty/crates:clap",
-        "//tools/rust_analyzer/3rdparty/crates:env_logger",
-        "//tools/rust_analyzer/3rdparty/crates:log",
-        "//tools/rust_analyzer/3rdparty/crates:serde_json",
+        "@rrra//anyhow",
+        "@rrra//camino",
+        "@rrra//clap",
+        "@rrra//env_logger",
+        "@rrra//log",
+        "@rrra//serde_json",
     ],
 )
 
@@ -33,12 +33,12 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":gen_rust_project_lib",
-        "//tools/rust_analyzer/3rdparty/crates:anyhow",
-        "//tools/rust_analyzer/3rdparty/crates:camino",
-        "//tools/rust_analyzer/3rdparty/crates:clap",
-        "//tools/rust_analyzer/3rdparty/crates:env_logger",
-        "//tools/rust_analyzer/3rdparty/crates:log",
-        "//tools/rust_analyzer/3rdparty/crates:serde_json",
+        "@rrra//anyhow",
+        "@rrra//camino",
+        "@rrra//clap",
+        "@rrra//env_logger",
+        "@rrra//log",
+        "@rrra//serde_json",
     ],
 )
 
@@ -56,9 +56,9 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         "//rust/runfiles",
-        "//tools/rust_analyzer/3rdparty/crates:clap",
-        "//tools/rust_analyzer/3rdparty/crates:env_logger",
-        "//tools/rust_analyzer/3rdparty/crates:log",
+        "@rrra//clap",
+        "@rrra//env_logger",
+        "@rrra//log",
     ],
 )
 
@@ -69,12 +69,12 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":gen_rust_project_lib",
-        "//tools/rust_analyzer/3rdparty/crates:anyhow",
-        "//tools/rust_analyzer/3rdparty/crates:camino",
-        "//tools/rust_analyzer/3rdparty/crates:clap",
-        "//tools/rust_analyzer/3rdparty/crates:env_logger",
-        "//tools/rust_analyzer/3rdparty/crates:log",
-        "//tools/rust_analyzer/3rdparty/crates:serde_json",
+        "@rrra//anyhow",
+        "@rrra//camino",
+        "@rrra//clap",
+        "@rrra//env_logger",
+        "@rrra//log",
+        "@rrra//serde_json",
     ],
 )
 
@@ -101,7 +101,7 @@ rust_binary(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = [
-        "//tools/rust_analyzer/3rdparty/crates:serde_json",
+        "@rrra//serde_json",
     ],
 )
 
@@ -141,13 +141,13 @@ rust_binary(
     deps = [
         ":gen_rust_project_lib",
         "//rust/runfiles",
-        "//tools/rust_analyzer/3rdparty/crates:anyhow",
-        "//tools/rust_analyzer/3rdparty/crates:camino",
-        "//tools/rust_analyzer/3rdparty/crates:clap",
-        "//tools/rust_analyzer/3rdparty/crates:env_logger",
-        "//tools/rust_analyzer/3rdparty/crates:jsonc-parser",
-        "//tools/rust_analyzer/3rdparty/crates:log",
-        "//tools/rust_analyzer/3rdparty/crates:serde_json",
+        "@rrra//anyhow",
+        "@rrra//camino",
+        "@rrra//clap",
+        "@rrra//env_logger",
+        "@rrra//jsonc-parser",
+        "@rrra//log",
+        "@rrra//serde_json",
     ],
 )
 
@@ -177,12 +177,12 @@ rust_library(
     ],
     deps = [
         "//rust/runfiles",
-        "//tools/rust_analyzer/3rdparty/crates:anyhow",
-        "//tools/rust_analyzer/3rdparty/crates:camino",
-        "//tools/rust_analyzer/3rdparty/crates:clap",
-        "//tools/rust_analyzer/3rdparty/crates:log",
-        "//tools/rust_analyzer/3rdparty/crates:serde",
-        "//tools/rust_analyzer/3rdparty/crates:serde_json",
+        "@rrra//anyhow",
+        "@rrra//camino",
+        "@rrra//clap",
+        "@rrra//log",
+        "@rrra//serde",
+        "@rrra//serde_json",
     ],
 )
 
@@ -190,7 +190,7 @@ rust_test(
     name = "gen_rust_project_lib_test",
     crate = ":gen_rust_project_lib",
     deps = [
-        "//tools/rust_analyzer/3rdparty/crates:itertools",
+        "@rrra//itertools",
     ],
 )
 
