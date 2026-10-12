@@ -1,5 +1,8 @@
 # Developing crate_universe
 
+[ARCHITECTURE.md](ARCHITECTURE.md) is the map of what gets rendered; keep its
+diagram in step with changes to the templates or the extension.
+
 ## Bootstrapping
 
 Crate Universe repository rules are backed by a binary called `cargo-bazel`.

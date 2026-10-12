@@ -11,7 +11,7 @@ use std::sync::Arc;
 use anyhow::{bail, Context as AnyhowContext, Result};
 use itertools::Itertools;
 
-use crate::config::{AliasRule, RenderConfig, VendorMode};
+use crate::config::{AliasRule, CrateId, RenderConfig, VendorMode};
 use crate::context::crate_context::{CrateContext, CrateDependency, Rule};
 use crate::context::{Context, TargetAttributes};
 use crate::metadata::SourceAnnotation;
@@ -56,6 +56,11 @@ pub(crate) struct RenderedHub {
 pub(crate) struct Renderer {
     config: Arc<RenderConfig>,
     supported_platform_triples: Arc<BTreeSet<TargetTriple>>,
+
+    /// The shared repository holding each crate, when crates are pooled across
+    /// hubs. Labels for these crates point at the pool rather than being built
+    /// from the hub's templates. See [crate::pool].
+    pool_repositories: Arc<BTreeMap<CrateId, String>>,
 }
 
 impl Renderer {
@@ -63,9 +68,18 @@ impl Renderer {
         config: Arc<RenderConfig>,
         supported_platform_triples: Arc<BTreeSet<TargetTriple>>,
     ) -> Self {
+        Self::with_pool_repositories(config, supported_platform_triples, Arc::default())
+    }
+
+    pub(crate) fn with_pool_repositories(
+        config: Arc<RenderConfig>,
+        supported_platform_triples: Arc<BTreeSet<TargetTriple>>,
+        pool_repositories: Arc<BTreeMap<CrateId, String>>,
+    ) -> Self {
         Self {
             config,
             supported_platform_triples,
+            pool_repositories,
         }
     }
 
@@ -85,6 +99,26 @@ impl Renderer {
         context: &Context,
         generator: Option<Label>,
     ) -> Result<RenderedHub> {
+        self.render_hub_impl(context, generator, true)
+    }
+
+    /// The hub's own files - `defs.bzl`, `crates.bzl`, `BUILD.bazel` and the
+    /// per-alias subpackages - without the crates' BUILD files, which live in
+    /// shared repositories when crates are pooled.
+    pub(crate) fn render_hub_files(
+        &self,
+        context: &Context,
+        generator: Option<Label>,
+    ) -> Result<RenderedHub> {
+        self.render_hub_impl(context, generator, false)
+    }
+
+    fn render_hub_impl(
+        &self,
+        context: &Context,
+        generator: Option<Label>,
+        include_build_files: bool,
+    ) -> Result<RenderedHub> {
         let conditions = Arc::new(context.conditions.clone());
         let engine = self.create_engine(Arc::clone(&conditions));
 
@@ -92,7 +126,9 @@ impl Renderer {
 
         let mut files = BTreeMap::new();
         let platforms = self.render_platform_labels(conditions);
-        files.extend(self.render_build_files(&engine, context, &platforms)?);
+        if include_build_files {
+            files.extend(self.render_build_files(&engine, context, &platforms)?);
+        }
         files.extend(self.render_crates_module(&engine, context, &platforms, generator, &aliases)?);
 
         let hub_packages = aliases
@@ -116,6 +152,7 @@ impl Renderer {
             Arc::clone(&self.config),
             Arc::clone(&self.supported_platform_triples),
             Arc::clone(&conditions),
+            Arc::clone(&self.pool_repositories),
         )
     }
 
@@ -1036,7 +1073,7 @@ impl Renderer {
         )
     }
 
-    fn label_to_path(label: &Label) -> PathBuf {
+    pub(crate) fn label_to_path(label: &Label) -> PathBuf {
         match &label.package() {
             Some(package) if !package.is_empty() => {
                 PathBuf::from(format!("{}/{}", package, label.target()))
@@ -1046,6 +1083,9 @@ impl Renderer {
     }
 
     fn crate_label(&self, name: &str, version: &str, target: &str) -> Label {
+        if let Some(label) = pool_crate_label(&self.pool_repositories, name, version, target) {
+            return label;
+        }
         Label::from_str(&sanitize_repository_name(&render_crate_bazel_label(
             &self.config.crate_label_template,
             &self.config.repository_name,
@@ -1055,6 +1095,33 @@ impl Renderer {
         )))
         .unwrap()
     }
+}
+
+/// The label of `target` in the shared repository holding `name` at `version`,
+/// if the crate is pooled.
+pub(crate) fn pool_crate_label(
+    pool_repositories: &BTreeMap<CrateId, String>,
+    name: &str,
+    version: &str,
+    target: &str,
+) -> Option<Label> {
+    pool_crate_repository(pool_repositories, name, version)
+        .map(|repository| Label::from_str(&format!("@{repository}//:{target}")).unwrap())
+}
+
+/// The shared repository holding `name` at `version`, if the crate is pooled.
+pub(crate) fn pool_crate_repository(
+    pool_repositories: &BTreeMap<CrateId, String>,
+    name: &str,
+    version: &str,
+) -> Option<String> {
+    if pool_repositories.is_empty() {
+        return None;
+    }
+    let version = semver::Version::parse(version).ok()?;
+    pool_repositories
+        .get(&CrateId::new(name.to_owned(), version))
+        .cloned()
 }
 
 /// Write a set of [crate::context::crate_context::CrateContext] to disk.
