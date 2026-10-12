@@ -198,6 +198,17 @@ fn collect_deps_selectable(
     // For more details see: https://github.com/rust-lang/cargo/issues/9863
     for dep in deps.into_iter() {
         let dep_pkg = &metadata[&dep.pkg];
+        // A dependency which only ships binaries has nothing to link against;
+        // Cargo ignores such an edge when building and so does the rendering.
+        // The package itself is still rendered, with its binaries.
+        if !has_library_target(dep_pkg) {
+            tracing::debug!(
+                "Skipping the binary-only dependency {} of {}",
+                dep_pkg.name,
+                node.id
+            );
+            continue;
+        }
         let target_name = get_library_target_name(dep_pkg, &dep.name)
             .expect("Nodes Dependencies are expected to exclusively be library-like targets");
         let alias = get_target_alias(&dep.name, dep_pkg);
@@ -254,6 +265,23 @@ fn is_ignored_package_target(target: &Target) -> bool {
                 | cargo_metadata::TargetKind::Bench
                 | cargo_metadata::TargetKind::Test
         )
+    })
+}
+
+/// Whether a package has a target which can be linked against.
+fn has_library_target(package: &Package) -> bool {
+    package.targets.iter().any(|target| {
+        target.kind.iter().any(|kind| {
+            matches!(
+                kind,
+                cargo_metadata::TargetKind::Lib
+                    | cargo_metadata::TargetKind::RLib
+                    | cargo_metadata::TargetKind::DyLib
+                    | cargo_metadata::TargetKind::CDyLib
+                    | cargo_metadata::TargetKind::StaticLib
+                    | cargo_metadata::TargetKind::ProcMacro
+            )
+        })
     })
 }
 
