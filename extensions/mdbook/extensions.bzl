@@ -17,7 +17,7 @@ def _rust_ext_impl(module_ctx):
     maybe(
         mdbook_toolchain_repository,
         name = "rules_rust_mdbook_toolchain",
-        mdbook = str(Label("//private/3rdparty/crates:mdbook__mdbook")),
+        mdbook = str(Label("@rmdbi//mdbook__mdbook")),
     )
 
     # is_dev_dep is ignored here. It's not relevant for internal_deps, as dev

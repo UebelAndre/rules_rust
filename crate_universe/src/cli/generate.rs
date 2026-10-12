@@ -132,10 +132,7 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
     // Go straight to rendering if there is no need to repin
     if !opt.repin {
         if let Some(lockfile) = &opt.lockfile {
-            // Lockfile stores apparent labels; rewrite to canonical here.
-            let context = Context::try_from_path(lockfile)?
-                .for_rendering(&config)?
-                .apply_label_injection_mapping(&config.label_injection_mapping)?;
+            let context = Context::try_from_path(lockfile)?.for_rendering(&config)?;
             write_unused_annotations(
                 opt.unused_annotations_output_path.as_deref(),
                 &context.unused_annotations(&config),
@@ -226,10 +223,7 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         opt.unused_annotations_output_path.as_deref(),
         &context.unused_annotations(&config),
     )?;
-    let render_context = context
-        .clone()
-        .for_rendering(&config)?
-        .apply_label_injection_mapping(&config.label_injection_mapping)?;
+    let render_context = context.clone().for_rendering(&config)?;
 
     // Render build files
     let renderer = Renderer::new(

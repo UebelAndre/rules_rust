@@ -108,6 +108,6 @@ rust_library(
     }),
     version = "0.5.18",
     deps = [
-        "@cvm__bitflags-2.13.0//:bitflags",
+        "@cvm__bitflags-2.13.2//:bitflags",
     ],
 )

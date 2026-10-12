@@ -14,7 +14,7 @@ for target in $(bazel query 'kind("crates_vendor", //...)'); do
   bazel run "${target}"
 done
 
-for d in extensions/*; do
+for d in extensions/* examples/hello_world examples/sys examples/all_deps_vendor examples/ios_build; do
   pushd "${d}"
   for target in $(bazel query 'kind("crates_vendor", //...)'); do
     bazel run "${target}"
@@ -22,9 +22,11 @@ for d in extensions/*; do
   popd
 done
 
-# Vendor consolidated workspace
+# Vendor consolidated workspace. Locally vendored crate sources are not checked
+# in, so their packages fail to load until the vendor targets have run; `--keep_going`
+# still lists the vendor targets themselves.
 (cd crate_universe/tests/integration/vendor && \
-  for target in $(bazel query 'kind("crates_vendor", //...)'); do
+  for target in $(bazel query --keep_going 'kind("crates_vendor", //...)' 2>/dev/null || true); do
     CARGO_BAZEL_REPIN=true bazel run "${target}"
   done
 )

@@ -262,7 +262,6 @@ def _write_config_file(ctx):
             generate_binaries = ctx.attr.generate_binaries,
             resolver = ctx.attr.resolver,
             generate_build_scripts = ctx.attr.generate_build_scripts,
-            generate_target_compatible_with = ctx.attr.generate_target_compatible_with,
             supported_platform_triples = ctx.attr.supported_platform_triples,
             repository_name = ctx.attr.repository_name,
             output_pkg = _get_output_package(ctx),
@@ -283,7 +282,6 @@ def generate_config_file(
         annotations,
         generate_binaries,
         generate_build_scripts,
-        generate_target_compatible_with,
         supported_platform_triples,
         repository_name,
         output_pkg,
@@ -300,7 +298,6 @@ def generate_config_file(
         generate_binaries (bool): Whether to generate binaries for the crates.
         resolver (str): The resolver computing features and dependencies, `cargo` or `cargo_tree`.
         generate_build_scripts (bool): Whether to generate `cargo_build_script` targets for crates that have build scripts.
-        generate_target_compatible_with (bool): DEPRECATED: Moved to `render_config`.
         supported_platform_triples (str): The platform triples to support in
             the generated BUILD.bazel files.
         repository_name (str): The name of the repository to generate.
@@ -379,7 +376,6 @@ def generate_config_file(
         crate_annotations = annotations,
         generate_binaries = generate_binaries,
         generate_build_scripts = generate_build_scripts,
-        generate_target_compatible_with = generate_target_compatible_with,
         resolver = resolver,
         cargo_config = None,
         render_config = render_config,
@@ -554,10 +550,6 @@ CRATES_VENDOR_ATTRS = {
     ),
     "generate_cargo_toml_env_vars": attr.bool(
         doc = "Whether to generate cargo_toml_env_vars targets.",
-        default = True,
-    ),
-    "generate_target_compatible_with": attr.bool(
-        doc = "DEPRECATED: Moved to `render_config`.",
         default = True,
     ),
     "lockfile": attr.label(

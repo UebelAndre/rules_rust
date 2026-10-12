@@ -11,10 +11,8 @@ use std::sync::Arc;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::config::label_injection;
 use crate::config::{
-    merge_annotations, Config, CrateId, CrateNameAndVersionReq, LabelInjectionMapping,
-    RenderConfig, ScopedAnnotations,
+    merge_annotations, Config, CrateId, CrateNameAndVersionReq, RenderConfig, ScopedAnnotations,
 };
 use crate::context::platforms::resolve_cfg_platforms;
 use crate::lockfile::{Digest, Provenance};
@@ -203,38 +201,6 @@ impl Context {
             direct_deps,
             unused_patches,
         })
-    }
-
-    /// Rewrite apparent-label prefixes in every string under this Context to
-    /// their canonical form using the freshly-resolved mapping passed from
-    /// Starlark via [`crate::config::Config::try_from_path`]. Done by a JSON serde
-    /// round-trip — the substitution surface is wide (deps, build_script_data,
-    /// build_script_env, additive_build_file_content, etc.) and a typed walk
-    /// would have to be re-derived whenever new string fields are added; the
-    /// round-trip naturally tracks the schema.
-    ///
-    /// Called just before rendering BUILD files; the Context written to the
-    /// lockfile is the pre-rewrite form, so the lockfile and digest stay
-    /// stable across `single_version_override` / `multiple_version_override`
-    /// changes the root module makes.
-    pub(crate) fn apply_label_injection_mapping(
-        self,
-        mapping: &LabelInjectionMapping,
-    ) -> Result<Self> {
-        if mapping.is_empty() {
-            return Ok(self);
-        }
-        // The round trip through JSON is the written form, which leaves out
-        // what the lockfile derives; put it back, nothing in it is a label.
-        let conditions = self.conditions.clone();
-        let binary_crates = self.binary_crates.clone();
-        let mut value = serde_json::to_value(&self)?;
-        label_injection::apply_mapping_to_value(&mut value, mapping);
-        let mut context: Self = serde_json::from_value(value)?;
-        context.restore_derived();
-        context.conditions = conditions;
-        context.binary_crates = binary_crates;
-        Ok(context)
     }
 
     /// The crates with a binary target, excluding workspace members.
@@ -753,20 +719,6 @@ mod test {
             assert!(!krate.contains_key("library_target_name"));
             assert!(!krate.contains_key("license_ids"));
         }
-    }
-
-    #[test]
-    fn label_injection_keeps_derived_data() {
-        let context = mock_context_aliases();
-        let mapping = LabelInjectionMapping::from([(
-            "@@does_not_matter+".to_owned(),
-            "@does_not_matter".to_owned(),
-        )]);
-        let rewritten = context
-            .clone()
-            .apply_label_injection_mapping(&mapping)
-            .unwrap();
-        assert_eq!(rewritten, context);
     }
 
     // Older cargo-bazel versions wrote every crate with the fully expanded

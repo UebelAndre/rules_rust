@@ -112,120 +112,120 @@ rust_library(
     }),
     version = "0.9.12",
     deps = [
-        "//local_pkgs/crates/cfg-if-1.0.4:cfg_if",
-        "//local_pkgs/crates/parking_lot_core-0.9.12:build_script_build",
-        "//local_pkgs/crates/smallvec-1.15.2:smallvec",
+        ":build_script_build",
+        "//local_pkgs/crates/cfg-if-1.0.5:cfg_if",
+        "//local_pkgs/crates/smallvec-1.16.3:smallvec",
     ] + select({
         "@rules_rust//rust/platform:aarch64-apple-darwin": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-apple-ios": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-apple-ios-macabi": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-apple-ios-sim": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-linux-android": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-pc-windows-msvc": [
             "//local_pkgs/crates/windows-link-0.2.1:windows_link",  # cfg(windows)
         ],
         "@rules_rust//rust/platform:aarch64-unknown-fuchsia": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-unknown-nixos-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:aarch64-unknown-nto-qnx710": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:arm-unknown-linux-gnueabi": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:arm-unknown-linux-musleabi": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:armv7-linux-androideabi": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:armv7-unknown-linux-gnueabi": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:i686-apple-darwin": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:i686-linux-android": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:i686-pc-windows-msvc": [
             "//local_pkgs/crates/windows-link-0.2.1:windows_link",  # cfg(windows)
         ],
         "@rules_rust//rust/platform:i686-unknown-freebsd": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:i686-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:loongarch64-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:mips-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:powerpc-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:s390x-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:sparc64-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:sparc64-unknown-netbsd": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:sparc64-unknown-openbsd": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:wasm32-unknown-emscripten": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-apple-darwin": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-apple-ios": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-apple-ios-macabi": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-linux-android": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-pc-windows-msvc": [
             "//local_pkgs/crates/windows-link-0.2.1:windows_link",  # cfg(windows)
         ],
         "@rules_rust//rust/platform:x86_64-unknown-freebsd": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-unknown-fuchsia": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-unknown-linux-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "@rules_rust//rust/platform:x86_64-unknown-nixos-gnu": [
-            "//local_pkgs/crates/libc-0.2.186:libc",  # cfg(unix)
+            "//local_pkgs/crates/libc-0.2.190:libc",  # cfg(unix)
         ],
         "//conditions:default": [],
     }),
@@ -237,6 +237,9 @@ cargo_build_script(
         include = ["**/*.rs"],
         allow_empty = False,
     ),
+    build_script_env_files = [
+        ":cargo_toml_env_vars",
+    ],
     compile_data = glob(
         include = ["**"],
         allow_empty = True,
