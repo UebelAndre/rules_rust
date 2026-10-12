@@ -1,81 +1,372 @@
 {
   "binary_crates": ["httpmock 0.6.7", "webpki-roots 0.22.6"],
-  "checksum": "a42f2e5bf69e6e2dd922fc3c3d9374ae8d4537b89583cca0d9c55637021f01ea",
+  "checksum": "d6ab10467bbd5e0798152c450a4959af7f15d9cc9245cedf815ae15ceb2ea3c8",
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],
-    "aarch64-pc-windows-msvc": [],
+    "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
     "aarch64-uwp-windows-msvc": [],
     "cfg(all(any(target_arch = \"x86_64\", target_arch = \"aarch64\"), target_os = \"hermit\"))": [],
     "cfg(all(any(target_arch = \"x86_64\", target_arch = \"arm64ec\"), target_env = \"msvc\", not(windows_raw_dylib)))": ["x86_64-pc-windows-msvc"],
-    "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(target_arch = \"aarch64\", target_arch = \"arm\")))": ["aarch64-unknown-linux-gnu"],
-    "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
-    "cfg(all(target_arch = \"aarch64\", target_os = \"windows\"))": [],
-    "cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))": ["wasm32-unknown-unknown"],
+    "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(target_arch = \"aarch64\", target_arch = \"arm\")))": [
+      "aarch64-linux-android",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi"
+    ],
+    "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": ["aarch64-pc-windows-msvc"],
+    "cfg(all(target_arch = \"aarch64\", target_os = \"windows\"))": ["aarch64-pc-windows-msvc"],
+    "cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))": ["wasm32-unknown-emscripten", "wasm32-unknown-unknown"],
     "cfg(all(target_arch = \"wasm32\", target_vendor = \"unknown\", target_os = \"unknown\", target_env = \"\"))": ["wasm32-unknown-unknown"],
-    "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [],
-    "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
+    "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": ["i686-unknown-linux-gnu"],
+    "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": ["i686-pc-windows-msvc"],
     "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"],
     "cfg(any(target_arch = \"aarch64\", target_arch = \"arm\", target_arch = \"x86\", target_arch = \"x86_64\"))": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-none",
+      "aarch64-unknown-nto-qnx710",
+      "aarch64-unknown-uefi",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-pc-windows-msvc",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
       "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
     ],
     "cfg(any(target_arch = \"x86\", target_arch = \"x86_64\", all(any(target_arch = \"aarch64\", target_arch = \"arm\"), any(target_os = \"android\", target_os = \"fuchsia\", target_os = \"linux\"))))": [
+      "aarch64-linux-android",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-pc-windows-msvc",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
       "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
+    ],
+    "cfg(any(target_os = \"android\", target_os = \"linux\"))": [
+      "aarch64-linux-android",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-linux-android",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-gnu",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "x86_64-linux-android",
       "x86_64-unknown-linux-gnu",
       "x86_64-unknown-nixos-gnu"
     ],
-    "cfg(any(target_os = \"android\", target_os = \"linux\"))": ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"],
-    "cfg(any(target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"illumos\", target_os = \"netbsd\", target_os = \"openbsd\", target_os = \"solaris\"))": [],
+    "cfg(any(target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"illumos\", target_os = \"netbsd\", target_os = \"openbsd\", target_os = \"solaris\"))": [
+      "i686-unknown-freebsd",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "x86_64-unknown-freebsd"
+    ],
     "cfg(any(unix, target_os = \"fuchsia\", target_os = \"vxworks\"))": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-nto-qnx710",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "wasm32-unknown-emscripten",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
       "x86_64-unknown-nixos-gnu"
     ],
     "cfg(docsrs)": [],
     "cfg(not(target_arch = \"wasm32\"))": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-none",
+      "aarch64-unknown-nto-qnx710",
+      "aarch64-unknown-uefi",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-pc-windows-msvc",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv32imac-unknown-none-elf",
+      "riscv32imc-unknown-none-elf",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-none-elf",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
       "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
     ],
     "cfg(not(windows))": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-none",
+      "aarch64-unknown-nto-qnx710",
+      "aarch64-unknown-uefi",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv32imac-unknown-none-elf",
+      "riscv32imc-unknown-none-elf",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-none-elf",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf",
+      "wasm32-unknown-emscripten",
       "wasm32-unknown-unknown",
       "wasm32-wasip1",
+      "wasm32-wasip1-threads",
+      "wasm32-wasip2",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
     ],
     "cfg(not(windows_raw_dylib))": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-none",
+      "aarch64-unknown-nto-qnx710",
+      "aarch64-unknown-uefi",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-pc-windows-msvc",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv32imac-unknown-none-elf",
+      "riscv32imc-unknown-none-elf",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-none-elf",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf",
+      "wasm32-unknown-emscripten",
       "wasm32-unknown-unknown",
       "wasm32-wasip1",
+      "wasm32-wasip1-threads",
+      "wasm32-wasip2",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
       "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
     ],
-    "cfg(target_arch = \"wasm32\")": ["wasm32-unknown-unknown", "wasm32-wasip1"],
-    "cfg(target_env = \"msvc\")": ["x86_64-pc-windows-msvc"],
+    "cfg(target_arch = \"wasm32\")": [
+      "wasm32-unknown-emscripten",
+      "wasm32-unknown-unknown",
+      "wasm32-wasip1",
+      "wasm32-wasip1-threads",
+      "wasm32-wasip2"
+    ],
+    "cfg(target_env = \"msvc\")": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
     "cfg(target_feature = \"atomics\")": [],
-    "cfg(target_os = \"wasi\")": ["wasm32-wasip1"],
-    "cfg(target_os = \"windows\")": ["x86_64-pc-windows-msvc"],
+    "cfg(target_os = \"wasi\")": ["wasm32-wasip1", "wasm32-wasip1-threads", "wasm32-wasip2"],
+    "cfg(target_os = \"windows\")": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
     "cfg(unix)": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-nto-qnx710",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "wasm32-unknown-emscripten",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
       "x86_64-unknown-nixos-gnu"
     ],
-    "cfg(windows)": ["x86_64-pc-windows-msvc"],
+    "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
     "i686-pc-windows-gnu": [],
     "i686-pc-windows-gnullvm": [],
-    "i686-pc-windows-msvc": [],
     "i686-uwp-windows-gnu": [],
     "i686-uwp-windows-msvc": [],
     "x86_64-pc-windows-gnu": [],
@@ -465,11 +756,242 @@
               {"id": "async-process 1.6.0", "target": "async_process"},
               {"id": "futures-lite 1.12.0", "target": "futures_lite"}
             ],
+            "aarch64-apple-ios": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-apple-ios-macabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-apple-ios-sim": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-linux-android": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-pc-windows-msvc": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-unknown-fuchsia": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
             "aarch64-unknown-linux-gnu": [
               {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
               {"id": "async-io 1.12.0", "target": "async_io"},
               {"id": "async-process 1.6.0", "target": "async_process"},
               {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-unknown-nixos-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-unknown-none": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-unknown-nto-qnx710": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "aarch64-unknown-uefi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "arm-unknown-linux-gnueabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "arm-unknown-linux-musleabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "armv7-linux-androideabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "armv7-unknown-linux-gnueabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "i686-apple-darwin": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "i686-linux-android": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "i686-pc-windows-msvc": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "i686-unknown-freebsd": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "i686-unknown-linux-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "loongarch64-unknown-linux-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "mips-unknown-linux-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "powerpc-unknown-linux-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "riscv32imac-unknown-none-elf": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "riscv32imc-unknown-none-elf": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "riscv64gc-unknown-fuchsia": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "riscv64gc-unknown-linux-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "riscv64gc-unknown-none-elf": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "s390x-unknown-linux-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "sparc64-unknown-linux-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "sparc64-unknown-netbsd": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "sparc64-unknown-openbsd": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "thumbv6m-none-eabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "thumbv7em-none-eabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "thumbv7em-none-eabihf": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "thumbv7m-none-eabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "thumbv8m.main-none-eabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "thumbv8m.main-none-eabihf": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "wasm32-unknown-emscripten": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-channel 0.3.26", "target": "futures_channel"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"},
+              {"id": "gloo-timers 0.2.6", "target": "gloo_timers"},
+              {"id": "wasm-bindgen-futures 0.4.34", "target": "wasm_bindgen_futures"}
             ],
             "wasm32-unknown-unknown": [
               {"id": "futures-channel 0.3.26", "target": "futures_channel"},
@@ -485,7 +1007,61 @@
               {"id": "gloo-timers 0.2.6", "target": "gloo_timers"},
               {"id": "wasm-bindgen-futures 0.4.34", "target": "wasm_bindgen_futures"}
             ],
+            "wasm32-wasip1-threads": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-channel 0.3.26", "target": "futures_channel"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"},
+              {"id": "gloo-timers 0.2.6", "target": "gloo_timers"},
+              {"id": "wasm-bindgen-futures 0.4.34", "target": "wasm_bindgen_futures"}
+            ],
+            "wasm32-wasip2": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-channel 0.3.26", "target": "futures_channel"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"},
+              {"id": "gloo-timers 0.2.6", "target": "gloo_timers"},
+              {"id": "wasm-bindgen-futures 0.4.34", "target": "wasm_bindgen_futures"}
+            ],
+            "x86_64-apple-darwin": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "x86_64-apple-ios": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "x86_64-apple-ios-macabi": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "x86_64-linux-android": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
             "x86_64-pc-windows-msvc": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "x86_64-unknown-freebsd": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "x86_64-unknown-fuchsia": [
               {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
               {"id": "async-io 1.12.0", "target": "async_io"},
               {"id": "async-process 1.6.0", "target": "async_process"},
@@ -498,6 +1074,18 @@
               {"id": "futures-lite 1.12.0", "target": "futures_lite"}
             ],
             "x86_64-unknown-nixos-gnu": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "x86_64-unknown-none": [
+              {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
+              {"id": "async-io 1.12.0", "target": "async_io"},
+              {"id": "async-process 1.6.0", "target": "async_process"},
+              {"id": "futures-lite 1.12.0", "target": "futures_lite"}
+            ],
+            "x86_64-unknown-uefi": [
               {"id": "async-global-executor 2.3.1", "target": "async_global_executor"},
               {"id": "async-io 1.12.0", "target": "async_io"},
               {"id": "async-process 1.6.0", "target": "async_process"},
@@ -1291,11 +1879,59 @@
           "common": [],
           "selects": {
             "aarch64-apple-darwin": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-apple-ios": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-apple-ios-macabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-apple-ios-sim": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-linux-android": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-pc-windows-msvc": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-unknown-fuchsia": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
             "aarch64-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-unknown-nixos-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-unknown-none": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-unknown-nto-qnx710": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "aarch64-unknown-uefi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "arm-unknown-linux-gnueabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "arm-unknown-linux-musleabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "armv7-linux-androideabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "armv7-unknown-linux-gnueabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "i686-apple-darwin": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "i686-linux-android": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "i686-pc-windows-msvc": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "i686-unknown-freebsd": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "i686-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "loongarch64-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "mips-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "powerpc-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "riscv32imac-unknown-none-elf": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "riscv32imc-unknown-none-elf": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "riscv64gc-unknown-fuchsia": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "riscv64gc-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "riscv64gc-unknown-none-elf": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "s390x-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "sparc64-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "sparc64-unknown-netbsd": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "sparc64-unknown-openbsd": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "thumbv6m-none-eabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "thumbv7em-none-eabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "thumbv7em-none-eabihf": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "thumbv7m-none-eabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "thumbv8m.main-none-eabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "thumbv8m.main-none-eabihf": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "wasm32-unknown-emscripten": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
             "wasm32-wasip1": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "wasm32-wasip1-threads": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "wasm32-wasip2": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-apple-darwin": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-apple-ios": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-apple-ios-macabi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-linux-android": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
             "x86_64-pc-windows-msvc": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-unknown-freebsd": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-unknown-fuchsia": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
             "x86_64-unknown-linux-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
-            "x86_64-unknown-nixos-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"]
+            "x86_64-unknown-nixos-gnu": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-unknown-none": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"],
+            "x86_64-unknown-uefi": ["alloc", "default", "fastrand", "futures-io", "memchr", "parking", "std", "waker-fn"]
           }
         },
         "deps": {
@@ -1311,7 +1947,273 @@
               {"id": "parking 2.0.0", "target": "parking"},
               {"id": "waker-fn 1.1.0", "target": "waker_fn"}
             ],
+            "aarch64-apple-ios": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-apple-ios-macabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-apple-ios-sim": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-linux-android": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-pc-windows-msvc": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-unknown-fuchsia": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
             "aarch64-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-unknown-nixos-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-unknown-none": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-unknown-nto-qnx710": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "aarch64-unknown-uefi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "arm-unknown-linux-gnueabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "arm-unknown-linux-musleabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "armv7-linux-androideabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "armv7-unknown-linux-gnueabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "i686-apple-darwin": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "i686-linux-android": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "i686-pc-windows-msvc": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "i686-unknown-freebsd": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "i686-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "loongarch64-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "mips-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "powerpc-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "riscv32imac-unknown-none-elf": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "riscv32imc-unknown-none-elf": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "riscv64gc-unknown-fuchsia": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "riscv64gc-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "riscv64gc-unknown-none-elf": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "s390x-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "sparc64-unknown-linux-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "sparc64-unknown-netbsd": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "sparc64-unknown-openbsd": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "thumbv6m-none-eabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "thumbv7em-none-eabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "thumbv7em-none-eabihf": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "thumbv7m-none-eabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "thumbv8m.main-none-eabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "thumbv8m.main-none-eabihf": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "wasm32-unknown-emscripten": [
               {"id": "fastrand 1.9.0", "target": "fastrand"},
               {"id": "futures-io 0.3.26", "target": "futures_io"},
               {"id": "memchr 2.5.0", "target": "memchr"},
@@ -1325,7 +2227,63 @@
               {"id": "parking 2.0.0", "target": "parking"},
               {"id": "waker-fn 1.1.0", "target": "waker_fn"}
             ],
+            "wasm32-wasip1-threads": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "wasm32-wasip2": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-apple-darwin": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-apple-ios": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-apple-ios-macabi": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-linux-android": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
             "x86_64-pc-windows-msvc": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-unknown-freebsd": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-unknown-fuchsia": [
               {"id": "fastrand 1.9.0", "target": "fastrand"},
               {"id": "futures-io 0.3.26", "target": "futures_io"},
               {"id": "memchr 2.5.0", "target": "memchr"},
@@ -1340,6 +2298,20 @@
               {"id": "waker-fn 1.1.0", "target": "waker_fn"}
             ],
             "x86_64-unknown-nixos-gnu": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-unknown-none": [
+              {"id": "fastrand 1.9.0", "target": "fastrand"},
+              {"id": "futures-io 0.3.26", "target": "futures_io"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "parking 2.0.0", "target": "parking"},
+              {"id": "waker-fn 1.1.0", "target": "waker_fn"}
+            ],
+            "x86_64-unknown-uefi": [
               {"id": "fastrand 1.9.0", "target": "fastrand"},
               {"id": "futures-io 0.3.26", "target": "futures_io"},
               {"id": "memchr 2.5.0", "target": "memchr"},
@@ -1871,10 +2843,55 @@
           "common": ["default", "http1", "server", "socket2", "tcp"],
           "selects": {
             "aarch64-apple-darwin": ["client", "h2", "http2", "runtime"],
+            "aarch64-apple-ios": ["client", "h2", "http2", "runtime"],
+            "aarch64-apple-ios-macabi": ["client", "h2", "http2", "runtime"],
+            "aarch64-apple-ios-sim": ["client", "h2", "http2", "runtime"],
+            "aarch64-linux-android": ["client", "h2", "http2", "runtime"],
+            "aarch64-pc-windows-msvc": ["client", "h2", "http2", "runtime"],
+            "aarch64-unknown-fuchsia": ["client", "h2", "http2", "runtime"],
             "aarch64-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "aarch64-unknown-nixos-gnu": ["client", "h2", "http2", "runtime"],
+            "aarch64-unknown-none": ["client", "h2", "http2", "runtime"],
+            "aarch64-unknown-nto-qnx710": ["client", "h2", "http2", "runtime"],
+            "aarch64-unknown-uefi": ["client", "h2", "http2", "runtime"],
+            "arm-unknown-linux-gnueabi": ["client", "h2", "http2", "runtime"],
+            "arm-unknown-linux-musleabi": ["client", "h2", "http2", "runtime"],
+            "armv7-linux-androideabi": ["client", "h2", "http2", "runtime"],
+            "armv7-unknown-linux-gnueabi": ["client", "h2", "http2", "runtime"],
+            "i686-apple-darwin": ["client", "h2", "http2", "runtime"],
+            "i686-linux-android": ["client", "h2", "http2", "runtime"],
+            "i686-pc-windows-msvc": ["client", "h2", "http2", "runtime"],
+            "i686-unknown-freebsd": ["client", "h2", "http2", "runtime"],
+            "i686-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "loongarch64-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "mips-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "powerpc-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "riscv32imac-unknown-none-elf": ["client", "h2", "http2", "runtime"],
+            "riscv32imc-unknown-none-elf": ["client", "h2", "http2", "runtime"],
+            "riscv64gc-unknown-fuchsia": ["client", "h2", "http2", "runtime"],
+            "riscv64gc-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "riscv64gc-unknown-none-elf": ["client", "h2", "http2", "runtime"],
+            "s390x-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "sparc64-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
+            "sparc64-unknown-netbsd": ["client", "h2", "http2", "runtime"],
+            "sparc64-unknown-openbsd": ["client", "h2", "http2", "runtime"],
+            "thumbv6m-none-eabi": ["client", "h2", "http2", "runtime"],
+            "thumbv7em-none-eabi": ["client", "h2", "http2", "runtime"],
+            "thumbv7em-none-eabihf": ["client", "h2", "http2", "runtime"],
+            "thumbv7m-none-eabi": ["client", "h2", "http2", "runtime"],
+            "thumbv8m.main-none-eabi": ["client", "h2", "http2", "runtime"],
+            "thumbv8m.main-none-eabihf": ["client", "h2", "http2", "runtime"],
+            "x86_64-apple-darwin": ["client", "h2", "http2", "runtime"],
+            "x86_64-apple-ios": ["client", "h2", "http2", "runtime"],
+            "x86_64-apple-ios-macabi": ["client", "h2", "http2", "runtime"],
+            "x86_64-linux-android": ["client", "h2", "http2", "runtime"],
             "x86_64-pc-windows-msvc": ["client", "h2", "http2", "runtime"],
+            "x86_64-unknown-freebsd": ["client", "h2", "http2", "runtime"],
+            "x86_64-unknown-fuchsia": ["client", "h2", "http2", "runtime"],
             "x86_64-unknown-linux-gnu": ["client", "h2", "http2", "runtime"],
-            "x86_64-unknown-nixos-gnu": ["client", "h2", "http2", "runtime"]
+            "x86_64-unknown-nixos-gnu": ["client", "h2", "http2", "runtime"],
+            "x86_64-unknown-none": ["client", "h2", "http2", "runtime"],
+            "x86_64-unknown-uefi": ["client", "h2", "http2", "runtime"]
           }
         },
         "deps": {
@@ -1899,16 +2916,151 @@
             "aarch64-apple-darwin": [
               {"id": "h2 0.3.16", "target": "h2"}
             ],
+            "aarch64-apple-ios": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-apple-ios-macabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-apple-ios-sim": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-linux-android": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-pc-windows-msvc": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-unknown-fuchsia": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
             "aarch64-unknown-linux-gnu": [
               {"id": "h2 0.3.16", "target": "h2"}
             ],
+            "aarch64-unknown-nixos-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-unknown-none": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-unknown-nto-qnx710": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "aarch64-unknown-uefi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "arm-unknown-linux-gnueabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "arm-unknown-linux-musleabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "armv7-linux-androideabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "armv7-unknown-linux-gnueabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "i686-apple-darwin": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "i686-linux-android": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "i686-pc-windows-msvc": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "i686-unknown-freebsd": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "i686-unknown-linux-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "loongarch64-unknown-linux-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "mips-unknown-linux-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "powerpc-unknown-linux-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "riscv32imac-unknown-none-elf": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "riscv32imc-unknown-none-elf": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "riscv64gc-unknown-fuchsia": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "riscv64gc-unknown-linux-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "riscv64gc-unknown-none-elf": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "s390x-unknown-linux-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "sparc64-unknown-linux-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "sparc64-unknown-netbsd": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "sparc64-unknown-openbsd": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "thumbv6m-none-eabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "thumbv7em-none-eabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "thumbv7em-none-eabihf": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "thumbv7m-none-eabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "thumbv8m.main-none-eabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "thumbv8m.main-none-eabihf": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-apple-darwin": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-apple-ios": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-apple-ios-macabi": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-linux-android": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
             "x86_64-pc-windows-msvc": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-unknown-freebsd": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-unknown-fuchsia": [
               {"id": "h2 0.3.16", "target": "h2"}
             ],
             "x86_64-unknown-linux-gnu": [
               {"id": "h2 0.3.16", "target": "h2"}
             ],
             "x86_64-unknown-nixos-gnu": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-unknown-none": [
+              {"id": "h2 0.3.16", "target": "h2"}
+            ],
+            "x86_64-unknown-uefi": [
               {"id": "h2 0.3.16", "target": "h2"}
             ]
           }
@@ -3133,7 +4285,105 @@
               {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
               {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
             ],
+            "aarch64-apple-ios": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-apple-ios-macabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-apple-ios-sim": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-linux-android": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-pc-windows-msvc": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-unknown-fuchsia": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
             "aarch64-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-unknown-nixos-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-unknown-none": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-unknown-nto-qnx710": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "aarch64-unknown-uefi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "arm-unknown-linux-gnueabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "arm-unknown-linux-musleabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "armv7-linux-androideabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "armv7-unknown-linux-gnueabi": [
               {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
               {"id": "rustls 0.20.8", "target": "rustls"},
               {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
@@ -3162,7 +4412,210 @@
             "cfg(windows)": [
               {"id": "winreg 0.10.1", "target": "winreg"}
             ],
+            "i686-apple-darwin": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "i686-linux-android": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "i686-pc-windows-msvc": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "i686-unknown-freebsd": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "i686-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "loongarch64-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "mips-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "powerpc-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "riscv32imac-unknown-none-elf": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "riscv32imc-unknown-none-elf": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "riscv64gc-unknown-fuchsia": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "riscv64gc-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "riscv64gc-unknown-none-elf": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "s390x-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "sparc64-unknown-linux-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "sparc64-unknown-netbsd": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "sparc64-unknown-openbsd": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "thumbv6m-none-eabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "thumbv7em-none-eabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "thumbv7em-none-eabihf": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "thumbv7m-none-eabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "thumbv8m.main-none-eabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "thumbv8m.main-none-eabihf": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-apple-darwin": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-apple-ios": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-apple-ios-macabi": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-linux-android": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
             "x86_64-pc-windows-msvc": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-unknown-freebsd": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-unknown-fuchsia": [
               {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
               {"id": "rustls 0.20.8", "target": "rustls"},
               {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
@@ -3177,6 +4630,20 @@
               {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
             ],
             "x86_64-unknown-nixos-gnu": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-unknown-none": [
+              {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
+              {"id": "rustls 0.20.8", "target": "rustls"},
+              {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
+              {"id": "tokio-rustls 0.23.4", "target": "tokio_rustls"},
+              {"id": "webpki-roots 0.22.6", "target": "webpki_roots"}
+            ],
+            "x86_64-unknown-uefi": [
               {"id": "hyper-rustls 0.23.2", "target": "hyper_rustls"},
               {"id": "rustls 0.20.8", "target": "rustls"},
               {"id": "rustls-pemfile 1.0.2", "target": "rustls_pemfile"},
@@ -3220,7 +4687,25 @@
             {"id": "untrusted 0.7.1", "target": "untrusted"}
           ],
           "selects": {
+            "aarch64-linux-android": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
             "aarch64-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "aarch64-unknown-nixos-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "arm-unknown-linux-gnueabi": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "arm-unknown-linux-musleabi": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "armv7-linux-androideabi": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "armv7-unknown-linux-gnueabi": [
               {"id": "once_cell 1.17.1", "target": "once_cell"}
             ],
             "cfg(all(target_arch = \"wasm32\", target_vendor = \"unknown\", target_os = \"unknown\", target_env = \"\"))": [
@@ -3237,6 +4722,45 @@
             ],
             "cfg(target_os = \"windows\")": [
               {"id": "winapi 0.3.9", "target": "winapi"}
+            ],
+            "i686-linux-android": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "i686-unknown-freebsd": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "i686-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "loongarch64-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "mips-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "powerpc-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "riscv64gc-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "s390x-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "sparc64-unknown-linux-gnu": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "sparc64-unknown-netbsd": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "sparc64-unknown-openbsd": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "x86_64-linux-android": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
+            ],
+            "x86_64-unknown-freebsd": [
+              {"id": "once_cell 1.17.1", "target": "once_cell"}
             ],
             "x86_64-unknown-linux-gnu": [
               {"id": "once_cell 1.17.1", "target": "once_cell"}
@@ -4141,10 +5665,55 @@
           ],
           "selects": {
             "aarch64-apple-darwin": ["bytes", "io-util", "memchr"],
+            "aarch64-apple-ios": ["bytes", "io-util", "memchr"],
+            "aarch64-apple-ios-macabi": ["bytes", "io-util", "memchr"],
+            "aarch64-apple-ios-sim": ["bytes", "io-util", "memchr"],
+            "aarch64-linux-android": ["bytes", "io-util", "memchr"],
+            "aarch64-pc-windows-msvc": ["bytes", "io-util", "memchr", "windows-sys"],
+            "aarch64-unknown-fuchsia": ["bytes", "io-util", "memchr"],
             "aarch64-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "aarch64-unknown-nixos-gnu": ["bytes", "io-util", "memchr"],
+            "aarch64-unknown-none": ["bytes", "io-util", "memchr"],
+            "aarch64-unknown-nto-qnx710": ["bytes", "io-util", "memchr"],
+            "aarch64-unknown-uefi": ["bytes", "io-util", "memchr"],
+            "arm-unknown-linux-gnueabi": ["bytes", "io-util", "memchr"],
+            "arm-unknown-linux-musleabi": ["bytes", "io-util", "memchr"],
+            "armv7-linux-androideabi": ["bytes", "io-util", "memchr"],
+            "armv7-unknown-linux-gnueabi": ["bytes", "io-util", "memchr"],
+            "i686-apple-darwin": ["bytes", "io-util", "memchr"],
+            "i686-linux-android": ["bytes", "io-util", "memchr"],
+            "i686-pc-windows-msvc": ["bytes", "io-util", "memchr", "windows-sys"],
+            "i686-unknown-freebsd": ["bytes", "io-util", "memchr"],
+            "i686-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "loongarch64-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "mips-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "powerpc-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "riscv32imac-unknown-none-elf": ["bytes", "io-util", "memchr"],
+            "riscv32imc-unknown-none-elf": ["bytes", "io-util", "memchr"],
+            "riscv64gc-unknown-fuchsia": ["bytes", "io-util", "memchr"],
+            "riscv64gc-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "riscv64gc-unknown-none-elf": ["bytes", "io-util", "memchr"],
+            "s390x-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "sparc64-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
+            "sparc64-unknown-netbsd": ["bytes", "io-util", "memchr"],
+            "sparc64-unknown-openbsd": ["bytes", "io-util", "memchr"],
+            "thumbv6m-none-eabi": ["bytes", "io-util", "memchr"],
+            "thumbv7em-none-eabi": ["bytes", "io-util", "memchr"],
+            "thumbv7em-none-eabihf": ["bytes", "io-util", "memchr"],
+            "thumbv7m-none-eabi": ["bytes", "io-util", "memchr"],
+            "thumbv8m.main-none-eabi": ["bytes", "io-util", "memchr"],
+            "thumbv8m.main-none-eabihf": ["bytes", "io-util", "memchr"],
+            "x86_64-apple-darwin": ["bytes", "io-util", "memchr"],
+            "x86_64-apple-ios": ["bytes", "io-util", "memchr"],
+            "x86_64-apple-ios-macabi": ["bytes", "io-util", "memchr"],
+            "x86_64-linux-android": ["bytes", "io-util", "memchr"],
             "x86_64-pc-windows-msvc": ["bytes", "io-util", "memchr", "windows-sys"],
+            "x86_64-unknown-freebsd": ["bytes", "io-util", "memchr"],
+            "x86_64-unknown-fuchsia": ["bytes", "io-util", "memchr"],
             "x86_64-unknown-linux-gnu": ["bytes", "io-util", "memchr"],
-            "x86_64-unknown-nixos-gnu": ["bytes", "io-util", "memchr"]
+            "x86_64-unknown-nixos-gnu": ["bytes", "io-util", "memchr"],
+            "x86_64-unknown-none": ["bytes", "io-util", "memchr"],
+            "x86_64-unknown-uefi": ["bytes", "io-util", "memchr"]
           }
         },
         "deps": {
@@ -4161,7 +5730,100 @@
               {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
               {"id": "socket2 0.4.9", "target": "socket2"}
             ],
+            "aarch64-apple-ios": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-apple-ios-macabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-apple-ios-sim": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-linux-android": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-pc-windows-msvc": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"},
+              {"id": "windows-sys 0.45.0", "target": "windows_sys"}
+            ],
+            "aarch64-unknown-fuchsia": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
             "aarch64-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-unknown-nixos-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-unknown-none": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-unknown-nto-qnx710": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "aarch64-unknown-uefi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "arm-unknown-linux-gnueabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "arm-unknown-linux-musleabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "armv7-linux-androideabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "armv7-unknown-linux-gnueabi": [
               {"id": "bytes 1.4.0", "target": "bytes"},
               {"id": "libc 0.2.167", "target": "libc"},
               {"id": "memchr 2.5.0", "target": "memchr"},
@@ -4171,11 +5833,199 @@
             "cfg(docsrs)": [
               {"id": "windows-sys 0.45.0", "target": "windows_sys"}
             ],
+            "i686-apple-darwin": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "i686-linux-android": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "i686-pc-windows-msvc": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"},
+              {"id": "windows-sys 0.45.0", "target": "windows_sys"}
+            ],
+            "i686-unknown-freebsd": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "i686-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "loongarch64-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "mips-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "powerpc-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "riscv32imac-unknown-none-elf": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "riscv32imc-unknown-none-elf": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "riscv64gc-unknown-fuchsia": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "riscv64gc-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "riscv64gc-unknown-none-elf": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "s390x-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "sparc64-unknown-linux-gnu": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "sparc64-unknown-netbsd": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "sparc64-unknown-openbsd": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "thumbv6m-none-eabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "thumbv7em-none-eabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "thumbv7em-none-eabihf": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "thumbv7m-none-eabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "thumbv8m.main-none-eabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "thumbv8m.main-none-eabihf": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "wasm32-unknown-emscripten": [
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"}
+            ],
+            "x86_64-apple-darwin": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "x86_64-apple-ios": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "x86_64-apple-ios-macabi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "x86_64-linux-android": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
             "x86_64-pc-windows-msvc": [
               {"id": "bytes 1.4.0", "target": "bytes"},
               {"id": "memchr 2.5.0", "target": "memchr"},
               {"id": "socket2 0.4.9", "target": "socket2"},
               {"id": "windows-sys 0.45.0", "target": "windows_sys"}
+            ],
+            "x86_64-unknown-freebsd": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "x86_64-unknown-fuchsia": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "libc 0.2.167", "target": "libc"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
             ],
             "x86_64-unknown-linux-gnu": [
               {"id": "bytes 1.4.0", "target": "bytes"},
@@ -4189,6 +6039,16 @@
               {"id": "libc 0.2.167", "target": "libc"},
               {"id": "memchr 2.5.0", "target": "memchr"},
               {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "x86_64-unknown-none": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
+              {"id": "socket2 0.4.9", "target": "socket2"}
+            ],
+            "x86_64-unknown-uefi": [
+              {"id": "bytes 1.4.0", "target": "bytes"},
+              {"id": "memchr 2.5.0", "target": "memchr"},
               {"id": "socket2 0.4.9", "target": "socket2"}
             ]
           }
@@ -5407,6 +7267,7 @@
     },
     "windows-sys 0.52.0": {
       "common_attrs": {
+        "crate_features": ["Win32", "Win32_Foundation", "Win32_System", "Win32_System_Threading", "default"],
         "deps": [
           {"id": "windows-targets 0.52.6", "target": "windows_targets"}
         ],
@@ -6038,12 +7899,60 @@
     "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-none",
+      "aarch64-unknown-nto-qnx710",
+      "aarch64-unknown-uefi",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-pc-windows-msvc",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv32imac-unknown-none-elf",
+      "riscv32imc-unknown-none-elf",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-none-elf",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf",
+      "wasm32-unknown-emscripten",
       "wasm32-unknown-unknown",
       "wasm32-wasip1",
+      "wasm32-wasip1-threads",
+      "wasm32-wasip2",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
       "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
     ]
   },
   "workspace_members": {"pkg_a 0.1.0": "pkg_a", "pkg_b 0.1.0": "sub_pkgs/pkg_b", "pkg_c 0.1.0": "sub_pkgs/pkg_c"}

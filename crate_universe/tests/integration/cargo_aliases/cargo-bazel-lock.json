@@ -1,17 +1,49 @@
 {
   "binary_crates": ["clap 3.2.23", "names 0.12.1-dev", "names 0.13.0", "unsafe-libyaml 0.2.11"],
-  "checksum": "1d81a2aee19cf4c182b19f2c245e8a202e343889d7a114fa98ba05fe94bd0e13",
+  "checksum": "243d6ed40f221464ccb4edc23d5c757c53ed3a9e23e00066858770bcd7376d83",
   "conditions": {
+    "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
     "cfg(any())": [],
     "cfg(target_os = \"hermit\")": [],
-    "cfg(target_os = \"wasi\")": ["wasm32-wasip1"],
+    "cfg(target_os = \"wasi\")": ["wasm32-wasip1", "wasm32-wasip1-threads", "wasm32-wasip2"],
     "cfg(unix)": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-nto-qnx710",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "wasm32-unknown-emscripten",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
       "x86_64-unknown-nixos-gnu"
     ],
-    "cfg(windows)": ["x86_64-pc-windows-msvc"],
+    "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
     "i686-pc-windows-gnu": [],
     "x86_64-pc-windows-gnu": [],
     "x86_64-unknown-linux-gnu": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"]
@@ -978,7 +1010,100 @@
             "aarch64-apple-darwin": [
               {"id": "libc 0.2.139", "target": "libc"}
             ],
+            "aarch64-apple-ios": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "aarch64-apple-ios-macabi": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "aarch64-apple-ios-sim": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "aarch64-linux-android": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "aarch64-unknown-fuchsia": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
             "aarch64-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "aarch64-unknown-nixos-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "aarch64-unknown-nto-qnx710": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "arm-unknown-linux-gnueabi": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "arm-unknown-linux-musleabi": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "armv7-linux-androideabi": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "armv7-unknown-linux-gnueabi": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "i686-apple-darwin": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "i686-linux-android": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "i686-unknown-freebsd": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "i686-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "loongarch64-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "mips-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "powerpc-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "riscv64gc-unknown-fuchsia": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "riscv64gc-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "s390x-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "sparc64-unknown-linux-gnu": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "sparc64-unknown-netbsd": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "sparc64-unknown-openbsd": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "wasm32-unknown-emscripten": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "x86_64-apple-darwin": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "x86_64-apple-ios": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "x86_64-apple-ios-macabi": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "x86_64-linux-android": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "x86_64-unknown-freebsd": [
+              {"id": "libc 0.2.139", "target": "libc"}
+            ],
+            "x86_64-unknown-fuchsia": [
               {"id": "libc 0.2.139", "target": "libc"}
             ],
             "x86_64-unknown-linux-gnu": [
@@ -1634,12 +1759,60 @@
     "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
     "supported_platform_triples": [
       "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-fuchsia",
       "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-none",
+      "aarch64-unknown-nto-qnx710",
+      "aarch64-unknown-uefi",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-pc-windows-msvc",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv32imac-unknown-none-elf",
+      "riscv32imc-unknown-none-elf",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-none-elf",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf",
+      "wasm32-unknown-emscripten",
       "wasm32-unknown-unknown",
       "wasm32-wasip1",
+      "wasm32-wasip1-threads",
+      "wasm32-wasip2",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
       "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
       "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
     ]
   },
   "workspace_members": {"aliases 0.1.0": ""}
