@@ -19,7 +19,9 @@ use crate::metadata::CargoUpdateRequest;
 use crate::metadata::{locked_metadata, resolve_tree_metadata};
 use crate::metadata::{Annotations, Cargo, VendorGenerator};
 use crate::rendering::{render_module_label, write_outputs, Renderer};
-use crate::splicing::{generate_lockfile, Splicer, SplicingManifest, WorkspaceMetadata};
+use crate::splicing::{
+    generate_lockfile, install_lockfile, Splicer, SplicingManifest, WorkspaceMetadata,
+};
 use crate::utils::normalize_cargo_file_paths;
 
 /// Command line options for the `vendor` subcommand
@@ -88,6 +90,12 @@ pub struct VendorOptions {
     /// You basically never want to use this value.
     #[clap(long)]
     pub nonhermetic_root_bazel_workspace_dir: Utf8PathBuf,
+
+    /// Use `--cargo-lockfile` as-is and never write it back. The resolution
+    /// must then match it exactly. Set for lockfiles of other repositories,
+    /// which are never modified.
+    #[clap(long)]
+    pub skip_cargo_lockfile_overwrite: bool,
 }
 
 /// Format content via buildifier's stdin/stdout, avoiding the need to write
@@ -251,12 +259,20 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
         .context("Failed to splice workspace")?;
 
     // Gather a cargo lockfile
-    let cargo_lockfile = generate_lockfile(
-        &manifest_path,
-        &opt.cargo_lockfile,
-        cargo.clone(),
-        &opt.repin,
-    )?;
+    let cargo_lockfile = if let Some(cargo_lockfile_path) = opt
+        .cargo_lockfile
+        .as_ref()
+        .filter(|_| opt.skip_cargo_lockfile_overwrite)
+    {
+        install_lockfile(&manifest_path, cargo_lockfile_path)?
+    } else {
+        generate_lockfile(
+            &manifest_path,
+            &opt.cargo_lockfile,
+            cargo.clone(),
+            &opt.repin,
+        )?
+    };
 
     let config = Config::try_from_path(&opt.config)?;
 
@@ -312,7 +328,11 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
     }
 
     // Store the updated Cargo.lock
-    if let Some(path) = &opt.cargo_lockfile {
+    if let Some(path) = opt
+        .cargo_lockfile
+        .as_ref()
+        .filter(|_| !opt.skip_cargo_lockfile_overwrite)
+    {
         fs::write(path, cargo_lockfile.to_string())
             .context("Failed to write Cargo.lock file back to the workspace.")?;
     }
