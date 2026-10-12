@@ -825,6 +825,10 @@ tasks:
       # A dependency whose repository is declared by specs alone is resolved without
       # fetching its archive, which here does not exist anyway.
       - test ! -e "$(bazel info output_base)/external/dep_specs_only+"
+      # Equal closures share one repository whichever hub resolved them: `cfg-if 1.0.0`
+      # comes from a dependency's shipped lockfile and from the root's own resolution
+      # of another dependency's `Cargo.lock`.
+      - test "$(bazel query 'kind(rust_library, deps(//:test))' | grep -c 'cfg-if-1.0.0')" = 1
   cu_integ_transitive_module_macos:
     name: Crate Universe - transitive_module
     platform: macos_arm64

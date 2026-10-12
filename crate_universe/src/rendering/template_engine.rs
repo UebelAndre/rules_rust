@@ -6,11 +6,12 @@ use std::sync::Arc;
 use anyhow::{Context as AnyhowContext, Result};
 use serde_json::{from_value, to_value, Value};
 
-use crate::config::RenderConfig;
+use crate::config::{CrateId, RenderConfig};
 use crate::context::{Context, SingleBuildFileRenderContext};
 use crate::rendering::{
-    render_crate_bazel_label, render_crate_bazel_repository, render_crate_build_file,
-    render_module_label, CrateContext, Platforms,
+    pool_crate_label, pool_crate_repository, render_crate_bazel_label,
+    render_crate_bazel_repository, render_crate_build_file, render_module_label, CrateContext,
+    Platforms,
 };
 use crate::select::Select;
 use crate::utils::sanitize_repository_name;
@@ -27,6 +28,7 @@ impl TemplateEngine {
         render_config: Arc<RenderConfig>,
         supported_platform_triples: Arc<BTreeSet<TargetTriple>>,
         platform_conditions: Arc<BTreeMap<String, BTreeSet<TargetTriple>>>,
+        pool_repositories: Arc<BTreeMap<CrateId, String>>,
     ) -> Self {
         let mut tera = tera::Tera::default();
         tera.add_raw_templates(vec![
@@ -91,6 +93,7 @@ impl TemplateEngine {
             crate_label_fn_generator(
                 render_config.crate_label_template.clone(),
                 render_config.repository_name.clone(),
+                Arc::clone(&pool_repositories),
             ),
         );
         tera.register_function(
@@ -105,6 +108,7 @@ impl TemplateEngine {
             crate_repository_fn_generator(
                 render_config.crate_repository_template.clone(),
                 render_config.repository_name.clone(),
+                Arc::clone(&pool_repositories),
             ),
         );
         tera.register_function(
@@ -117,6 +121,7 @@ impl TemplateEngine {
                 Arc::clone(&render_config),
                 supported_platform_triples,
                 platform_conditions,
+                pool_repositories,
             ),
         );
 
@@ -240,12 +245,21 @@ fn module_label_fn_generator(template: String) -> impl tera::Function {
 }
 
 /// Convert a crate name into a module name by applying transforms to invalid characters.
-fn crate_label_fn_generator(template: String, repository_name: String) -> impl tera::Function {
+fn crate_label_fn_generator(
+    template: String,
+    repository_name: String,
+    pool_repositories: Arc<BTreeMap<CrateId, String>>,
+) -> impl tera::Function {
     Box::new(
         move |args: &HashMap<String, Value>| -> tera::Result<Value> {
             let name = parse_tera_param!("name", String, args);
             let version = parse_tera_param!("version", String, args);
             let target = parse_tera_param!("target", String, args);
+
+            if let Some(label) = pool_crate_label(&pool_repositories, &name, &version, &target) {
+                return to_value(label.to_string())
+                    .map_err(|_| tera::Error::msg("Failed to generate crate's label"));
+            }
 
             match to_value(sanitize_repository_name(&render_crate_bazel_label(
                 &template,
@@ -284,11 +298,20 @@ fn crate_alias_fn_generator(template: String, repository_name: String) -> impl t
 }
 
 /// Convert a crate name into a module name by applying transforms to invalid characters.
-fn crate_repository_fn_generator(template: String, repository_name: String) -> impl tera::Function {
+fn crate_repository_fn_generator(
+    template: String,
+    repository_name: String,
+    pool_repositories: Arc<BTreeMap<CrateId, String>>,
+) -> impl tera::Function {
     Box::new(
         move |args: &HashMap<String, Value>| -> tera::Result<Value> {
             let name = parse_tera_param!("name", String, args);
             let version = parse_tera_param!("version", String, args);
+
+            if let Some(repository) = pool_crate_repository(&pool_repositories, &name, &version) {
+                return to_value(repository)
+                    .map_err(|_| tera::Error::msg("Failed to generate crate repository name"));
+            }
 
             match to_value(sanitize_repository_name(&render_crate_bazel_repository(
                 &template,
@@ -307,18 +330,21 @@ fn local_crate_mirror_options_json_fn_generator(
     config: Arc<RenderConfig>,
     supported_platform_triples: Arc<BTreeSet<TargetTriple>>,
     platform_conditions: Arc<BTreeMap<String, BTreeSet<TargetTriple>>>,
+    pool_repositories: Arc<BTreeMap<CrateId, String>>,
 ) -> impl tera::Function {
     Box::new(
         move |args: &HashMap<String, Value>| -> tera::Result<Value> {
             let config = Arc::clone(&config);
             let supported_platform_triples = Arc::clone(&supported_platform_triples);
             let platform_conditions = Arc::clone(&platform_conditions);
+            let pool_repositories = Arc::clone(&pool_repositories);
             let crate_context = Arc::new(parse_tera_param!("crate_context", CrateContext, args));
             let context = SingleBuildFileRenderContext {
                 config,
                 supported_platform_triples,
                 platform_conditions,
                 crate_context,
+                pool_repositories,
             };
             serde_json::to_string(&context)
                 .and_then(to_value)
