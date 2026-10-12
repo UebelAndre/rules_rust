@@ -2,6 +2,8 @@
 
 load(
     "//crate_universe/private:common_utils.bzl",
+    "LOCKFILE_MODES",
+    "LOCKFILE_MODE_DOC",
     "get_rust_tools",
     "new_cargo_bazel_fn",
 )
@@ -68,6 +70,7 @@ def _crates_repository_impl(repository_ctx):
         lockfile_path = lockfiles.bazel,
         config = config_path,
         splicing_manifest = splicing_manifest,
+        lockfile_mode = repository_ctx.attr.lockfile_mode,
         repin_instructions = repository_ctx.attr.repin_instructions,
     )
 
@@ -316,6 +319,11 @@ CARGO_BAZEL_REPIN=1 CARGO_BAZEL_REPIN_ONLY=crate_index bazel sync --only=crate_i
                 "If you already have a `MODULE.bazel.lock` file, you don't need this." +
                 "If you don't have a `MODULE.bazel.lock` file, the `lockfile` will save you generation time."
             ),
+        ),
+        "lockfile_mode": attr.string(
+            doc = LOCKFILE_MODE_DOC,
+            values = LOCKFILE_MODES,
+            default = "update",
         ),
         "manifests": attr.label_list(
             doc = "A list of Cargo manifests (`Cargo.toml` files).",
