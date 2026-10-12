@@ -1,5 +1,5 @@
 {
-  "checksum": "a2299c2205f05d75d3c58f9799aaeb39b0dbd20bd3e75c33521ced86e35b2a9d",
+  "checksum": "620dccc37adf557dedc9dc99146126fd1947c8e26e6b84b4f3ba3c856eaec8ac",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -1625,7 +1625,7 @@
         },
         "edition": "2018",
         "extra_deps": [
-          "@m_pkgs__curl//:curl"
+          "@@+http_archive+m_pkgs__curl//:curl"
         ]
       },
       "library_target_name": "curl_sys",

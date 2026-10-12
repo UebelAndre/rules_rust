@@ -262,7 +262,7 @@ a unique toolchain can be created as in the example below:
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
 
 rust_wasm_bindgen_toolchain(
-    wasm_bindgen_cli = "//3rdparty/crates:wasm_bindgen_cli__bin",
+    wasm_bindgen_cli = "@rrwbd//wasm_bindgen_cli__bin",
 )
 
 toolchain(

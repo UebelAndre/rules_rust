@@ -1,20 +1,19 @@
 //! Spawn the binary defined in the transitively-depended
 //! `cu_test_complicated_dependencies` module. That module declares
 //! `crate.from_specs(name = "complicated_dependencies", ...)` with
-//! `crate.annotation(label_injections = ...)` for openssl-sys — but this
+//! `crate.annotation(labels = ...)` for openssl-sys — but this
 //! root module never calls `use_extension` on it. A successful spawn with
 //! an OpenSSL version banner on stdout proves the transitively-declared
 //! crate_universe extension was invoked, its hub repo rendered, the
-//! annotation-injected `@openssl` label propagated to the build script, and
+//! annotation's `@openssl//:install` label propagated to the build script, and
 //! the resulting binary linked and ran end-to-end.
 //!
 //! This root module also `single_version_override`s `openssl` to a different
 //! BCR revision than `complicated_dependencies` declared. The build must
-//! still succeed without re-pinning `complicated_dependencies`'s lockfile —
-//! label_injection's apparent -> canonical substitution is deferred from
-//! repin-time to per-session render-time (see
-//! `crate_universe/src/config/label_injection.rs`), so the lockfile carries
-//! apparent labels and adapts to whatever the current bazel session resolved.
+//! still succeed without re-pinning `complicated_dependencies`'s lockfile:
+//! annotation labels are recorded in their canonical form, and a canonical
+//! repository name does not change under a `single_version_override`, so the
+//! lockfile keeps pointing at whatever `openssl` the current session resolved.
 //!
 //! Note: this test lives in `cargo_local` rather than in its own module so
 //! that one CI job exercises both crate_universe's `from_cargo` resolution

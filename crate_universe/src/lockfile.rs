@@ -116,19 +116,6 @@ impl Digest {
         let rustc_version = Self::bin_version(rustc_bin)?;
         let cargo_bazel_version = env!("CARGO_PKG_VERSION");
 
-        // Mirror the Context.checksum sanitization below for Config's
-        // `label_injection_mapping`: that field is a per-session derived
-        // artifact (apparent -> canonical labels resolved through the consumer
-        // module's repo_mapping). If it entered the hash, a consumer-side
-        // `single_version_override` would shift the canonical names, change
-        // the digest, and force a producer-side repin to recover — which is
-        // impossible for registry-distributed producers whose lockfile lives
-        // in a read-only bzlmod cache.
-        let config_for_hash = Config {
-            label_injection_mapping: Default::default(),
-            ..config.clone()
-        };
-
         // Ensure the checksum of a digest is not present before computing one
         Ok(match context.checksum {
             Some(_) => Self::compute(
@@ -136,7 +123,7 @@ impl Digest {
                     checksum: None,
                     ..context.clone()
                 },
-                &config_for_hash,
+                config,
                 &splicing_metadata,
                 cargo_bazel_version,
                 &cargo_version,
@@ -144,7 +131,7 @@ impl Digest {
             ),
             None => Self::compute(
                 context,
-                &config_for_hash,
+                config,
                 &splicing_metadata,
                 cargo_bazel_version,
                 &cargo_version,
@@ -336,7 +323,7 @@ mod test {
         );
 
         assert_eq!(
-            Digest("be26ebd228c8c1a708922e2b5310b5438753a2ee5e4933cd8f4231f08ed77db7".to_owned()),
+            Digest("8de57b50f32a2b8d3816c2e2c732ebc47dc9b4847990edba62c17cf1a14fc5e5".to_owned()),
             digest,
         );
     }
@@ -381,7 +368,7 @@ mod test {
         );
 
         assert_eq!(
-            Digest("691db61fc9cb12bdf0c2577a9893325a1ebd152637f9fa976748975e2d33e7f6".to_owned()),
+            Digest("7aa2e69bfd734a5721a799ec2b74588d9e15d82a78dff8cca1092a34bd9ae948".to_owned()),
             digest,
         );
     }
@@ -413,7 +400,7 @@ mod test {
         );
 
         assert_eq!(
-            Digest("9e6686e0cac6c31295c99c3a58f20c7aaab267e99ed03bbf6fc6ba956f35d6a5".to_owned()),
+            Digest("5e6538eb40b52a14d21d690c7953538ff628dde3f9ec4ba531ae1b4c5843b2d1".to_owned()),
             digest,
         );
     }
@@ -463,7 +450,7 @@ mod test {
         );
 
         assert_eq!(
-            Digest("8b159ee3d1410e39dedc6c336f2f2cd82b178db31a18c908e604062451db2f8b".to_owned()),
+            Digest("d587cdc66b4c3fea0824814a4645858bcde2f1d081e29967d91c733aed6e6d52".to_owned()),
             digest,
         );
     }

@@ -121,21 +121,12 @@ pub struct GenerateOptions {
 }
 
 pub fn generate(opt: GenerateOptions) -> Result<()> {
-    // Load the config. `config.label_injection_mapping` is the per-session
-    // apparent -> canonical map reflecting the root module's current
-    // `single_version_override` / `multiple_version_override` choices. It is
-    // applied to the Context just before rendering and is sanitized out of
-    // the digest hash in `Digest::new`, so consumer-side overrides don't
-    // force a producer-side repin (the producer's lockfile may live in a
-    // read-only bzlmod cache).
     let config = Config::try_from_path(&opt.config)?;
 
     // Go straight to rendering if there is no need to repin
     if !opt.repin {
         if let Some(lockfile) = &opt.lockfile {
-            // Lockfile stores apparent labels; rewrite to canonical here.
-            let context = Context::try_from_path(lockfile)?
-                .apply_label_injection_mapping(&config.label_injection_mapping)?;
+            let context = Context::try_from_path(lockfile)?;
 
             // Render build files
             let renderer = Renderer::new(
@@ -222,25 +213,17 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         &opt.nonhermetic_root_bazel_workspace_dir,
     )?;
 
-    // Generate renderable contexts for each package. The Context here holds
-    // the user's APPARENT labels (e.g. `@openssl//:install`) because the
-    // label_injection mapping was detached at config load.
+    // Generate renderable contexts for each package
     let context = Context::new(annotations, config.rendering.are_sources_present())?;
 
-    // Render build files. Apply the apparent -> canonical mapping just for
-    // rendering — the lockfile written below uses the original apparent
-    // Context, so consumer-side overrides stay sound without producer-side
-    // repin.
-    let render_context = context
-        .clone()
-        .apply_label_injection_mapping(&config.label_injection_mapping)?;
+    // Render build files
     let renderer = Renderer::new(
         Arc::new(config.rendering.clone()),
         Arc::new(config.supported_platform_triples.clone()),
     );
     render_and_write_outputs(
         &renderer,
-        &render_context,
+        &context,
         opt.generator.clone(),
         &opt.repository_dir,
         &opt.hub_packages_output_path,

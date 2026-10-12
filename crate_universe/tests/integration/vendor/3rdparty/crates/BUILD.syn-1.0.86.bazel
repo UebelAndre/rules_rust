@@ -74,11 +74,11 @@ rust_library(
             "derive",  # arm-unknown-linux-gnueabi
             "proc-macro",  # arm-unknown-linux-gnueabi
         ],
-        "@rules_rust//rust/platform:i686-pc-windows-msvc": [
-            "clone-impls",  # i686-pc-windows-msvc
-            "default",  # i686-pc-windows-msvc
-            "derive",  # i686-pc-windows-msvc
-            "proc-macro",  # i686-pc-windows-msvc
+        "@rules_rust//rust/platform:i686-apple-darwin": [
+            "clone-impls",  # i686-apple-darwin
+            "default",  # i686-apple-darwin
+            "derive",  # i686-apple-darwin
+            "proc-macro",  # i686-apple-darwin
         ],
         "@rules_rust//rust/platform:i686-unknown-linux-gnu": [
             "clone-impls",  # i686-unknown-linux-gnu
@@ -91,6 +91,12 @@ rust_library(
             "default",  # loongarch64-unknown-linux-gnu
             "derive",  # loongarch64-unknown-linux-gnu
             "proc-macro",  # loongarch64-unknown-linux-gnu
+        ],
+        "@rules_rust//rust/platform:mips-unknown-linux-gnu": [
+            "clone-impls",  # mips-unknown-linux-gnu
+            "default",  # mips-unknown-linux-gnu
+            "derive",  # mips-unknown-linux-gnu
+            "proc-macro",  # mips-unknown-linux-gnu
         ],
         "@rules_rust//rust/platform:powerpc-unknown-linux-gnu": [
             "clone-impls",  # powerpc-unknown-linux-gnu
@@ -109,6 +115,18 @@ rust_library(
             "default",  # s390x-unknown-linux-gnu
             "derive",  # s390x-unknown-linux-gnu
             "proc-macro",  # s390x-unknown-linux-gnu
+        ],
+        "@rules_rust//rust/platform:sparc64-unknown-netbsd": [
+            "clone-impls",  # sparc64-unknown-netbsd
+            "default",  # sparc64-unknown-netbsd
+            "derive",  # sparc64-unknown-netbsd
+            "proc-macro",  # sparc64-unknown-netbsd
+        ],
+        "@rules_rust//rust/platform:sparc64-unknown-openbsd": [
+            "clone-impls",  # sparc64-unknown-openbsd
+            "default",  # sparc64-unknown-openbsd
+            "derive",  # sparc64-unknown-openbsd
+            "proc-macro",  # sparc64-unknown-openbsd
         ],
         "@rules_rust//rust/platform:x86_64-apple-darwin": [
             "clone-impls",  # x86_64-apple-darwin
@@ -216,9 +234,9 @@ rust_library(
     }),
     version = "1.0.86",
     deps = [
+        ":build_script_build",
         "@crates_vendor__proc-macro2-1.0.36//:proc_macro2",
         "@crates_vendor__quote-1.0.15//:quote",
-        "@crates_vendor__syn-1.0.86//:build_script_build",
         "@crates_vendor__unicode-xid-0.2.2//:unicode_xid",
     ],
 )
@@ -229,6 +247,9 @@ cargo_build_script(
         include = ["**/*.rs"],
         allow_empty = True,
     ),
+    build_script_env_files = [
+        ":cargo_toml_env_vars",
+    ],
     compile_data = glob(
         include = ["**"],
         allow_empty = True,
@@ -278,11 +299,11 @@ cargo_build_script(
             "derive",  # arm-unknown-linux-gnueabi
             "proc-macro",  # arm-unknown-linux-gnueabi
         ],
-        "@rules_rust//rust/platform:i686-pc-windows-msvc": [
-            "clone-impls",  # i686-pc-windows-msvc
-            "default",  # i686-pc-windows-msvc
-            "derive",  # i686-pc-windows-msvc
-            "proc-macro",  # i686-pc-windows-msvc
+        "@rules_rust//rust/platform:i686-apple-darwin": [
+            "clone-impls",  # i686-apple-darwin
+            "default",  # i686-apple-darwin
+            "derive",  # i686-apple-darwin
+            "proc-macro",  # i686-apple-darwin
         ],
         "@rules_rust//rust/platform:i686-unknown-linux-gnu": [
             "clone-impls",  # i686-unknown-linux-gnu
@@ -295,6 +316,12 @@ cargo_build_script(
             "default",  # loongarch64-unknown-linux-gnu
             "derive",  # loongarch64-unknown-linux-gnu
             "proc-macro",  # loongarch64-unknown-linux-gnu
+        ],
+        "@rules_rust//rust/platform:mips-unknown-linux-gnu": [
+            "clone-impls",  # mips-unknown-linux-gnu
+            "default",  # mips-unknown-linux-gnu
+            "derive",  # mips-unknown-linux-gnu
+            "proc-macro",  # mips-unknown-linux-gnu
         ],
         "@rules_rust//rust/platform:powerpc-unknown-linux-gnu": [
             "clone-impls",  # powerpc-unknown-linux-gnu
@@ -313,6 +340,18 @@ cargo_build_script(
             "default",  # s390x-unknown-linux-gnu
             "derive",  # s390x-unknown-linux-gnu
             "proc-macro",  # s390x-unknown-linux-gnu
+        ],
+        "@rules_rust//rust/platform:sparc64-unknown-netbsd": [
+            "clone-impls",  # sparc64-unknown-netbsd
+            "default",  # sparc64-unknown-netbsd
+            "derive",  # sparc64-unknown-netbsd
+            "proc-macro",  # sparc64-unknown-netbsd
+        ],
+        "@rules_rust//rust/platform:sparc64-unknown-openbsd": [
+            "clone-impls",  # sparc64-unknown-openbsd
+            "default",  # sparc64-unknown-openbsd
+            "derive",  # sparc64-unknown-openbsd
+            "proc-macro",  # sparc64-unknown-openbsd
         ],
         "@rules_rust//rust/platform:x86_64-apple-darwin": [
             "clone-impls",  # x86_64-apple-darwin
