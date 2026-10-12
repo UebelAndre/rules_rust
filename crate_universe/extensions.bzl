@@ -383,7 +383,6 @@ load(
     "new_cargo_bazel_fn",
 )
 load("//crate_universe/private:crate.bzl", _crate_universe_crate = "crate")
-load("//crate_universe/private:crates_repository.bzl", "SUPPORTED_PLATFORM_TRIPLES")
 load(
     "//crate_universe/private:crates_vendor.bzl",
     "CRATES_VENDOR_ATTRS",
@@ -409,7 +408,7 @@ load(
 )
 load("//crate_universe/private:urls.bzl", "CARGO_BAZEL_SHA256S", "CARGO_BAZEL_URLS")
 load("//rust/platform:triple.bzl", "get_host_triple")
-load("//rust/platform:triple_mappings.bzl", "system_to_binary_ext")
+load("//rust/platform:triple_mappings.bzl", "SUPPORTED_PLATFORM_TRIPLES", "system_to_binary_ext")
 
 _OPT_BOOL_VALUES = {
     "auto": None,
