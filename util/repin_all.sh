@@ -6,8 +6,18 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
 # Build the cargo-bazel binary and expose it for repin operations.
 bazel build -c opt //crate_universe:cargo_bazel_bin
-CARGO_BAZEL_GENERATOR_URL="file://$(pwd)/$(bazel cquery -c opt --output=files //crate_universe:cargo_bazel_bin 2>/dev/null)"
+CARGO_BAZEL_GENERATOR="$(pwd)/$(bazel cquery -c opt --output=files //crate_universe:cargo_bazel_bin 2>/dev/null)"
+CARGO_BAZEL_GENERATOR_URL="file://${CARGO_BAZEL_GENERATOR}"
 export CARGO_BAZEL_GENERATOR_URL
+
+# Bazel caches downloads by URL, so without a checksum a rebuilt binary at the
+# same path would be served from the cache of an earlier run.
+if command -v sha256sum >/dev/null 2>&1; then
+  CARGO_BAZEL_GENERATOR_SHA256="$(sha256sum "${CARGO_BAZEL_GENERATOR}" | cut -d' ' -f1)"
+else
+  CARGO_BAZEL_GENERATOR_SHA256="$(shasum -a 256 "${CARGO_BAZEL_GENERATOR}" | cut -d' ' -f1)"
+fi
+export CARGO_BAZEL_GENERATOR_SHA256
 
 # Re-generates all files which may need to be re-generated after changing crate_universe.
 for target in $(bazel query 'kind("crates_vendor", //...)'); do
