@@ -85,41 +85,45 @@ def execute(repository_ctx, args, env = {}, allow_fail = False, quiet = True):
 def new_cargo_bazel_fn(
         repository_ctx,
         cargo_bazel_path,
-        cargo_path,
-        rustc_path,
+        cargo_path = None,
+        rustc_path = None,
         isolated = True,
         quiet = False):
     """A helper function to allow executing cargo_bazel in repository rules module extensions.
 
+    Only resolving (`splice`) needs Cargo. Checking, rendering and pooling
+    lockfiles do not, so `cargo_path` is optional and the Cargo repository need
+    not be fetched for them. Cargo runs without a rustc, `cargo-bazel` standing
+    in for one; `rustc_path` gives it a real one, which is consulted only for
+    platforms with no recorded `rustc --print=cfg`.
+
     Args:
         repository_ctx (repository_ctx): The repository rule or module extension's context.
         cargo_bazel_path (path): Path The path to a `cargo-bazel` binary
-        cargo_path (path): Path to a Cargo binary.
-        rustc_path (path): Path to a rustc binary.
+        cargo_path (path, optional): Path to a Cargo binary.
+        rustc_path (path, optional): Path to a rustc binary to pair with Cargo.
         isolated (bool): Enable isolation upon request.
         quiet (bool): Whether or not to print output from the executable.
     Returns:
         A function that can be called to execute cargo_bazel.
     """
+    if rustc_path != None and cargo_path == None:
+        fail("`rustc_path` needs `cargo_path`")
 
-    # Placing this as a nested function allows users to call this right at the
-    # start of a module extension, thus triggering any restarts as early as
-    # possible (since module_ctx.path triggers restarts).
+    tool_args = []
+    tool_env = {}
+    if cargo_path != None:
+        tool_args = ["--cargo", cargo_path]
+        tool_env = {"CARGO": str(cargo_path)}
+    if rustc_path != None:
+        tool_args += ["--rustc", rustc_path]
+        tool_env["RUSTC"] = str(rustc_path)
+
     def _execute(args, env = {}, allow_fail = False):
         return execute(
             repository_ctx,
-            args = [
-                cargo_bazel_path,
-            ] + args + [
-                "--cargo",
-                cargo_path,
-                "--rustc",
-                rustc_path,
-            ],
-            env = {
-                "CARGO": str(cargo_path),
-                "RUSTC": str(rustc_path),
-            } | cargo_environ(repository_ctx, isolated = isolated) | env,
+            args = [cargo_bazel_path] + args + tool_args,
+            env = tool_env | cargo_environ(repository_ctx, isolated = isolated) | env,
             allow_fail = allow_fail,
             quiet = quiet,
         )
@@ -127,7 +131,7 @@ def new_cargo_bazel_fn(
     return _execute
 
 def get_rust_tools(repository_ctx, host_triple):
-    """Retrieve a cargo and rustc binary based on the host triple.
+    """Retrieve a cargo binary, and a rustc when a template names one, based on the host triple.
 
     Args:
         repository_ctx (repository_ctx): The rule's context object.
@@ -155,7 +159,7 @@ def get_rust_tools(repository_ctx, host_triple):
 
     return _rust_get_rust_tools(
         cargo_template = repository_ctx.attr.rust_toolchain_cargo_template,
-        rustc_template = repository_ctx.attr.rust_toolchain_rustc_template,
+        rustc_template = repository_ctx.attr.rust_toolchain_rustc_template or None,
         host_triple = host_triple,
         channel = channel,
         version = version,

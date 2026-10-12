@@ -27,15 +27,6 @@ const POOL_REGEN_COMMAND: &str = "repin any crate_universe repository depending 
 #[derive(Parser, Debug)]
 #[clap(about = "Command line options for the `pool` subcommand", version)]
 pub struct PoolOptions {
-    /// The path to a Cargo binary. Unused: pooling renders from lockfiles alone, but the
-    /// module extension passes the toolchain to every `cargo-bazel` invocation.
-    #[clap(long, env = "CARGO")]
-    pub cargo: Option<PathBuf>,
-
-    /// The path to a rustc binary. Unused, see `cargo`.
-    #[clap(long, env = "RUSTC")]
-    pub rustc: Option<PathBuf>,
-
     /// A JSON list of the hubs to pool: `[{"name": ..., "lockfile": ..., "config": ...}]`.
     #[clap(long)]
     pub hubs: PathBuf,

@@ -31,6 +31,10 @@ pub use pool::pool;
 pub use query::query;
 pub use render::render;
 pub use rustc_cfgs::{rustc_cfgs, RustcCfgsOptions};
+
+/// Answers as `rustc` when Cargo, run by cargo-bazel, asks; see
+/// [crate::metadata::rustc_shim].
+pub use crate::metadata::rustc_shim::run as rustc_shim;
 pub use splice::splice;
 pub use vendor::vendor;
 

@@ -1,7 +1,7 @@
 //! Tools for invoking Cargo subcommands.
 
 use std::collections::BTreeMap;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
@@ -10,32 +10,50 @@ use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::MetadataCommand;
 use semver::Version;
 
-use crate::lockfile::Digest;
+use crate::metadata::rustc_shim::{self, RustcShim};
 
 /// Cargo encapsulates a path to a `cargo` binary.
 /// Any invocations of `cargo` (either as a `std::process::Command` or via `cargo_metadata`) should
 /// go via this wrapper to ensure that any environment variables needed are set appropriately.
+///
+/// Cargo runs without a `rustc`: unless one is given, `RUSTC` points at this
+/// very executable, which answers Cargo's questions about the toolchain from
+/// Cargo's own version and the recorded `cfg` table. See
+/// [rustc_shim](crate::metadata::rustc_shim).
 #[derive(Debug, Clone)]
 pub(crate) struct Cargo {
     path: PathBuf,
-    rustc_path: PathBuf,
+    rustc_path: Option<PathBuf>,
     full_version: Arc<Mutex<Option<String>>>,
+    shim: Arc<Mutex<Option<RustcShim>>>,
     cargo_home: Option<PathBuf>,
 }
 
 impl Cargo {
-    pub(crate) fn new(path: PathBuf, rustc: PathBuf) -> Cargo {
+    /// A cargo at `path`. `rustc` is the compiler to pair it with; `None`
+    /// stands in for one, which is all resolving needs.
+    pub(crate) fn new(path: PathBuf, rustc: Option<PathBuf>) -> Cargo {
         Cargo {
             path,
             rustc_path: rustc,
             full_version: Arc::new(Mutex::new(None)),
+            shim: Arc::new(Mutex::new(None)),
             cargo_home: None,
         }
     }
 
-    /// Returns the path to the `rustc` binary paired with this cargo.
-    pub(crate) fn rustc_path(&self) -> &Path {
-        &self.rustc_path
+    /// The `rustc` binary paired with this cargo, when a real one was given.
+    pub(crate) fn rustc_path(&self) -> Option<&Path> {
+        self.rustc_path.as_deref()
+    }
+
+    /// What this cargo's stand-in for `rustc` answers from.
+    fn shim(&self) -> Result<RustcShim> {
+        let mut shim = self.shim.lock().unwrap();
+        if shim.is_none() {
+            *shim = Some(RustcShim::for_cargo(&self.path)?);
+        }
+        Ok(shim.clone().unwrap())
     }
 
     /// The `CARGO_HOME` this cargo works in: the one set here, else the
@@ -93,12 +111,11 @@ impl Cargo {
         Ok(command)
     }
 
-    /// Returns the output of running `cargo version`, trimming any leading or trailing whitespace.
-    /// This function performs normalisation to work around `<https://github.com/rust-lang/cargo/issues/10547>`
-    pub(crate) fn full_version(&self) -> Result<String> {
+    /// Returns the output of running `cargo --version`, trimming any leading or trailing whitespace.
+    fn full_version(&self) -> Result<String> {
         let mut full_version = self.full_version.lock().unwrap();
         if full_version.is_none() {
-            let observed_version = Digest::bin_version(&self.path)?;
+            let observed_version = bin_version(&self.path)?;
             *full_version = Some(observed_version);
         }
         Ok(full_version.clone().unwrap())
@@ -152,7 +169,20 @@ impl Cargo {
     fn env(&self) -> Result<BTreeMap<String, OsString>> {
         let mut map = BTreeMap::new();
 
-        map.insert("RUSTC".into(), self.rustc_path.as_os_str().to_owned());
+        match &self.rustc_path {
+            Some(rustc) => {
+                map.insert("RUSTC".into(), rustc.as_os_str().to_owned());
+            }
+            None => {
+                map.insert("RUSTC".into(), rustc_shim::executable()?.into_os_string());
+                map.insert(rustc_shim::ENV.into(), self.shim()?.to_env().into());
+                // Cargo caches what rustc answered in `target/.rustc_info.json`,
+                // keyed by the rustc binary's path and mtime alone. The stand-in
+                // answers for whichever Cargo runs it, so a reused target directory
+                // must not serve a previous Cargo's answers.
+                map.insert("CARGO_CACHE_RUSTC_INFO".into(), "0".into());
+            }
+        }
 
         if self.use_sparse_registries_for_crates_io()? {
             map.insert(
@@ -167,4 +197,32 @@ impl Cargo {
 
         Ok(map)
     }
+}
+
+/// The output of `<binary> --version`, run in an environment scrubbed of
+/// everything but what the binary needs to start.
+fn bin_version(binary: &Path) -> Result<String> {
+    let safe_vars = [
+        OsStr::new("HOME"),
+        OsStr::new("HOMEDRIVE"),
+        OsStr::new("PATHEXT"),
+        OsStr::new("NIX_LD"),
+        OsStr::new("NIX_LD_LIBRARY_PATH"),
+    ];
+    let env = std::env::vars_os().filter(|(var, _)| safe_vars.contains(&var.as_os_str()));
+
+    let output = Command::new(binary)
+        .arg("--version")
+        .env_clear()
+        .envs(env)
+        .output()
+        .with_context(|| format!("Failed to run {} to get its version", binary.display()))?;
+
+    if !output.status.success() {
+        eprintln!("{}", String::from_utf8_lossy(&output.stdout));
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+        bail!("Failed to query cargo version")
+    }
+
+    Ok(String::from_utf8(output.stdout)?.trim().to_owned())
 }

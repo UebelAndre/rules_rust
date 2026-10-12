@@ -193,7 +193,7 @@ fn collect_deps_selectable(
     // to the lack of `resolver = 2` support in the `cargo metadata` subcommand.
     // To ensure accurate dependencies are determined, metadata is only used to
     // determine the general list of dependencies but any one of them can be demoted
-    // to a platform specific dep depending on the `cargo tree` data provided.
+    // to a platform specific dep depending on the per-platform resolution provided.
     //
     // For more details see: https://github.com/rust-lang/cargo/issues/9863
     for dep in deps.into_iter() {
