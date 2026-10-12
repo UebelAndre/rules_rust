@@ -40,6 +40,7 @@ use guppy::platform::{Platform, TargetFeatures};
 use tracing::{debug, trace};
 
 use crate::config::CrateId;
+use crate::metadata::binary_only::locked_metadata;
 use crate::metadata::cargo_bin::Cargo;
 use crate::metadata::tree_resolver_metadata::{
     collapse_to_selects, group_by_cargo_triple, host_triples_with_tools, merge_tree_data,
@@ -182,28 +183,7 @@ impl GuppyResolver {
     /// `StandardFeatures::Default` initials, so this only widens the graph guppy is
     /// allowed to see, not the features it reports.
     fn build_package_graph(&self, manifest_path: &Utf8Path) -> Result<PackageGraph> {
-        let output = self
-            .cargo_bin
-            .metadata_command_with_options(
-                manifest_path.as_std_path(),
-                vec!["--locked".to_owned(), "--all-features".to_owned()],
-            )?
-            .cargo_command()
-            .output()
-            .with_context(|| {
-                format!(
-                    "Error spawning cargo in child process to compute metadata for manifest '{}'",
-                    manifest_path
-                )
-            })?;
-
-        if !output.status.success() {
-            tracing::error!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("Failed to run cargo metadata: {}", output.status);
-        }
-
-        let json = String::from_utf8(output.stdout)
-            .context("`cargo metadata` produced output which was not valid UTF-8")?;
+        let json = locked_metadata(&self.cargo_bin, manifest_path.as_std_path(), true)?;
 
         PackageGraph::from_json(&json)
             .map_err(anyhow::Error::new)
@@ -305,13 +285,10 @@ fn ensure_lockfile_packages_resolved(
     }
 
     bail!(
-        "`Cargo.lock` lists packages which `cargo metadata` did not resolve: [{}]. This \
-         happens when a dependency has no library target; Cargo ignores such a \
-         dependency when building, and `cargo metadata` omits the package entirely. \
-         Remove it from `packages` / `Cargo.toml` and declare any features it enabled \
-         on its library dependencies directly. The legacy `cargo tree` resolver \
-         tolerated this; `incompatible_guppy_resolver = False` in `splicing_config` \
-         restores it in the meantime.",
+        "`Cargo.lock` lists packages which `cargo metadata` did not resolve: [{}]. Cargo \
+         omits dependencies without a library target; those from registries are put \
+         back from their downloaded sources, so this is a package which could not be \
+         recovered. Please report it to rules_rust.",
         missing.join(", "),
     )
 }
