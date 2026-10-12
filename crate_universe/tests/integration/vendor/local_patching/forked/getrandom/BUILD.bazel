@@ -67,7 +67,7 @@ rust_library(
     }),
     version = "0.2.15",
     deps = [
-        "//local_patching/forked/getrandom:build_script_build",
+        ":build_script_build",
         "//local_patching/vendor/cfg-if-1.0.0:cfg_if",
     ],
 )
@@ -78,6 +78,9 @@ cargo_build_script(
         include = ["**/*.rs"],
         allow_empty = False,
     ),
+    build_script_env_files = [
+        ":cargo_toml_env_vars",
+    ],
     compile_data = glob(
         include = ["**"],
         allow_empty = True,

@@ -41,7 +41,7 @@ rust_library(
     crate_root = "src/lib.rs",
     edition = "2021",
     proc_macro_deps = [
-        "@rmdbi__yoke-derive-0.8.2//:yoke_derive",
+        "@rmdbi__yoke-derive-0.8.4//:yoke_derive",
     ],
     rustc_env_files = [
         ":cargo_toml_env_vars",

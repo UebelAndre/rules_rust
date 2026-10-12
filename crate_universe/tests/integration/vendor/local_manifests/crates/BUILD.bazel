@@ -44,25 +44,25 @@ alias(
 )
 
 alias(
-    name = "tokio-1.52.3",
-    actual = "//local_manifests/crates/tokio-1.52.3:tokio",
+    name = "tokio-1.53.2",
+    actual = "//local_manifests/crates/tokio-1.53.2:tokio",
     tags = ["manual"],
 )
 
 alias(
     name = "tokio",
-    actual = "//local_manifests/crates/tokio-1.52.3:tokio",
+    actual = "//local_manifests/crates/tokio-1.53.2:tokio",
     tags = ["manual"],
 )
 
 alias(
-    name = "tokio-test-0.4.5",
-    actual = "//local_manifests/crates/tokio-test-0.4.5:tokio_test",
+    name = "tokio-test-0.4.6",
+    actual = "//local_manifests/crates/tokio-test-0.4.6:tokio_test",
     tags = ["manual"],
 )
 
 alias(
     name = "tokio-test",
-    actual = "//local_manifests/crates/tokio-test-0.4.5:tokio_test",
+    actual = "//local_manifests/crates/tokio-test-0.4.6:tokio_test",
     tags = ["manual"],
 )
