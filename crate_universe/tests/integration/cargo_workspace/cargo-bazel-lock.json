@@ -1,5 +1,5 @@
 {
-  "checksum": "959d0151799a5a2655f5b1081f7ab5b65baa12b58790e3d1c030dc02016aa54d",
+  "checksum": "3c4f79eaf037dd02778f77a964feb9f367a1b5bb3851870c65a13c470047e09d",
   "conditions": {
     "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
     "cfg(not(target_os = \"emscripten\"))": [
