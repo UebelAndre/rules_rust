@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::MetadataCommand;
 use semver::Version;
 
@@ -36,6 +36,21 @@ impl Cargo {
     /// Returns the path to the `rustc` binary paired with this cargo.
     pub(crate) fn rustc_path(&self) -> &Path {
         &self.rustc_path
+    }
+
+    /// The `CARGO_HOME` this cargo works in: the one set here, else the
+    /// environment's, else Cargo's default.
+    pub(crate) fn cargo_home(&self) -> Result<PathBuf> {
+        if let Some(cargo_home) = &self.cargo_home {
+            return Ok(cargo_home.clone());
+        }
+        if let Some(cargo_home) = std::env::var_os("CARGO_HOME") {
+            return Ok(PathBuf::from(cargo_home));
+        }
+        let user_home = std::env::var_os("HOME")
+            .or_else(|| std::env::var_os("USERPROFILE"))
+            .ok_or_else(|| anyhow!("Neither `CARGO_HOME` nor `HOME` is set"))?;
+        Ok(PathBuf::from(user_home).join(".cargo"))
     }
 
     /// Returns a new `Command` for running this cargo.

@@ -8,8 +8,7 @@ edition = "2021"
 [lib]
 path = "lib.rs"
 
-# `shellharden` ships only a binary. `cargo tree` follows the edge, but
-# `cargo metadata` drops the package with a warning, so the guppy resolver
-# must detect it rather than silently resolving nothing for it.
+# `shellharden` ships only a binary. `cargo metadata` drops the package with
+# a warning; the resolver puts it back from its downloaded source.
 [dependencies]
 shellharden = "=4.3.2"

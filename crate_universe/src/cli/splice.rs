@@ -1,8 +1,6 @@
 //! The cli entrypoint for the `splice` subcommand
 
-use std::fs::File;
 use std::path::PathBuf;
-use std::process::Stdio;
 
 use anyhow::Context;
 use camino::Utf8PathBuf;
@@ -11,7 +9,7 @@ use itertools::Itertools;
 
 use crate::cli::Result;
 use crate::config::Config;
-use crate::metadata::{resolve_tree_metadata, Cargo, CargoUpdateRequest};
+use crate::metadata::{locked_metadata, resolve_tree_metadata, Cargo, CargoUpdateRequest};
 use crate::splicing::{
     generate_lockfile, Splicer, SplicerKind, SplicingManifest, WorkspaceMetadata,
 };
@@ -156,19 +154,12 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
         )
     })?;
 
-    let metadata_json = File::create(opt.output_dir.join("metadata.json"))?;
-
     // Write metadata to the workspace for future reuse
-    cargo
-        .metadata_command_with_options(
-            manifest_path.as_path_buf().as_ref(),
-            vec!["--locked".to_owned()],
-        )?
-        .cargo_command()
-        .stdout(Stdio::from(metadata_json))
-        .stderr(Stdio::null())
-        .status()
-        .context("Failed to generate cargo metadata")?;
+    std::fs::write(
+        opt.output_dir.join("metadata.json"),
+        locked_metadata(&cargo, manifest_path.as_path_buf().as_std_path(), false)?,
+    )
+    .context("Failed to write cargo metadata")?;
 
     let cargo_lockfile_path = manifest_path
         .as_path_buf()
