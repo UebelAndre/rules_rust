@@ -9,4 +9,6 @@ publish = false
 path = "lib.rs"
 
 [dependencies]
-mdbook = "=0.4.44"
+# `mdbook` ships only a binary since 0.5; `cargo metadata` drops such a
+# package, and crate_universe puts it back from its source.
+mdbook = "=0.5.4"
