@@ -322,29 +322,11 @@ impl WorkspaceMetadata {
         let crate_indexes = index_urls
             .into_iter()
             .map(|(source_kind, url)| {
-                // Ensure the correct registry is mapped based on the give Cargo config.
-                let index_url = if let Some(config) = &cargo_config {
-                    config.resolve_replacement_url(&url)?
-                } else {
-                    &url
-                };
-                let index = if cargo.use_sparse_registries_for_crates_io()?
-                    && index_url == utils::CRATES_IO_INDEX_URL
-                {
+                let index_url =
+                    registry_index_url(cargo, cargo_config.as_ref(), &source_kind, &url)?;
+                let index = if index_url.starts_with("sparse+") {
                     let index = crates_index::SparseIndex::from_url_with_hash_kind(
-                        "sparse+https://index.crates.io/",
-                        &crate_index_hash_kind,
-                    )?;
-                    let index_config = index
-                        .index_config()
-                        .context("Failed to get crate index config")?;
-                    CrateIndexLookup::Http {
-                        index,
-                        index_config,
-                    }
-                } else if index_url.starts_with("sparse+") {
-                    let index = crates_index::SparseIndex::from_url_with_hash_kind(
-                        index_url,
+                        &index_url,
                         &crate_index_hash_kind,
                     )?;
                     let index_config = index
@@ -355,44 +337,17 @@ impl WorkspaceMetadata {
                         index_config,
                     }
                 } else {
-                    match source_kind {
-                        SourceKind::Registry => {
-                            let index = crates_index::GitIndex::from_url_with_hash_kind(
-                                index_url,
-                                &crate_index_hash_kind,
-                            )
-                            .with_context(|| {
-                                format!("Failed to load index for url: {index_url}")
-                            })?;
-
-                            let index_config = index.index_config().with_context(|| {
-                                format!("`config.json` not found in index: {index_url}")
-                            })?;
-                            CrateIndexLookup::Git {
-                                index,
-                                index_config,
-                            }
-                        }
-                        SourceKind::SparseRegistry => {
-                            let index = crates_index::SparseIndex::from_url_with_hash_kind(
-                                format!("sparse+{}", index_url).as_str(),
-                                &crate_index_hash_kind,
-                            )?;
-                            let index_config = index
-                                .index_config()
-                                .context("Failed to get crate index config")?;
-                            CrateIndexLookup::Http {
-                                index,
-                                index_config,
-                            }
-                        }
-                        unknown => {
-                            return Err(anyhow!(
-                                "'{:?}' crate index type is not supported (caused by '{}')",
-                                &unknown,
-                                url
-                            ));
-                        }
+                    let index = crates_index::GitIndex::from_url_with_hash_kind(
+                        &index_url,
+                        &crate_index_hash_kind,
+                    )
+                    .with_context(|| format!("Failed to load index for url: {index_url}"))?;
+                    let index_config = index.index_config().with_context(|| {
+                        format!("`config.json` not found in index: {index_url}")
+                    })?;
+                    CrateIndexLookup::Git {
+                        index,
+                        index_config,
                     }
                 };
                 Ok((url, index))
@@ -474,6 +429,36 @@ impl SplicedManifest {
 pub(crate) fn read_manifest(manifest: &Utf8Path) -> Result<Manifest> {
     let content = fs::read_to_string(manifest.as_std_path())?;
     cargo_toml::Manifest::from_str(content.as_str()).context("Failed to deserialize manifest")
+}
+
+/// The URL of the index a registry package is looked up in: the lockfile's
+/// source after any `[source]` replacement of the Cargo config, in the form
+/// `crates_index` expects (`sparse+` for sparse registries).
+pub(crate) fn registry_index_url(
+    cargo: &Cargo,
+    cargo_config: Option<&CargoConfig>,
+    source_kind: &SourceKind,
+    url: &str,
+) -> Result<String> {
+    let index_url = match cargo_config {
+        Some(config) => config.resolve_replacement_url(url)?.to_owned(),
+        None => url.to_owned(),
+    };
+    if cargo.use_sparse_registries_for_crates_io()? && index_url == utils::CRATES_IO_INDEX_URL {
+        return Ok("sparse+https://index.crates.io/".to_owned());
+    }
+    if index_url.starts_with("sparse+") {
+        return Ok(index_url);
+    }
+    match source_kind {
+        SourceKind::Registry => Ok(index_url),
+        SourceKind::SparseRegistry => Ok(format!("sparse+{index_url}")),
+        unknown => Err(anyhow!(
+            "'{:?}' crate index type is not supported (caused by '{}')",
+            unknown,
+            url
+        )),
+    }
 }
 
 pub(crate) fn generate_lockfile(

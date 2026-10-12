@@ -26,6 +26,7 @@ use guppy::platform::{Platform, TargetFeatures};
 use tracing::{debug, trace};
 
 use crate::config::CrateId;
+use crate::metadata::binary_only::locked_metadata;
 use crate::metadata::cargo_bin::Cargo;
 use crate::metadata::tree_resolver_metadata::{
     collapse_to_selects, group_by_cargo_triple, host_triples_with_tools, merge_tree_data,
@@ -75,8 +76,7 @@ impl GuppyResolver {
         let cargo_host_triples = group_by_cargo_triple(&host_triples);
         let cargo_target_triples = group_by_cargo_triple(target_triples);
 
-        let package_graph = self.build_package_graph(pristine_manifest_path)?;
-        ensure_lockfile_packages_resolved(pristine_manifest_path, &package_graph)?;
+        let (package_graph, metadata) = self.build_package_graph(pristine_manifest_path)?;
         let resolver = resolver_version(pristine_manifest_path)?;
 
         // Build a `Platform` per unique cargo triple from real `rustc --print=cfg`
@@ -84,13 +84,20 @@ impl GuppyResolver {
         // `cfg(target_feature = "...")` and out-of-tree triples evaluate the way rustc
         // would. Hosts are a subset of the targets, so the target triples alone cover
         // every platform needed below.
-        let platforms = cargo_target_triples
-            .keys()
-            .map(|triple| {
-                let platform = self.platform_for_triple(triple)?;
-                Ok((triple.clone(), Arc::new(platform)))
-            })
-            .collect::<Result<BTreeMap<String, Arc<Platform>>>>()?;
+        let mut platforms = BTreeMap::<String, Arc<Platform>>::new();
+        let mut platform_cfgs = Vec::<(String, Vec<cargo_platform::Cfg>)>::new();
+        for triple in cargo_target_triples.keys() {
+            let (platform, cfgs) = self.platform_for_triple(triple)?;
+            platforms.insert(triple.clone(), Arc::new(platform));
+            platform_cfgs.push((triple.clone(), cfgs));
+        }
+
+        ensure_dependencies_resolved(
+            pristine_manifest_path,
+            &metadata,
+            &package_graph,
+            &platform_cfgs,
+        )?;
 
         // The initials are what Cargo starts resolution from and do not vary with the
         // platform pair. Building them here also warms the feature graph guppy builds
@@ -161,49 +168,39 @@ impl GuppyResolver {
     /// default. Feature resolution itself is performed by guppy against the
     /// `StandardFeatures::Default` initials, so this only widens the graph guppy is
     /// allowed to see, not the features it reports.
-    fn build_package_graph(&self, manifest_path: &Utf8Path) -> Result<PackageGraph> {
-        let output = self
-            .cargo_bin
-            .metadata_command_with_options(
-                manifest_path.as_std_path(),
-                vec!["--locked".to_owned(), "--all-features".to_owned()],
-            )?
-            .cargo_command()
-            .output()
-            .with_context(|| {
-                format!(
-                    "Error spawning cargo in child process to compute metadata for manifest '{}'",
-                    manifest_path
-                )
-            })?;
+    fn build_package_graph(
+        &self,
+        manifest_path: &Utf8Path,
+    ) -> Result<(PackageGraph, cargo_metadata::Metadata)> {
+        let json = locked_metadata(&self.cargo_bin, manifest_path.as_std_path(), true)?;
 
-        if !output.status.success() {
-            tracing::error!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("Failed to run cargo metadata: {}", output.status);
-        }
-
-        let json = String::from_utf8(output.stdout)
-            .context("`cargo metadata` produced output which was not valid UTF-8")?;
-
-        PackageGraph::from_json(&json)
+        let package_graph = PackageGraph::from_json(&json)
             .map_err(anyhow::Error::new)
             .with_context(|| {
                 format!(
                     "Failed to build a package graph from the metadata of '{}'",
                     manifest_path
                 )
-            })
+            })?;
+        // Parsed a second time with this crate's own `cargo_metadata`, since guppy's
+        // copy of the type is private. Only the declared dependencies are read from it.
+        let metadata: cargo_metadata::Metadata = serde_json::from_str(&json)
+            .with_context(|| format!("Failed to parse the metadata of '{manifest_path}'"))?;
+
+        Ok((package_graph, metadata))
     }
 
     /// Builds a guppy [Platform] for a cargo target triple from the output of
-    /// `rustc --print=cfg --target={triple}`.
-    fn platform_for_triple(&self, triple: &str) -> Result<Platform> {
+    /// `rustc --print=cfg --target={triple}`, along with the cfgs themselves.
+    fn platform_for_triple(&self, triple: &str) -> Result<(Platform, Vec<cargo_platform::Cfg>)> {
         let cfg_text = rustc_print_cfg(self.cargo_bin.rustc_path(), triple)?;
         let target_features = parse_target_features(&cfg_text);
 
-        Platform::new_custom_cfg(triple.to_owned(), &cfg_text, target_features)
+        let platform = Platform::new_custom_cfg(triple.to_owned(), &cfg_text, target_features)
             .map_err(anyhow::Error::new)
-            .with_context(|| format!("Failed to build a platform for the triple '{triple}'"))
+            .with_context(|| format!("Failed to build a platform for the triple '{triple}'"))?;
+
+        Ok((platform, parse_cfgs(&cfg_text)))
     }
 }
 
@@ -258,19 +255,26 @@ fn target_side_links<'a, 'g>(
         .map(|link| link.endpoints())
 }
 
-/// Fails if `Cargo.lock` lists a package which `cargo metadata` left out.
+/// Fails if a package depends, unconditionally, on a package which `cargo metadata`
+/// left out.
 ///
 /// `cargo metadata` drops any dependency on a package without a library target
 /// (`warning: ignoring invalid dependency ... which is missing a lib target`),
 /// together with everything reachable only through it. `cargo build` ignores such
 /// dependencies the same way, so this matches Cargo. The features such a package
 /// would have enabled on its library dependencies are simply never applied, which
-/// is easy to mistake for a resolution bug, so surface the discrepancy: the lockfile
-/// is the complete package set, so anything in it that is not in the metadata is
-/// exactly this case.
-fn ensure_lockfile_packages_resolved(
+/// is easy to mistake for a resolution bug, so surface the discrepancy instead.
+///
+/// `Cargo.lock` is the complete package set, so anything in it that is not in the
+/// metadata was dropped this way. Only unconditional dependencies on such a package
+/// are reported: an optional one which nothing enables, or one behind a `cfg(...)`
+/// no configured platform satisfies, is never built by Cargo in the first place,
+/// yet still sits in the lockfile.
+fn ensure_dependencies_resolved(
     manifest_path: &Utf8Path,
+    metadata: &cargo_metadata::Metadata,
     package_graph: &PackageGraph,
+    platform_cfgs: &[(String, Vec<cargo_platform::Cfg>)],
 ) -> Result<()> {
     let lockfile_path = manifest_path
         .parent()
@@ -279,36 +283,86 @@ fn ensure_lockfile_packages_resolved(
     let lockfile = cargo_lock::Lockfile::load(&lockfile_path)
         .with_context(|| format!("Failed to load lockfile '{lockfile_path}'"))?;
 
-    let missing = packages_missing_from_metadata(&lockfile, package_graph);
-    if missing.is_empty() {
+    let unresolved = unresolved_dependencies(metadata, &lockfile, package_graph, platform_cfgs);
+    if unresolved.is_empty() {
         return Ok(());
     }
 
     bail!(
-        "`Cargo.lock` lists packages which `cargo metadata` did not resolve: [{}]. This \
-         happens when a dependency has no library target; Cargo ignores such a \
-         dependency when building, and `cargo metadata` omits the package entirely. \
-         Remove it from `packages` / `Cargo.toml` and declare any features it enabled \
-         on its library dependencies directly.",
-        missing.join(", "),
+        "Dependencies on packages which `cargo metadata` did not resolve: [{}]. Cargo \
+         omits dependencies without a library target; those from registries are put \
+         back from their downloaded sources, so this is a dependency which could not \
+         be recovered. Please report it to rules_rust.",
+        unresolved.join(", "),
     )
 }
 
-/// The `name version` of every lockfile package absent from `package_graph`.
-fn packages_missing_from_metadata(
+/// Every `package -> dependency` edge whose dependency is in the lockfile but not in
+/// `package_graph`, rendered as `name version -> name version`.
+///
+/// Optional dependencies are skipped (see [ensure_dependencies_resolved]), as are
+/// dev-dependencies of packages outside the workspace and dependencies whose
+/// `cfg(...)` matches none of `platform_cfgs`, which Cargo never builds.
+fn unresolved_dependencies(
+    metadata: &cargo_metadata::Metadata,
     lockfile: &cargo_lock::Lockfile,
     package_graph: &PackageGraph,
+    platform_cfgs: &[(String, Vec<cargo_platform::Cfg>)],
 ) -> Vec<String> {
     let resolved: BTreeSet<String> = package_graph
         .packages()
         .map(|package| format!("{} {}", package.name(), package.version()))
         .collect();
-
-    lockfile
+    let missing: Vec<&cargo_lock::Package> = lockfile
         .packages
         .iter()
-        .map(|package| format!("{} {}", package.name, package.version))
-        .filter(|id| !resolved.contains(id))
+        .filter(|package| !resolved.contains(&format!("{} {}", package.name, package.version)))
+        .collect();
+    if missing.is_empty() {
+        return Vec::new();
+    }
+
+    let mut unresolved = Vec::new();
+    for package in &metadata.packages {
+        let is_workspace_member = metadata.workspace_members.contains(&package.id);
+        for dependency in &package.dependencies {
+            if dependency.optional
+                || (dependency.kind == cargo_metadata::DependencyKind::Development
+                    && !is_workspace_member)
+            {
+                continue;
+            }
+            let enabled_somewhere = dependency.target.as_ref().is_none_or(|target| {
+                platform_cfgs
+                    .iter()
+                    .any(|(triple, cfgs)| target.matches(triple, cfgs))
+            });
+            if !enabled_somewhere {
+                continue;
+            }
+            for dropped in &missing {
+                if dropped.name.as_str() == dependency.name
+                    && dependency.req.matches(&dropped.version)
+                {
+                    unresolved.push(format!(
+                        "{} {} -> {} {}",
+                        package.name, package.version, dropped.name, dropped.version
+                    ));
+                }
+            }
+        }
+    }
+    unresolved.sort();
+    unresolved.dedup();
+    unresolved
+}
+
+/// Parses `rustc --print=cfg` output into the form `cargo_platform` evaluates
+/// `[target.'cfg(...)']` dependency tables against.
+fn parse_cfgs(cfg_text: &str) -> Vec<cargo_platform::Cfg> {
+    cfg_text
+        .lines()
+        .filter_map(|line| line.trim().parse().ok())
         .collect()
 }
 
@@ -560,9 +614,63 @@ mod test {
         "/test_data/metadata/no_deps/metadata.json"
     ));
 
+    /// A lockfile for `no_deps` which also lists `shellharden`, as it would if the
+    /// package declared a dependency on it: a binary-only package stays in the
+    /// lockfile while `cargo metadata` leaves it out.
+    const NO_DEPS_WITH_SHELLHARDEN_LOCKFILE: &str = indoc::indoc! {r#"
+        version = 3
+
+        [[package]]
+        name = "no-deps"
+        version = "0.1.0"
+        dependencies = [
+         "shellharden",
+        ]
+
+        [[package]]
+        name = "shellharden"
+        version = "4.3.2"
+        source = "registry+https://github.com/rust-lang/crates.io-index"
+        checksum = "0000000000000000000000000000000000000000000000000000000000000000"
+    "#};
+
+    /// The `no_deps` metadata with a dependency on `shellharden` declared by its
+    /// package, which `cargo metadata` would have dropped from `resolve`.
+    fn no_deps_metadata_depending_on_shellharden(
+        optional: bool,
+        target: Option<&str>,
+    ) -> cargo_metadata::Metadata {
+        let mut metadata: serde_json::Value = serde_json::from_str(NO_DEPS_METADATA).unwrap();
+        metadata["packages"][0]["dependencies"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "name": "shellharden",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "req": "=4.3.2",
+                "kind": null,
+                "rename": null,
+                "optional": optional,
+                "uses_default_features": true,
+                "features": [],
+                "target": target,
+                "registry": null,
+            }));
+        serde_json::from_value(metadata).unwrap()
+    }
+
+    /// The cfgs of a single linux platform, as `generate` would collect them.
+    fn linux_platform_cfgs() -> Vec<(String, Vec<cargo_platform::Cfg>)> {
+        vec![(
+            "x86_64-unknown-linux-gnu".to_owned(),
+            parse_cfgs(X86_64_LINUX_GNU_CFG),
+        )]
+    }
+
     #[test]
     fn lockfile_packages_all_resolved() {
         let package_graph = PackageGraph::from_json(NO_DEPS_METADATA).unwrap();
+        let metadata: cargo_metadata::Metadata = serde_json::from_str(NO_DEPS_METADATA).unwrap();
         let lockfile: cargo_lock::Lockfile = indoc::indoc! {r#"
             version = 3
 
@@ -573,36 +681,75 @@ mod test {
         .parse()
         .unwrap();
 
-        assert!(packages_missing_from_metadata(&lockfile, &package_graph).is_empty());
+        assert!(unresolved_dependencies(
+            &metadata,
+            &lockfile,
+            &package_graph,
+            &linux_platform_cfgs()
+        )
+        .is_empty());
     }
 
-    /// A package `cargo metadata` dropped (a binary-only dependency) is still in the
-    /// lockfile, which is how the discrepancy is detected.
     #[test]
-    fn lockfile_packages_missing_from_metadata_are_reported() {
+    fn unconditional_dependency_on_a_dropped_package_is_reported() {
         let package_graph = PackageGraph::from_json(NO_DEPS_METADATA).unwrap();
-        let lockfile: cargo_lock::Lockfile = indoc::indoc! {r#"
-            version = 3
-
-            [[package]]
-            name = "no-deps"
-            version = "0.1.0"
-            dependencies = [
-             "shellharden",
-            ]
-
-            [[package]]
-            name = "shellharden"
-            version = "4.3.2"
-            source = "registry+https://github.com/rust-lang/crates.io-index"
-            checksum = "0000000000000000000000000000000000000000000000000000000000000000"
-        "#}
-        .parse()
-        .unwrap();
+        let metadata = no_deps_metadata_depending_on_shellharden(false, None);
+        let lockfile: cargo_lock::Lockfile = NO_DEPS_WITH_SHELLHARDEN_LOCKFILE.parse().unwrap();
 
         assert_eq!(
-            vec!["shellharden 4.3.2".to_owned()],
-            packages_missing_from_metadata(&lockfile, &package_graph),
+            vec!["no-deps 0.1.0 -> shellharden 4.3.2".to_owned()],
+            unresolved_dependencies(&metadata, &lockfile, &package_graph, &linux_platform_cfgs()),
+        );
+    }
+
+    /// An optional dependency nothing enables is never built, so a lockfile entry
+    /// for it is not a discrepancy.
+    #[test]
+    fn optional_dependency_on_a_dropped_package_is_ignored() {
+        let package_graph = PackageGraph::from_json(NO_DEPS_METADATA).unwrap();
+        let metadata = no_deps_metadata_depending_on_shellharden(true, None);
+        let lockfile: cargo_lock::Lockfile = NO_DEPS_WITH_SHELLHARDEN_LOCKFILE.parse().unwrap();
+
+        assert!(unresolved_dependencies(
+            &metadata,
+            &lockfile,
+            &package_graph,
+            &linux_platform_cfgs()
+        )
+        .is_empty());
+    }
+
+    /// `cxx` declares `cxxbridge-cmd` under `[target."cfg(any())".build-dependencies]`
+    /// purely to pin its version; no platform ever satisfies it.
+    #[test]
+    fn dependency_gated_on_an_unsatisfied_cfg_is_ignored() {
+        let package_graph = PackageGraph::from_json(NO_DEPS_METADATA).unwrap();
+        let lockfile: cargo_lock::Lockfile = NO_DEPS_WITH_SHELLHARDEN_LOCKFILE.parse().unwrap();
+
+        let never = no_deps_metadata_depending_on_shellharden(false, Some("cfg(any())"));
+        assert!(
+            unresolved_dependencies(&never, &lockfile, &package_graph, &linux_platform_cfgs())
+                .is_empty()
+        );
+
+        let windows_only = no_deps_metadata_depending_on_shellharden(false, Some("cfg(windows)"));
+        assert!(unresolved_dependencies(
+            &windows_only,
+            &lockfile,
+            &package_graph,
+            &linux_platform_cfgs()
+        )
+        .is_empty());
+
+        let unix_only = no_deps_metadata_depending_on_shellharden(false, Some("cfg(unix)"));
+        assert_eq!(
+            vec!["no-deps 0.1.0 -> shellharden 4.3.2".to_owned()],
+            unresolved_dependencies(
+                &unix_only,
+                &lockfile,
+                &package_graph,
+                &linux_platform_cfgs()
+            ),
         );
     }
 
