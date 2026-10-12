@@ -398,6 +398,11 @@ pub struct SingleBuildFileRenderContext {
 
     /// The CrateContext for the crate being rendered.
     pub(crate) crate_context: Arc<CrateContext>,
+
+    /// The shared repository holding each crate when crates are pooled, see
+    /// [crate::pool]. Empty otherwise.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub(crate) pool_repositories: Arc<BTreeMap<CrateId, String>>,
 }
 
 #[cfg(test)]

@@ -539,23 +539,109 @@ def _render_defaults():
     """
     return json.decode(generate_render_config()) | _EXTENSION_RENDER_DEFAULTS
 
-def _collect_render_config(module, repository):
+# Render settings which describe the whole build. They reach every crate's BUILD
+# file, so they must agree across hubs for crates to be shared and must match the
+# platforms the build registers. The root module sets them with
+# `render_config(repositories = ["*"])`.
+_BUILD_WIDE_RENDER_SETTINGS = [
+    "generate_cargo_toml_env_vars",
+    "generate_rules_license_metadata",
+    "platforms_template",
+]
+
+def _is_global(tag):
+    return list(tag.repositories) == ["*"]
+
+def _canonical_platforms_template(template):
+    """Rewrites `platforms_template` so it resolves the same way from every generated repository.
+
+    The template is written verbatim into the BUILD files of hubs and pooled crates, whose
+    repository mapping is rules_rust's, not the root module's. A label of the main repository
+    (`//platforms:{triple}`) therefore has to be spelled with its canonical, empty repository name,
+    and `@rules_rust//...` is resolved through rules_rust's own mapping.
+
+    Args:
+        template (str): The template as the root module wrote it.
+
+    Returns:
+        str: The template with a canonical repository.
+    """
+
+    # buildifier: disable=canonical-repository
+    if template.startswith("@@"):
+        return template
+    if template.startswith("//"):
+        # buildifier: disable=canonical-repository
+        return "@@" + template
+    if template.startswith("@rules_rust//"):
+        placeholder = "__triple__"
+        return str(Label(template.replace("{triple}", placeholder))).replace(placeholder, "{triple}")
+    fail(("`platforms_template` `{}` cannot be resolved from the repositories crate_universe generates. " +
+          "Point it at a package of the main repository (`//platforms:{{triple}}`) or use a canonical " +
+          # buildifier: disable=canonical-repository
+          "label (`@@...`).").format(template))
+
+def _collect_build_wide_render_config(module_ctx):
+    """The build-wide render settings, from the root module's global `render_config`.
+
+    Args:
+        module_ctx (module_ctx): The module extension's context.
+
+    Returns:
+        dict: The values of `_BUILD_WIDE_RENDER_SETTINGS`, defaults when the root sets none.
+    """
+    defaults = _render_defaults()
+    settings = {name: defaults[name] for name in _BUILD_WIDE_RENDER_SETTINGS}
+
+    global_tags = []
+    for mod in module_ctx.modules:
+        for tag in mod.tags.render_config:
+            if not _is_global(tag):
+                continue
+            if not mod.is_root:
+                fail("`render_config(repositories = [\"*\"])` may only be used by the root module, not by `{}`.".format(mod.name))
+            global_tags.append(tag)
+    if len(global_tags) > 1:
+        fail("Only one `render_config(repositories = [\"*\"])` is allowed.")
+    for tag in global_tags:
+        settings.update({name: getattr(tag, name) for name in _BUILD_WIDE_RENDER_SETTINGS})
+    settings["platforms_template"] = _canonical_platforms_template(settings["platforms_template"])
+    return settings
+
+def _collect_render_config(module, repository, build_wide):
     """Collect the render_config for the given crate_universe module.
 
     Args:
         module (StarlarkBazelModule): The current `crate` module.
         repository (str): The name of the repository to collect the config for.
+        build_wide (dict): The build-wide settings, see `_collect_build_wide_render_config`.
 
     Returns:
         dict: The rendering config to use.
     """
 
+    defaults = _render_defaults()
     config = None
     for raw_config in module.tags.render_config:
+        # Global configs carry the build-wide settings and nothing else.
+        if _is_global(raw_config):
+            continue
+
         # if the repositories is empty we apply the config to all repositories
         # otherwise we filter for the requested repositories
         if raw_config.repositories and repository not in raw_config.repositories:
             continue
+
+        # The build-wide settings are the root's to make, for every hub at once.
+        for name in _BUILD_WIDE_RENDER_SETTINGS:
+            if getattr(raw_config, name) != defaults[name]:
+                if module.is_root:
+                    fail(("`render_config.{}` applies to the whole build. Set it on a " +
+                          "`render_config(repositories = [\"*\"])` in `{}`.").format(name, module.name))
+
+                # buildifier: disable=print
+                print(("WARN: `render_config.{}` set by module `{}` is ignored; the root module " +
+                       "decides it for the whole build.").format(name, module.name))
 
         if config:
             fail("Multiple render configs provided for module `{}`. Only 1 is allowed.".format(
@@ -588,10 +674,12 @@ def _collect_render_config(module, repository):
         config = json.decode(generate_render_config(**config_kwargs))
 
     if not config:
-        config = _render_defaults()
+        config = defaults
 
     if not config["regen_command"]:
         config["regen_command"] = "bazel mod show_repo '{}'".format(module.name)
+
+    config.update(build_wide)
 
     return config
 
@@ -629,7 +717,7 @@ def _collect_splicing_config(module, repository):
 
     return config
 
-def _generate_hub_and_spokes(
+def _resolve_hub(
         *,
         module_ctx,
         cargo_bazel_fn,
@@ -646,7 +734,9 @@ def _generate_hub_and_spokes(
         cargo_lockfile = None,
         manifests = {},
         packages = {}):
-    """Generates repositories for the transitive closure of crates defined by manifests and packages.
+    """Resolves one hub: splices, repins or reuses its lockfile, and returns where to find it.
+
+    Rendering happens afterwards for every hub at once, see `_generate_pool`.
 
     Args:
         module_ctx (module_ctx): The module context object.
@@ -830,7 +920,6 @@ def _generate_hub_and_spokes(
     paths_to_track_file = tag_path.get_child("paths_to_track.json")
     warnings_output_file = tag_path.get_child("warnings_output.json")
     hub_packages_output_file = tag_path.get_child("hub_packages.json")
-    rendered_context_output_file = tag_path.get_child("rendered_context.json")
 
     unused_annotations_output_file = tag_path.get_child("unused_annotations.json")
 
@@ -847,14 +936,12 @@ def _generate_hub_and_spokes(
         paths_to_track_file = paths_to_track_file,
         warnings_output_file = warnings_output_file,
         hub_packages_output_file = hub_packages_output_file,
-        rendered_context_output_file = rendered_context_output_file,
         unused_annotations_output_file = unused_annotations_output_file,
         skip_cargo_lockfile_overwrite = skip_cargo_lockfile_overwrite,
         strip_internal_dependencies_from_cargo_lockfile = strip_internal_dependencies_from_cargo_lockfile,
+        skip_render = True,
         **kwargs
     )
-
-    module_ctx.report_progress("Generating hub and spokes")
 
     paths_to_track = json.decode(module_ctx.read(paths_to_track_file))
     for path in paths_to_track:
@@ -865,110 +952,101 @@ def _generate_hub_and_spokes(
         # buildifier: disable=print
         print("WARN: {}".format(warning))
 
-    crates_dir = tag_path.get_child(cfg.name)
-    hub_contents = {
-        "BUILD.bazel": module_ctx.read(crates_dir.get_child("BUILD.bazel")),
-        "alias_rules.bzl": module_ctx.read(crates_dir.get_child("alias_rules.bzl")),
-        "crates.bzl": module_ctx.read(crates_dir.get_child("crates.bzl")),
-        "defs.bzl": module_ctx.read(crates_dir.get_child("defs.bzl")),
-    }
-
-    # Per-alias subpackages always render so users can consume
-    # `@<repo>//<alias>`. `module_ctx` cannot enumerate a directory, so the
-    # renderer writes a sidecar list of subpackage names we slurp here.
-    hub_packages = json.decode(module_ctx.read(hub_packages_output_file))
-    for hub_package in hub_packages:
-        hub_contents["{}/BUILD.bazel".format(hub_package)] = module_ctx.read(
-            crates_dir.get_child(hub_package).get_child("BUILD.bazel"),
-        )
-
-    crates_vendor_remote_repository(
-        name = cfg.name,
-        contents = hub_contents,
-    )
-
-    # The context as rendered, not the lockfile: annotations apply at render
-    # time, and a crate's source carries the patches they name while a path
-    # crate renders from its entry.
-    contents = json.decode(module_ctx.read(rendered_context_output_file))
-
-    for crate in contents["crates"].values():
-        repo = crate.get("repository")
-        if repo == None:
-            continue
-        name = crate["name"]
-        version = crate["version"]
-
-        # "+" isn't valid in a repo name.
-        crate_repo_name = "{repo_name}__{name}-{version}".format(
-            repo_name = cfg.name,
-            name = name,
-            version = version.replace("+", "-"),
-        )
-
-        if "Http" in repo:
-            # Replicates functionality in repo_http.j2.
-            build_file_content = module_ctx.read(crates_dir.get_child("BUILD.%s-%s.bazel" % (name, version)))
-            repo = repo["Http"]
-            http_archive(
-                name = crate_repo_name,
-                patch_args = repo.get("patch_args", None),
-                patch_tool = repo.get("patch_tool", None),
-                patches = repo.get("patches", None),
-                remote_patch_strip = 1,
-                sha256 = repo.get("sha256", None),
-                type = "tar.gz",
-                urls = [repo["url"]],
-                strip_prefix = "%s-%s" % (crate["name"], crate["version"]),
-                build_file_content = build_file_content,
-            )
-        elif "Git" in repo:
-            # Replicates functionality in repo_git.j2
-            build_file_content = module_ctx.read(crates_dir.get_child("BUILD.%s-%s.bazel" % (name, version)))
-            repo = repo["Git"]
-            kwargs = {}
-            for k, v in repo["commitish"].items():
-                if k == "Rev":
-                    kwargs["commit"] = v
-                else:
-                    kwargs[k.lower()] = v
-            git_repository(
-                name = crate_repo_name,
-                init_submodules = True,
-                patch_args = repo.get("patch_args", None),
-                patch_tool = repo.get("patch_tool", None),
-                patches = repo.get("patches", None),
-                shallow_since = repo.get("shallow_since", None),
-                remote = repo["remote"],
-                build_file_content = build_file_content,
-                strip_prefix = repo.get("strip_prefix", None),
-                **kwargs
-            )
-        elif "Path" in repo:
-            options = {
-                "config": render_config,
-                "crate_context": crate,
-                "supported_platform_triples": cfg.supported_platform_triples,
-            }
-            kwargs = {}
-            if len(CARGO_BAZEL_URLS) == 0:
-                kwargs["generator"] = "@cargo_bazel_bootstrap//:" + _bootstrap_binary(module_ctx)
-            local_crate_mirror(
-                name = crate_repo_name,
-                options_json = json.encode(options),
-                path = repo["Path"]["path"],
-                **kwargs
-            )
-        else:
-            fail("Invalid repo: expected Http or Git to exist for crate %s-%s, got %s" % (name, version, repo))
-
     return struct(
         # Bazel limits a fact's nesting to seven levels and drops its nulls, so
         # the lockfile is kept as text, compacted: the whitespace of the file
         # form is for reading a checked-in lockfile.
         fact = json.encode(json.decode(module_ctx.read(lockfile))) if record_fact else None,
+        lockfile = lockfile,
+        config = config_file,
         unused_annotations = json.decode(module_ctx.read(unused_annotations_output_file)),
     )
+
+def _generate_pool(module_ctx, cargo_bazel_fn, hubs):
+    """Renders the shared crate repositories and every hub's alias layer.
+
+    Crates with equal closures - the same resolved context, dependencies and
+    render settings - share one repository whichever hubs they came from, see
+    `cargo-bazel pool`. Hubs hold only aliases into those repositories.
+
+    Args:
+        module_ctx (module_ctx): The module context object.
+        cargo_bazel_fn (callable): A callback for invoking the `cargo-bazel` binary.
+        hubs (list): `struct(name, lockfile, config)` for every resolved hub.
+    """
+    pool_dir = module_ctx.path("pool")
+    hubs_file = pool_dir.get_child("hubs.json")
+    module_ctx.file(hubs_file, json.encode([
+        {"config": str(hub.config), "lockfile": str(hub.lockfile), "name": hub.name}
+        for hub in hubs
+    ]))
+
+    module_ctx.report_progress("Pooling crates across {} repositories".format(len(hubs)))
+    cargo_bazel_fn(args = ["pool", "--hubs", hubs_file, "--output-dir", pool_dir])
+
+    manifest = json.decode(module_ctx.read(pool_dir.get_child("pool.json")))
+
+    for repo_name, repo in manifest["repositories"].items():
+        build_file_content = module_ctx.read(pool_dir.get_child(repo["build_file"]))
+        source = repo["repository"]
+        if "Http" in source:
+            # Replicates functionality in repo_http.j2.
+            source = source["Http"]
+            http_archive(
+                name = repo_name,
+                patch_args = source.get("patch_args", None),
+                patch_tool = source.get("patch_tool", None),
+                patches = source.get("patches", None),
+                remote_patch_strip = 1,
+                sha256 = source.get("sha256", None),
+                type = "tar.gz",
+                urls = [source["url"]],
+                strip_prefix = "%s-%s" % (repo["name"], repo["version"]),
+                build_file_content = build_file_content,
+            )
+        elif "Git" in source:
+            # Replicates functionality in repo_git.j2
+            source = source["Git"]
+            kwargs = {}
+            for k, v in source["commitish"].items():
+                if k == "Rev":
+                    kwargs["commit"] = v
+                else:
+                    kwargs[k.lower()] = v
+            git_repository(
+                name = repo_name,
+                init_submodules = True,
+                patch_args = source.get("patch_args", None),
+                patch_tool = source.get("patch_tool", None),
+                patches = source.get("patches", None),
+                shallow_since = source.get("shallow_since", None),
+                remote = source["remote"],
+                build_file_content = build_file_content,
+                strip_prefix = source.get("strip_prefix", None),
+                **kwargs
+            )
+        elif "Path" in source:
+            kwargs = {}
+            if len(CARGO_BAZEL_URLS) == 0:
+                kwargs["generator"] = "@cargo_bazel_bootstrap//:" + _bootstrap_binary(module_ctx)
+            local_crate_mirror(
+                name = repo_name,
+                build_file_content = build_file_content,
+                path = source["Path"]["path"],
+                **kwargs
+            )
+        else:
+            fail("Invalid repo: expected Http, Git or Path to exist for crate %s-%s, got %s" % (repo["name"], repo["version"], source))
+
+    for hub_name, hub in manifest["hubs"].items():
+        hub_dir = pool_dir.get_child("hubs").get_child(hub_name)
+        crates_vendor_remote_repository(
+            name = hub_name,
+            contents = {
+                path: module_ctx.read(hub_dir.get_child(path))
+                for path in hub["files"]
+            },
+        )
 
 def _package_to_json(p):
     # Avoid adding unspecified properties.
@@ -1408,6 +1486,9 @@ def _crate_impl(module_ctx):
     # Returned as facts so Bazel persists them in `MODULE.bazel.lock`.
     facts = {}
 
+    # Render settings the root module makes for every hub.
+    build_wide_render_config = _collect_build_wide_render_config(module_ctx)
+
     # The Cargo the root module resolves with, if not the downloaded one.
     host_tools = _collect_host_tools(module_ctx)
 
@@ -1417,6 +1498,10 @@ def _crate_impl(module_ctx):
     applied_annotations = {}
     unused_annotations = {}
     root_name = None
+
+    # Every resolved hub, rendered together once all are known.
+    hubs = []
+    pool_cargo_bazel_fn = None
 
     for mod in module_ctx.modules:
         if mod.is_root:
@@ -1514,7 +1599,7 @@ def _crate_impl(module_ctx):
                 isolated = cfg.isolated,
             )
 
-            rendering_config = _collect_render_config(mod, cfg.name)
+            rendering_config = _collect_render_config(mod, cfg.name, build_wide_render_config)
             splicing_config = _collect_splicing_config(mod, cfg.name)
 
             annotations = _annotations_for_repo(
@@ -1548,7 +1633,7 @@ def _crate_impl(module_ctx):
                 for p in common_specs + repo_specific_specs.get(cfg.name, [])
             }
 
-            generated = _generate_hub_and_spokes(
+            generated = _resolve_hub(
                 module_ctx = module_ctx,
                 cargo_bazel_fn = cargo_bazel_fn,
                 new_resolving_cargo_bazel_fn = _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg, mod.is_root, host_tools),
@@ -1574,6 +1659,9 @@ def _crate_impl(module_ctx):
                 if key[1] in generated.unused_annotations:
                     unused_annotations[key] = unused_annotations.get(key, 0) + 1
 
+            hubs.append(struct(name = cfg.name, lockfile = generated.lockfile, config = generated.config))
+            pool_cargo_bazel_fn = cargo_bazel_fn
+
             # Watch cfg.lockfile AFTER generation. The generator may modify it during
             # repin, and in Bazel 9 module_ctx.read verifies digests for files already
             # read, which would crash if the lockfile changed between watch and read.
@@ -1589,6 +1677,9 @@ def _crate_impl(module_ctx):
         fail("Annotations match no crate of any repository they apply to. Please remove them: {}".format(
             ", ".join(dead_annotations),
         ))
+
+    if hubs:
+        _generate_pool(module_ctx, pool_cargo_bazel_fn, hubs)
 
     metadata_kwargs = {}
     if bazel_features.external_deps.extension_metadata_has_reproducible:
@@ -2045,7 +2136,7 @@ can be found below where the supported keys for each template can be found in th
             default = "",
         ),
         "generate_cargo_toml_env_vars": attr.bool(
-            doc = "Whether to generate cargo_toml_env_vars targets.",
+            doc = "Whether to generate cargo_toml_env_vars targets. Build-wide: honored only on the root module's `render_config(repositories = [\"*\"])`.",
             default = True,
         ),
         "generate_rules_license_metadata": attr.bool(
@@ -2054,7 +2145,8 @@ can be found below where the supported keys for each template can be found in th
                 "`package_metadata` module: a `package_metadata` with the crate's `purl` and, when the crate " +
                 "declares a license the module has a kind for, a `license` attribute with that kind and the " +
                 "license text. Each hub subpackage aliases them as `@<hub>//<crate>:package_metadata` and " +
-                "`@<hub>//<crate>:license`."
+                "`@<hub>//<crate>:license`. Build-wide: honored only on the root module's " +
+                "`render_config(repositories = [\"*\"])`."
             ),
             default = True,
         ),
@@ -2073,7 +2165,15 @@ can be found below where the supported keys for each template can be found in th
             default = False,
         ),
         "platforms_template": attr.string(
-            doc = "The base template to use for platform names. See [platforms documentation](https://docs.bazel.build/versions/main/platforms.html). The available format keys are [`{triple}`].",
+            doc = (
+                "The base template for the `select()` keys of platform specific dependencies. The available " +
+                "format key is `{triple}`. Build-wide: honored only on the root module's " +
+                "`render_config(repositories = [\"*\"])`, so every hub, including those of dependencies, " +
+                "renders against the platforms this build registers. The package it points at must hold one " +
+                "`config_setting`, `config_setting_group` or `alias` per triple, named by the triple; " +
+                "`declare_platform_aliases` from `@rules_rust//rust/platform:platform.bzl` declares them, " +
+                "with overrides for the triples this build distinguishes further."
+            ),
             default = "@rules_rust//rust/platform:{triple}",
         ),
         "regen_command": attr.string(

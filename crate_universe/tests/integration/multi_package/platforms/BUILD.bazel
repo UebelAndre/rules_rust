@@ -1,0 +1,18 @@
+load("@rules_rust//rust/platform:platform.bzl", "declare_platform_aliases")
+
+# The `select()`s of every hub in this build key on these targets, see
+# `platforms_template` in `//:MODULE.bazel`. Most are aliases to the
+# `rules_rust` settings; `x86_64-unknown-linux-gnu` is distinguished here.
+declare_platform_aliases(
+    overrides = {
+        "x86_64-unknown-linux-gnu": ":x86_64_linux_gnu",
+    },
+)
+
+config_setting(
+    name = "x86_64_linux_gnu",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+)

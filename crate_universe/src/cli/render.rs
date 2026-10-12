@@ -32,6 +32,7 @@ pub fn render(opt: RenderOptions) -> Result<()> {
         supported_platform_triples,
         platform_conditions,
         crate_context,
+        pool_repositories,
     } = deserialized_options;
 
     // The entry comes from a lockfile, which leaves out what follows from it.
@@ -46,7 +47,8 @@ pub fn render(opt: RenderOptions) -> Result<()> {
         platform_conditions
     };
 
-    let renderer = Renderer::new(config, supported_platform_triples);
+    let renderer =
+        Renderer::with_pool_repositories(config, supported_platform_triples, pool_repositories);
     let platforms = renderer.render_platform_labels(Arc::clone(&platform_conditions));
     let engine = renderer.create_engine(platform_conditions);
     let output = renderer

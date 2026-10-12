@@ -556,7 +556,8 @@ def execute_generator(
         metadata = None,
         rendered_context_output_file = None,
         generator_label = None,
-        unused_annotations_output_file = None):
+        unused_annotations_output_file = None,
+        skip_render = False):
     """Execute the `cargo-bazel` binary to produce `BUILD` and `.bzl` files.
 
     Args:
@@ -587,6 +588,7 @@ def execute_generator(
             By removing internal dependencies, the lockfile changes less frequently which reduces merge conflicts
             in other lockfiles where the cargo lockfile's sha is stored.
         generator_label (Label): The label of the `generator` parameter.
+        skip_render (bool): Whether to only resolve, leaving rendering to `cargo-bazel pool`.
         metadata (path, optional): The path to a Cargo metadata json file. If this is set, it indicates to
             the generator that repinning is required. This file must be adjacent to a `Cargo.toml` and
             `Cargo.lock` file.
@@ -646,6 +648,11 @@ def execute_generator(
 
     if rendered_context_output_file:
         args.extend(["--rendered-context-output-path", rendered_context_output_file])
+
+    # When crates are pooled across hubs, `cargo-bazel pool` renders everything
+    # from the lockfiles and this invocation only resolves.
+    if skip_render:
+        args.append("--skip-render")
 
     # Some components are not required unless re-pinning is enabled
     if metadata:
