@@ -31,7 +31,7 @@ done
   done
 )
 
-for d in crate_universe/tests/integration/* examples/cross_compile_musl test/integration/no_std
+for d in crate_universe/tests/integration/* examples/cross_compile_musl
 do
   # vendor/ is handled explicitly above via bazel run of crates_vendor targets
   [[ "${d}" == */vendor ]] && continue

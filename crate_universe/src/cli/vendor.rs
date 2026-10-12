@@ -290,19 +290,20 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
         cargo_metadata,
         &opt.cargo_lockfile,
         cargo_lockfile.clone(),
-        config.clone(),
         &opt.nonhermetic_root_bazel_workspace_dir,
     )?;
 
-    // Generate renderable contexts for search package
-    let context = Context::new(annotations, config.rendering.are_sources_present())?;
+    // The context of the resolution, which the lockfile records, and the one
+    // rendered from it with this workspace's configuration applied.
+    let context = Context::new(annotations, &config.supported_platform_triples)?;
+    let render_context = context.clone().for_rendering(&config)?;
 
     // Render build files
     let outputs = Renderer::new(
         Arc::new(config.rendering.clone()),
         Arc::new(config.supported_platform_triples.clone()),
     )
-    .render(&context, None)?;
+    .render(&render_context, None)?;
 
     // First ensure vendoring and rendering happen in a clean directory
     let vendor_dir_label = render_module_label(&config.rendering.crates_module_template, "BUILD")?;
@@ -356,7 +357,13 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
 
     // Write the rendering lockfile if requested.
     if let Some(lockfile) = opt.lockfile {
-        let lock_content = lock_context(context, &config, &splicing_manifest, &cargo, &opt.rustc)?;
+        let lock_content = lock_context(
+            context,
+            &config.supported_platform_triples,
+            &splicing_manifest,
+            &cargo,
+            &opt.rustc,
+        )?;
 
         write_lockfile(lock_content, &lockfile, opt.dry_run)?;
     }

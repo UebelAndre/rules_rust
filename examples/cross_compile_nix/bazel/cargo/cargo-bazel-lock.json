@@ -1,29 +1,13 @@
 {
-  "checksum": "e69f79a1c251de13b32a1c2e4bf42abe226ccb34e33561e2f1c08e8635226391",
+  "binary_crates": ["cc 1.0.84"],
+  "checksum": "d4809da0c1eca6ea8cfae9a50c5d384581ac0698714b4b3dac9c5a68dc507862",
   "conditions": {
-    "aarch64-apple-darwin": [
-      "aarch64-apple-darwin"
-    ],
-    "aarch64-apple-ios": [
-      "aarch64-apple-ios"
-    ],
-    "aarch64-linux-android": [
-      "aarch64-linux-android"
-    ],
     "aarch64-pc-windows-gnullvm": [],
-    "aarch64-unknown-linux-gnu": [
-      "aarch64-unknown-linux-gnu"
-    ],
     "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
     "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(windows_raw_dylib)))": [],
     "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
-    "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "cfg(all(target_arch = \"x86_64\", target_env = \"msvc\", not(windows_raw_dylib)))": [
-      "x86_64-pc-windows-msvc"
-    ],
+    "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"],
+    "cfg(all(target_arch = \"x86_64\", target_env = \"msvc\", not(windows_raw_dylib)))": ["x86_64-pc-windows-msvc"],
     "cfg(not(all(windows, target_env = \"msvc\", not(target_vendor = \"uwp\"))))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
@@ -48,9 +32,7 @@
     ],
     "cfg(target_os = \"hermit\")": [],
     "cfg(target_os = \"redox\")": [],
-    "cfg(target_os = \"wasi\")": [
-      "wasm32-wasip1"
-    ],
+    "cfg(target_os = \"wasi\")": ["wasm32-wasip1"],
     "cfg(tokio_taskdump)": [],
     "cfg(unix)": [
       "aarch64-apple-darwin",
@@ -61,48 +43,22 @@
       "x86_64-unknown-linux-gnu",
       "x86_64-unknown-nixos-gnu"
     ],
-    "cfg(windows)": [
-      "x86_64-pc-windows-msvc"
-    ],
-    "wasm32-unknown-unknown": [
-      "wasm32-unknown-unknown"
-    ],
-    "wasm32-wasip1": [
-      "wasm32-wasip1"
-    ],
-    "x86_64-apple-darwin": [
-      "x86_64-apple-darwin"
-    ],
+    "cfg(windows)": ["x86_64-pc-windows-msvc"],
     "x86_64-pc-windows-gnullvm": [],
-    "x86_64-pc-windows-msvc": [
-      "x86_64-pc-windows-msvc"
-    ],
-    "x86_64-unknown-linux-gnu": [
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "x86_64-unknown-nixos-gnu": [
-      "x86_64-unknown-nixos-gnu"
-    ]
+    "x86_64-unknown-linux-gnu": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"]
   },
   "crates": {
     "addr2line 0.21.0": {
       "common_attrs": {
         "deps": [
-          {
-            "id": "gimli 0.28.0",
-            "target": "gimli"
-          }
+          {"id": "gimli 0.28.0", "target": "gimli"}
         ],
         "edition": "2018"
       },
       "library_target_name": "addr2line",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "addr2line",
       "package_url": "https://github.com/gimli-rs/addr2line",
       "repository": {
@@ -113,26 +69,17 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "addr2line",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "addr2line", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.21.0"
     },
     "adler 1.0.2": {
-      "common_attrs": {
-        "edition": "2015"
-      },
+      "common_attrs": {"edition": "2015"},
       "library_target_name": "adler",
       "license": "0BSD OR MIT OR Apache-2.0",
       "license_file": "LICENSE-0BSD",
-      "license_ids": [
-        "0BSD",
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["0BSD", "Apache-2.0", "MIT"],
       "name": "adler",
       "package_url": "https://github.com/jonas-schievink/adler.git",
       "repository": {
@@ -143,29 +90,22 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "adler",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "adler", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.0.2"
     },
     "anyhow 1.0.75": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "crate_features": [
-          "default",
-          "std"
-        ],
-        "edition": "2018"
+        "crate_features": ["default", "std"],
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "anyhow",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "anyhow",
       "package_url": "https://github.com/dtolnay/anyhow",
       "repository": {
@@ -176,25 +116,20 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "anyhow",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "anyhow", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "1.0.75"
     },
     "autocfg 1.1.0": {
-      "common_attrs": {
-        "edition": "2015"
-      },
+      "common_attrs": {"edition": "2015"},
       "library_target_name": "autocfg",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "autocfg",
       "package_url": "https://github.com/cuviper/autocfg",
       "repository": {
@@ -205,57 +140,39 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "autocfg",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "autocfg", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.1.0"
     },
     "backtrace 0.3.69": {
+      "build_script_attrs": {
+        "deps": [
+          {"id": "cc 1.0.84", "target": "cc"}
+        ]
+      },
       "common_attrs": {
         "deps": {
           "common": [
-            {
-              "id": "cfg-if 1.0.0",
-              "target": "cfg_if"
-            },
-            {
-              "id": "rustc-demangle 0.1.23",
-              "target": "rustc_demangle"
-            }
+            {"id": "cfg-if 1.0.0", "target": "cfg_if"},
+            {"id": "rustc-demangle 0.1.23", "target": "rustc_demangle"}
           ],
           "selects": {
             "cfg(not(all(windows, target_env = \"msvc\", not(target_vendor = \"uwp\"))))": [
-              {
-                "id": "addr2line 0.21.0",
-                "target": "addr2line"
-              },
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "miniz_oxide 0.7.1",
-                "target": "miniz_oxide"
-              },
-              {
-                "id": "object 0.32.1",
-                "target": "object"
-              }
+              {"id": "addr2line 0.21.0", "target": "addr2line"},
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "miniz_oxide 0.7.1", "target": "miniz_oxide"},
+              {"id": "object 0.32.1", "target": "object"}
             ]
           }
         },
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "backtrace",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "backtrace",
       "package_url": "https://github.com/rust-lang/backtrace-rs",
       "repository": {
@@ -266,25 +183,20 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "backtrace",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "backtrace", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.3.69"
     },
     "bitflags 1.3.2": {
-      "common_attrs": {
-        "edition": "2018"
-      },
+      "common_attrs": {"edition": "2018"},
       "library_target_name": "bitflags",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "bitflags",
       "package_url": "https://github.com/bitflags/bitflags",
       "repository": {
@@ -295,28 +207,20 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "bitflags",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "bitflags", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.3.2"
     },
     "bytes 1.4.0": {
       "common_attrs": {
-        "crate_features": [
-          "default",
-          "std"
-        ],
+        "crate_features": ["default", "std"],
         "edition": "2018"
       },
       "library_target_name": "bytes",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": [
-        "MIT"
-      ],
+      "license_ids": ["MIT"],
       "name": "bytes",
       "package_url": "https://github.com/tokio-rs/bytes",
       "repository": {
@@ -327,10 +231,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "bytes",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "bytes", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.4.0"
@@ -341,10 +242,7 @@
           "common": [],
           "selects": {
             "cfg(unix)": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              }
+              {"id": "libc 0.2.150", "target": "libc"}
             ]
           }
         },
@@ -353,10 +251,7 @@
       "library_target_name": "cc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cc",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
@@ -367,25 +262,20 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "cc",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "cc", "crate_root": "src/lib.rs"}
+        },
+        {
+          "Binary": {"crate_name": "gcc-shim", "crate_root": "src/bin/gcc-shim.rs"}
         }
       ],
       "version": "1.0.84"
     },
     "cfg-if 1.0.0": {
-      "common_attrs": {
-        "edition": "2018"
-      },
+      "common_attrs": {"edition": "2018"},
       "library_target_name": "cfg_if",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cfg-if",
       "package_url": "https://github.com/alexcrichton/cfg-if",
       "repository": {
@@ -396,10 +286,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "cfg_if",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "cfg_if", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.0.0"
@@ -407,14 +294,8 @@
     "direct-cargo-bazel-deps 0.0.1": {
       "common_attrs": {
         "deps": [
-          {
-            "id": "anyhow 1.0.75",
-            "target": "anyhow"
-          },
-          {
-            "id": "tokio 1.34.0",
-            "target": "tokio"
-          }
+          {"id": "anyhow 1.0.75", "target": "anyhow"},
+          {"id": "tokio 1.34.0", "target": "tokio"}
         ],
         "edition": "2018"
       },
@@ -423,25 +304,17 @@
       "repository": null,
       "targets": [
         {
-          "Library": {
-            "crate_name": "direct_cargo_bazel_deps",
-            "crate_root": ".direct_cargo_bazel_deps.rs"
-          }
+          "Library": {"crate_name": "direct_cargo_bazel_deps", "crate_root": ".direct_cargo_bazel_deps.rs"}
         }
       ],
       "version": "0.0.1"
     },
     "gimli 0.28.0": {
-      "common_attrs": {
-        "edition": "2018"
-      },
+      "common_attrs": {"edition": "2018"},
       "library_target_name": "gimli",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "gimli",
       "package_url": "https://github.com/gimli-rs/gimli",
       "repository": {
@@ -452,25 +325,17 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "gimli",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "gimli", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.28.0"
     },
     "hermit-abi 0.3.3": {
-      "common_attrs": {
-        "edition": "2021"
-      },
+      "common_attrs": {"edition": "2021"},
       "library_target_name": "hermit_abi",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "hermit-abi",
       "package_url": "https://github.com/hermitcore/hermit-rs",
       "repository": {
@@ -481,45 +346,22 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "hermit_abi",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "hermit_abi", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.3.3"
     },
     "libc 0.2.150": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "crate_features": [
-          "default",
-          "std"
-        ],
+        "crate_features": ["default", "std"],
         "edition": "2015",
-        "rustc_flags": [
-          "--cfg=freebsd11",
-          "--cfg=libc_priv_mod_use",
-          "--cfg=libc_union",
-          "--cfg=libc_const_size_of",
-          "--cfg=libc_align",
-          "--cfg=libc_int128",
-          "--cfg=libc_core_cvoid",
-          "--cfg=libc_packedN",
-          "--cfg=libc_cfg_target_vendor",
-          "--cfg=libc_non_exhaustive",
-          "--cfg=libc_long_array",
-          "--cfg=libc_ptr_addr_of",
-          "--cfg=libc_underscore_const_names",
-          "--cfg=libc_const_extern_fn"
-        ]
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "libc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "libc",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
@@ -530,35 +372,32 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "libc",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "libc", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.2.150"
     },
     "lock_api 0.4.11": {
-      "common_attrs": {
-        "crate_features": [
-          "atomic_usize",
-          "default"
-        ],
+      "build_script_attrs": {
         "deps": [
-          {
-            "id": "scopeguard 1.2.0",
-            "target": "scopeguard"
-          }
+          {"id": "autocfg 1.1.0", "target": "autocfg"}
+        ]
+      },
+      "common_attrs": {
+        "crate_features": ["atomic_usize", "default"],
+        "deps": [
+          {"id": "scopeguard 1.2.0", "target": "scopeguard"}
         ],
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "lock_api",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "lock_api",
       "package_url": "https://github.com/Amanieu/parking_lot",
       "repository": {
@@ -569,25 +408,20 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "lock_api",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "lock_api", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.4.11"
     },
     "memchr 2.6.4": {
-      "common_attrs": {
-        "edition": "2021"
-      },
+      "common_attrs": {"edition": "2021"},
       "library_target_name": "memchr",
       "license": "Unlicense OR MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": [
-        "MIT",
-        "Unlicense"
-      ],
+      "license_ids": ["MIT", "Unlicense"],
       "name": "memchr",
       "package_url": "https://github.com/BurntSushi/memchr",
       "repository": {
@@ -598,10 +432,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "memchr",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "memchr", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "2.6.4"
@@ -609,21 +440,14 @@
     "miniz_oxide 0.7.1": {
       "common_attrs": {
         "deps": [
-          {
-            "id": "adler 1.0.2",
-            "target": "adler"
-          }
+          {"id": "adler 1.0.2", "target": "adler"}
         ],
         "edition": "2018"
       },
       "library_target_name": "miniz_oxide",
       "license": "MIT OR Zlib OR Apache-2.0",
       "license_file": "LICENSE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT",
-        "Zlib"
-      ],
+      "license_ids": ["Apache-2.0", "MIT", "Zlib"],
       "name": "miniz_oxide",
       "package_url": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
       "repository": {
@@ -634,45 +458,26 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "miniz_oxide",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "miniz_oxide", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.7.1"
     },
     "mio 0.8.9": {
       "common_attrs": {
-        "crate_features": [
-          "net",
-          "os-ext",
-          "os-poll"
-        ],
+        "crate_features": ["net", "os-ext", "os-poll"],
         "deps": {
           "common": [],
           "selects": {
             "cfg(target_os = \"wasi\")": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "wasi 0.11.0+wasi-snapshot-preview1",
-                "target": "wasi"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "wasi 0.11.0+wasi-snapshot-preview1", "target": "wasi"}
             ],
             "cfg(unix)": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              }
+              {"id": "libc 0.2.150", "target": "libc"}
             ],
             "cfg(windows)": [
-              {
-                "id": "windows-sys 0.48.0",
-                "target": "windows_sys"
-              }
+              {"id": "windows-sys 0.48.0", "target": "windows_sys"}
             ]
           }
         },
@@ -681,9 +486,7 @@
       "library_target_name": "mio",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": [
-        "MIT"
-      ],
+      "license_ids": ["MIT"],
       "name": "mio",
       "package_url": "https://github.com/tokio-rs/mio",
       "repository": {
@@ -694,10 +497,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "mio",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "mio", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.8.9"
@@ -708,16 +508,10 @@
           "common": [],
           "selects": {
             "cfg(not(windows))": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              }
+              {"id": "libc 0.2.150", "target": "libc"}
             ],
             "cfg(target_os = \"hermit\")": [
-              {
-                "id": "hermit-abi 0.3.3",
-                "target": "hermit_abi"
-              }
+              {"id": "hermit-abi 0.3.3", "target": "hermit_abi"}
             ]
           }
         },
@@ -726,10 +520,7 @@
       "library_target_name": "num_cpus",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "num_cpus",
       "package_url": "https://github.com/seanmonstar/num_cpus",
       "repository": {
@@ -740,10 +531,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "num_cpus",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "num_cpus", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.16.0"
@@ -751,20 +539,14 @@
     "object 0.32.1": {
       "common_attrs": {
         "deps": [
-          {
-            "id": "memchr 2.6.4",
-            "target": "memchr"
-          }
+          {"id": "memchr 2.6.4", "target": "memchr"}
         ],
         "edition": "2018"
       },
       "library_target_name": "object",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "object",
       "package_url": "https://github.com/gimli-rs/object",
       "repository": {
@@ -775,38 +557,24 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "object",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "object", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.32.1"
     },
     "parking_lot 0.12.1": {
       "common_attrs": {
-        "crate_features": [
-          "default"
-        ],
+        "crate_features": ["default"],
         "deps": [
-          {
-            "id": "lock_api 0.4.11",
-            "target": "lock_api"
-          },
-          {
-            "id": "parking_lot_core 0.9.9",
-            "target": "parking_lot_core"
-          }
+          {"id": "lock_api 0.4.11", "target": "lock_api"},
+          {"id": "parking_lot_core 0.9.9", "target": "parking_lot_core"}
         ],
         "edition": "2018"
       },
       "library_target_name": "parking_lot",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "parking_lot",
       "package_url": "https://github.com/Amanieu/parking_lot",
       "repository": {
@@ -817,57 +585,38 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "parking_lot",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "parking_lot", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.12.1"
     },
     "parking_lot_core 0.9.9": {
+      "build_script_attrs": {},
       "common_attrs": {
         "deps": {
           "common": [
-            {
-              "id": "cfg-if 1.0.0",
-              "target": "cfg_if"
-            },
-            {
-              "id": "smallvec 1.11.2",
-              "target": "smallvec"
-            }
+            {"id": "cfg-if 1.0.0", "target": "cfg_if"},
+            {"id": "smallvec 1.11.2", "target": "smallvec"}
           ],
           "selects": {
             "cfg(target_os = \"redox\")": [
-              {
-                "id": "redox_syscall 0.4.1",
-                "target": "syscall"
-              }
+              {"id": "redox_syscall 0.4.1", "target": "syscall"}
             ],
             "cfg(unix)": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              }
+              {"id": "libc 0.2.150", "target": "libc"}
             ],
             "cfg(windows)": [
-              {
-                "id": "windows-targets 0.48.5",
-                "target": "windows_targets"
-              }
+              {"id": "windows-targets 0.48.5", "target": "windows_targets"}
             ]
           }
         },
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "parking_lot_core",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "parking_lot_core",
       "package_url": "https://github.com/Amanieu/parking_lot",
       "repository": {
@@ -878,25 +627,20 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "parking_lot_core",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "parking_lot_core", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.9.9"
     },
     "pin-project-lite 0.2.13": {
-      "common_attrs": {
-        "edition": "2018"
-      },
+      "common_attrs": {"edition": "2018"},
       "library_target_name": "pin_project_lite",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "pin-project-lite",
       "package_url": "https://github.com/taiki-e/pin-project-lite",
       "repository": {
@@ -907,41 +651,25 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "pin_project_lite",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "pin_project_lite", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.2.13"
     },
     "proc-macro2 1.0.69": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "crate_features": [
-          "default",
-          "proc-macro"
-        ],
+        "crate_features": ["default", "proc-macro"],
         "deps": [
-          {
-            "id": "unicode-ident 1.0.8",
-            "target": "unicode_ident"
-          }
+          {"id": "unicode-ident 1.0.8", "target": "unicode_ident"}
         ],
         "edition": "2021",
-        "rustc_flags": [
-          "--cfg=proc_macro_span",
-          "--cfg=span_locations",
-          "--cfg=use_proc_macro",
-          "--cfg=wrap_proc_macro"
-        ]
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "proc_macro2",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "proc-macro2",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
@@ -952,35 +680,28 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "proc_macro2",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "proc_macro2", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "1.0.69"
     },
     "quote 1.0.26": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "crate_features": [
-          "default",
-          "proc-macro"
-        ],
+        "crate_features": ["default", "proc-macro"],
         "deps": [
-          {
-            "id": "proc-macro2 1.0.69",
-            "target": "proc_macro2"
-          }
+          {"id": "proc-macro2 1.0.69", "target": "proc_macro2"}
         ],
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "quote",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "quote",
       "package_url": "https://github.com/dtolnay/quote",
       "repository": {
@@ -991,10 +712,10 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "quote",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "quote", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "1.0.26"
@@ -1002,19 +723,14 @@
     "redox_syscall 0.4.1": {
       "common_attrs": {
         "deps": [
-          {
-            "id": "bitflags 1.3.2",
-            "target": "bitflags"
-          }
+          {"id": "bitflags 1.3.2", "target": "bitflags"}
         ],
         "edition": "2018"
       },
       "library_target_name": "syscall",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": [
-        "MIT"
-      ],
+      "license_ids": ["MIT"],
       "name": "redox_syscall",
       "package_url": "https://gitlab.redox-os.org/redox-os/syscall",
       "repository": {
@@ -1025,25 +741,17 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "syscall",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "syscall", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.4.1"
     },
     "rustc-demangle 0.1.23": {
-      "common_attrs": {
-        "edition": "2015"
-      },
+      "common_attrs": {"edition": "2015"},
       "library_target_name": "rustc_demangle",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rustc-demangle",
       "package_url": "https://github.com/alexcrichton/rustc-demangle",
       "repository": {
@@ -1054,25 +762,17 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "rustc_demangle",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "rustc_demangle", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.1.23"
     },
     "scopeguard 1.2.0": {
-      "common_attrs": {
-        "edition": "2015"
-      },
+      "common_attrs": {"edition": "2015"},
       "library_target_name": "scopeguard",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "scopeguard",
       "package_url": "https://github.com/bluss/scopeguard",
       "repository": {
@@ -1083,10 +783,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "scopeguard",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "scopeguard", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.2.0"
@@ -1094,20 +791,14 @@
     "signal-hook-registry 1.4.1": {
       "common_attrs": {
         "deps": [
-          {
-            "id": "libc 0.2.150",
-            "target": "libc"
-          }
+          {"id": "libc 0.2.150", "target": "libc"}
         ],
         "edition": "2015"
       },
       "library_target_name": "signal_hook_registry",
       "license": "Apache-2.0/MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "signal-hook-registry",
       "package_url": "https://github.com/vorner/signal-hook",
       "repository": {
@@ -1118,25 +809,17 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "signal_hook_registry",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "signal_hook_registry", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.4.1"
     },
     "smallvec 1.11.2": {
-      "common_attrs": {
-        "edition": "2018"
-      },
+      "common_attrs": {"edition": "2018"},
       "library_target_name": "smallvec",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "smallvec",
       "package_url": "https://github.com/servo/rust-smallvec",
       "repository": {
@@ -1147,33 +830,22 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "smallvec",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "smallvec", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.11.2"
     },
     "socket2 0.5.5": {
       "common_attrs": {
-        "crate_features": [
-          "all"
-        ],
+        "crate_features": ["all"],
         "deps": {
           "common": [],
           "selects": {
             "cfg(unix)": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              }
+              {"id": "libc 0.2.150", "target": "libc"}
             ],
             "cfg(windows)": [
-              {
-                "id": "windows-sys 0.48.0",
-                "target": "windows_sys"
-              }
+              {"id": "windows-sys 0.48.0", "target": "windows_sys"}
             ]
           }
         },
@@ -1182,10 +854,7 @@
       "library_target_name": "socket2",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "socket2",
       "package_url": "https://github.com/rust-lang/socket2",
       "repository": {
@@ -1196,53 +865,25 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "socket2",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "socket2", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.5.5"
     },
     "syn 2.0.15": {
       "common_attrs": {
-        "crate_features": [
-          "clone-impls",
-          "default",
-          "derive",
-          "extra-traits",
-          "fold",
-          "full",
-          "parsing",
-          "printing",
-          "proc-macro",
-          "quote",
-          "visit",
-          "visit-mut"
-        ],
+        "crate_features": ["clone-impls", "default", "derive", "full", "parsing", "printing", "proc-macro", "quote"],
         "deps": [
-          {
-            "id": "proc-macro2 1.0.69",
-            "target": "proc_macro2"
-          },
-          {
-            "id": "quote 1.0.26",
-            "target": "quote"
-          },
-          {
-            "id": "unicode-ident 1.0.8",
-            "target": "unicode_ident"
-          }
+          {"id": "proc-macro2 1.0.69", "target": "proc_macro2"},
+          {"id": "quote 1.0.26", "target": "quote"},
+          {"id": "unicode-ident 1.0.8", "target": "unicode_ident"}
         ],
         "edition": "2021"
       },
       "library_target_name": "syn",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "syn",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
@@ -1253,10 +894,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "syn",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "syn", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "2.0.15"
@@ -1288,165 +926,71 @@
             "tokio-macros"
           ],
           "selects": {
-            "x86_64-pc-windows-msvc": [
-              "windows-sys"
-            ]
+            "x86_64-pc-windows-msvc": ["windows-sys"]
           }
         },
         "deps": {
           "common": [
-            {
-              "id": "bytes 1.4.0",
-              "target": "bytes"
-            },
-            {
-              "id": "mio 0.8.9",
-              "target": "mio"
-            },
-            {
-              "id": "num_cpus 1.16.0",
-              "target": "num_cpus"
-            },
-            {
-              "id": "parking_lot 0.12.1",
-              "target": "parking_lot"
-            },
-            {
-              "id": "pin-project-lite 0.2.13",
-              "target": "pin_project_lite"
-            }
+            {"id": "bytes 1.4.0", "target": "bytes"},
+            {"id": "mio 0.8.9", "target": "mio"},
+            {"id": "num_cpus 1.16.0", "target": "num_cpus"},
+            {"id": "parking_lot 0.12.1", "target": "parking_lot"},
+            {"id": "pin-project-lite 0.2.13", "target": "pin_project_lite"}
           ],
           "selects": {
             "aarch64-apple-darwin": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.1",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.5.5", "target": "socket2"}
             ],
             "aarch64-apple-ios": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.1",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.5.5", "target": "socket2"}
             ],
             "aarch64-linux-android": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.1",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.5.5", "target": "socket2"}
             ],
             "aarch64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.1",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.5.5", "target": "socket2"}
             ],
             "cfg(tokio_taskdump)": [
-              {
-                "id": "backtrace 0.3.69",
-                "target": "backtrace"
-              }
+              {"id": "backtrace 0.3.69", "target": "backtrace"}
             ],
             "x86_64-apple-darwin": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.1",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.5.5", "target": "socket2"}
             ],
             "x86_64-pc-windows-msvc": [
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              },
-              {
-                "id": "windows-sys 0.48.0",
-                "target": "windows_sys"
-              }
+              {"id": "socket2 0.5.5", "target": "socket2"},
+              {"id": "windows-sys 0.48.0", "target": "windows_sys"}
             ],
             "x86_64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.1",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.5.5", "target": "socket2"}
             ],
             "x86_64-unknown-nixos-gnu": [
-              {
-                "id": "libc 0.2.150",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.1",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.5",
-                "target": "socket2"
-              }
+              {"id": "libc 0.2.150", "target": "libc"},
+              {"id": "signal-hook-registry 1.4.1", "target": "signal_hook_registry"},
+              {"id": "socket2 0.5.5", "target": "socket2"}
             ]
           }
         },
         "edition": "2021",
         "proc_macro_deps": [
-          {
-            "id": "tokio-macros 2.2.0",
-            "target": "tokio_macros"
-          }
+          {"id": "tokio-macros 2.2.0", "target": "tokio_macros"}
         ]
       },
       "library_target_name": "tokio",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": [
-        "MIT"
-      ],
+      "license_ids": ["MIT"],
       "name": "tokio",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
@@ -1457,10 +1001,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "tokio",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "tokio", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.34.0"
@@ -1468,27 +1009,16 @@
     "tokio-macros 2.2.0": {
       "common_attrs": {
         "deps": [
-          {
-            "id": "proc-macro2 1.0.69",
-            "target": "proc_macro2"
-          },
-          {
-            "id": "quote 1.0.26",
-            "target": "quote"
-          },
-          {
-            "id": "syn 2.0.15",
-            "target": "syn"
-          }
+          {"id": "proc-macro2 1.0.69", "target": "proc_macro2"},
+          {"id": "quote 1.0.26", "target": "quote"},
+          {"id": "syn 2.0.15", "target": "syn"}
         ],
         "edition": "2021"
       },
       "library_target_name": "tokio_macros",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": [
-        "MIT"
-      ],
+      "license_ids": ["MIT"],
       "name": "tokio-macros",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
@@ -1499,26 +1029,17 @@
       },
       "targets": [
         {
-          "ProcMacro": {
-            "crate_name": "tokio_macros",
-            "crate_root": "src/lib.rs"
-          }
+          "ProcMacro": {"crate_name": "tokio_macros", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "2.2.0"
     },
     "unicode-ident 1.0.8": {
-      "common_attrs": {
-        "edition": "2018"
-      },
+      "common_attrs": {"edition": "2018"},
       "library_target_name": "unicode_ident",
       "license": "(MIT OR Apache-2.0) AND Unicode-DFS-2016",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT",
-        "Unicode-DFS-2016"
-      ],
+      "license_ids": ["Apache-2.0", "MIT", "Unicode-DFS-2016"],
       "name": "unicode-ident",
       "package_url": "https://github.com/dtolnay/unicode-ident",
       "repository": {
@@ -1529,29 +1050,20 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "unicode_ident",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "unicode_ident", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "1.0.8"
     },
     "wasi 0.11.0+wasi-snapshot-preview1": {
       "common_attrs": {
-        "crate_features": [
-          "default",
-          "std"
-        ],
+        "crate_features": ["default", "std"],
         "edition": "2018"
       },
       "library_target_name": "wasi",
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "wasi",
       "package_url": "https://github.com/bytecodealliance/wasi",
       "repository": {
@@ -1562,10 +1074,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "wasi",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "wasi", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.11.0+wasi-snapshot-preview1"
@@ -1590,20 +1099,14 @@
           "default"
         ],
         "deps": [
-          {
-            "id": "windows-targets 0.48.5",
-            "target": "windows_targets"
-          }
+          {"id": "windows-targets 0.48.5", "target": "windows_targets"}
         ],
         "edition": "2018"
       },
       "library_target_name": "windows_sys",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows-sys",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1614,10 +1117,7 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_sys",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_sys", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.48.0"
@@ -1628,46 +1128,25 @@
           "common": [],
           "selects": {
             "aarch64-pc-windows-gnullvm": [
-              {
-                "id": "windows_aarch64_gnullvm 0.48.5",
-                "target": "windows_aarch64_gnullvm"
-              }
+              {"id": "windows_aarch64_gnullvm 0.48.5", "target": "windows_aarch64_gnullvm"}
             ],
             "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [
-              {
-                "id": "windows_aarch64_msvc 0.48.5",
-                "target": "windows_aarch64_msvc"
-              }
+              {"id": "windows_aarch64_msvc 0.48.5", "target": "windows_aarch64_msvc"}
             ],
             "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(windows_raw_dylib)))": [
-              {
-                "id": "windows_i686_gnu 0.48.5",
-                "target": "windows_i686_gnu"
-              }
+              {"id": "windows_i686_gnu 0.48.5", "target": "windows_i686_gnu"}
             ],
             "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": [
-              {
-                "id": "windows_i686_msvc 0.48.5",
-                "target": "windows_i686_msvc"
-              }
+              {"id": "windows_i686_msvc 0.48.5", "target": "windows_i686_msvc"}
             ],
             "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [
-              {
-                "id": "windows_x86_64_gnu 0.48.5",
-                "target": "windows_x86_64_gnu"
-              }
+              {"id": "windows_x86_64_gnu 0.48.5", "target": "windows_x86_64_gnu"}
             ],
             "cfg(all(target_arch = \"x86_64\", target_env = \"msvc\", not(windows_raw_dylib)))": [
-              {
-                "id": "windows_x86_64_msvc 0.48.5",
-                "target": "windows_x86_64_msvc"
-              }
+              {"id": "windows_x86_64_msvc 0.48.5", "target": "windows_x86_64_msvc"}
             ],
             "x86_64-pc-windows-gnullvm": [
-              {
-                "id": "windows_x86_64_gnullvm 0.48.5",
-                "target": "windows_x86_64_gnullvm"
-              }
+              {"id": "windows_x86_64_gnullvm 0.48.5", "target": "windows_x86_64_gnullvm"}
             ]
           }
         },
@@ -1676,10 +1155,7 @@
       "library_target_name": "windows_targets",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows-targets",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1690,25 +1166,21 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_targets",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_targets", "crate_root": "src/lib.rs"}
         }
       ],
       "version": "0.48.5"
     },
     "windows_aarch64_gnullvm 0.48.5": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "windows_aarch64_gnullvm",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_aarch64_gnullvm",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1719,25 +1191,24 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_aarch64_gnullvm",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_aarch64_gnullvm", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.48.5"
     },
     "windows_aarch64_msvc 0.48.5": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "windows_aarch64_msvc",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_aarch64_msvc",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1748,25 +1219,24 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_aarch64_msvc",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_aarch64_msvc", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.48.5"
     },
     "windows_i686_gnu 0.48.5": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "windows_i686_gnu",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_i686_gnu",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1777,25 +1247,24 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_i686_gnu",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_i686_gnu", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.48.5"
     },
     "windows_i686_msvc 0.48.5": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "windows_i686_msvc",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_i686_msvc",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1806,25 +1275,24 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_i686_msvc",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_i686_msvc", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.48.5"
     },
     "windows_x86_64_gnu 0.48.5": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "windows_x86_64_gnu",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_x86_64_gnu",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1835,25 +1303,24 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_x86_64_gnu",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_x86_64_gnu", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.48.5"
     },
     "windows_x86_64_gnullvm 0.48.5": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "windows_x86_64_gnullvm",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_x86_64_gnullvm",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1864,25 +1331,24 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_x86_64_gnullvm",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_x86_64_gnullvm", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.48.5"
     },
     "windows_x86_64_msvc 0.48.5": {
+      "build_script_attrs": {},
       "common_attrs": {
-        "edition": "2018"
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
       },
       "library_target_name": "windows_x86_64_msvc",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
+      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_x86_64_msvc",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1893,21 +1359,34 @@
       },
       "targets": [
         {
-          "Library": {
-            "crate_name": "windows_x86_64_msvc",
-            "crate_root": "src/lib.rs"
-          }
+          "Library": {"crate_name": "windows_x86_64_msvc", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
         }
       ],
       "version": "0.48.5"
     }
   },
-  "direct_deps": [
-    "anyhow 1.0.75",
-    "tokio 1.34.0"
-  ],
+  "direct_deps": ["anyhow 1.0.75", "tokio 1.34.0"],
   "direct_dev_deps": [],
-  "workspace_members": {
-    "direct-cargo-bazel-deps 0.0.1": ""
-  }
+  "provenance": {
+    "cargo_bazel_version": "0.18.0",
+    "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "resolver": "guppy",
+    "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+    "supported_platform_triples": [
+      "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-linux-android",
+      "aarch64-unknown-linux-gnu",
+      "wasm32-unknown-unknown",
+      "wasm32-wasip1",
+      "x86_64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-nixos-gnu"
+    ]
+  },
+  "workspace_members": {"direct-cargo-bazel-deps 0.0.1": ""}
 }

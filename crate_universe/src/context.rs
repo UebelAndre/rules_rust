@@ -8,12 +8,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use anyhow::{bail, Result};
+use serde::{Deserialize, Serialize, Serializer};
 
-use crate::config::{CrateId, RenderConfig};
+use crate::config::{Config, CrateAnnotations, CrateId, RenderConfig};
 use crate::context::platforms::resolve_cfg_platforms;
-use crate::lockfile::Digest;
+use crate::lockfile::{Digest, Provenance};
 use crate::metadata::{Annotations, Dependency};
 use crate::select::Select;
 use crate::utils::target_triple::TargetTriple;
@@ -27,6 +27,11 @@ pub(crate) struct Context {
     /// The collective checksum of all inputs to the context
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) checksum: Option<Digest>,
+
+    /// What produced this context: the resolver and toolchain versions and the
+    /// platforms it was resolved for.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) provenance: Option<Provenance>,
 
     /// The collection of all crates that make up the dependency graph.
     // Always emitted; the rendering templates reference `context.crates` and
@@ -43,8 +48,11 @@ pub(crate) struct Context {
     // and expect the key to be present even when empty.
     pub(crate) workspace_members: BTreeMap<CrateId, String>,
 
-    /// A mapping of `cfg` flags to platform triples supporting the configuration
-    #[serde(default)]
+    /// A mapping of `cfg` flags to platform triples supporting the configuration.
+    ///
+    /// A triple which maps only to itself is implied by the platform set and is
+    /// not written to the lockfile; [Self::for_rendering] restores those entries.
+    #[serde(default, serialize_with = "serialize_conditions")]
     pub(crate) conditions: BTreeMap<String, BTreeSet<TargetTriple>>,
 
     /// A list of crates visible to any bazel module.
@@ -70,7 +78,13 @@ impl Context {
         Ok(serde_json::from_str(&data)?)
     }
 
-    pub(crate) fn new(annotations: Annotations, sources_are_present: bool) -> anyhow::Result<Self> {
+    /// Builds the context Cargo's resolution implies, independent of how it will
+    /// be rendered. This is what the lockfile records; [Self::for_rendering]
+    /// applies the workspace's configuration on top.
+    pub(crate) fn new(
+        annotations: Annotations,
+        supported_platform_triples: &BTreeSet<TargetTriple>,
+    ) -> anyhow::Result<Self> {
         // Build a map of crate contexts
         let crates: BTreeMap<CrateId, CrateContext> = annotations
             .metadata
@@ -81,32 +95,19 @@ impl Context {
                     annotation,
                     &annotations.metadata.packages,
                     &annotations.lockfile.crates,
-                    &annotations.pairred_extras,
                     &annotations.metadata.workspace_metadata.tree_metadata,
-                    annotations.config.generate_binaries,
-                    annotations.config.generate_build_scripts,
-                    sources_are_present,
                 )?;
                 let id = CrateId::new(context.name.clone(), context.version.clone());
                 Ok::<_, anyhow::Error>((id, context))
             })
             .collect::<Result<_, _>>()?;
 
-        // Filter for any crate that contains a binary
-        let binary_crates: BTreeSet<CrateId> = crates
-            .iter()
-            .filter(|(_, ctx)| ctx.targets.iter().any(|t| matches!(t, Rule::Binary(..))))
-            // Only consider remote repositories (so non-workspace members).
-            .filter(|(_, ctx)| ctx.repository.is_some())
-            .map(|(id, _)| id.clone())
-            .collect();
+        let binary_crates = Self::binary_crates(&crates);
 
         // Given a list of all conditional dependencies, build a set of platform
         // triples which satisfy the conditions.
-        let conditions = resolve_cfg_platforms(
-            crates.values().collect(),
-            &annotations.config.supported_platform_triples,
-        )?;
+        let conditions =
+            resolve_cfg_platforms(crates.values().collect(), supported_platform_triples)?;
 
         // Generate a list of all workspace members
         let workspace_members = annotations
@@ -161,6 +162,7 @@ impl Context {
 
         Ok(Self {
             checksum: None,
+            provenance: None,
             crates,
             binary_crates,
             workspace_members,
@@ -169,6 +171,72 @@ impl Context {
             direct_deps,
             unused_patches,
         })
+    }
+
+    /// The crates with a binary target, excluding workspace members.
+    fn binary_crates(crates: &BTreeMap<CrateId, CrateContext>) -> BTreeSet<CrateId> {
+        crates
+            .iter()
+            .filter(|(_, ctx)| ctx.targets.iter().any(|t| matches!(t, Rule::Binary(..))))
+            // Only consider remote repositories (so non-workspace members).
+            .filter(|(_, ctx)| ctx.repository.is_some())
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
+    /// Applies the workspace's render-time configuration: its annotations and which
+    /// targets to emit. The lockfile holds the context before this is applied, so
+    /// none of it requires a repin and all of it may differ between consumers of
+    /// the same lockfile.
+    pub(crate) fn for_rendering(mut self, config: &Config) -> Result<Self> {
+        let platforms = self
+            .provenance
+            .as_ref()
+            .map(|provenance| provenance.supported_platform_triples.clone())
+            .unwrap_or_else(|| config.supported_platform_triples.clone());
+        restore_identity_conditions(&mut self.conditions, &platforms);
+
+        let mut unused_annotations: BTreeSet<_> = config.annotations.keys().cloned().collect();
+
+        let sources_are_present = config.rendering.are_sources_present();
+        self.crates = self
+            .crates
+            .into_iter()
+            .map(|(id, krate)| {
+                let mut annotations: CrateAnnotations = config
+                    .annotations
+                    .iter()
+                    .filter(|(req, _)| req.matches_crate(&krate.name, &krate.version))
+                    .map(|(req, annotations)| {
+                        unused_annotations.remove(req);
+                        annotations
+                    })
+                    .cloned()
+                    .sum();
+                if let Some(package_metadata) = &krate.package_metadata {
+                    annotations.apply_defaults_from_package_metadata(package_metadata);
+                }
+
+                let krate = krate.for_rendering(
+                    &annotations,
+                    config.generate_binaries,
+                    config.generate_build_scripts,
+                    sources_are_present,
+                );
+                (id, krate)
+            })
+            .collect();
+
+        if !unused_annotations.is_empty() {
+            bail!(
+                "Unused annotations were provided. Please remove them: {:?}",
+                unused_annotations
+            );
+        }
+
+        self.binary_crates = Self::binary_crates(&self.crates);
+
+        Ok(self)
     }
 
     // A helper function for locating the unique path in a workspace to a workspace member
@@ -297,25 +365,94 @@ pub struct SingleBuildFileRenderContext {
     pub(crate) crate_context: Arc<CrateContext>,
 }
 
+/// Whether a condition is a platform triple mapping only to itself.
+fn is_identity_condition(cfg: &str, triples: &BTreeSet<TargetTriple>) -> bool {
+    triples.len() == 1 && triples.iter().all(|triple| triple.to_bazel() == cfg)
+}
+
+/// Serializes `conditions` without the entries the platform set implies.
+fn serialize_conditions<S: Serializer>(
+    conditions: &BTreeMap<String, BTreeSet<TargetTriple>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    let explicit: BTreeMap<&String, &BTreeSet<TargetTriple>> = conditions
+        .iter()
+        .filter(|(cfg, triples)| !is_identity_condition(cfg, triples))
+        .collect();
+    explicit.serialize(serializer)
+}
+
+/// Adds the entries [serialize_conditions] leaves out for `platforms`.
+pub(crate) fn restore_identity_conditions(
+    conditions: &mut BTreeMap<String, BTreeSet<TargetTriple>>,
+    platforms: &BTreeSet<TargetTriple>,
+) {
+    for triple in platforms {
+        conditions
+            .entry(triple.to_bazel())
+            .or_default()
+            .insert(triple.clone());
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn identity_conditions_are_implied_by_the_platform_set() {
+        let linux = TargetTriple::from_bazel("x86_64-unknown-linux-gnu".to_owned());
+        let nixos = TargetTriple::from_bazel("x86_64-unknown-nixos-gnu".to_owned());
+        let context = Context {
+            conditions: BTreeMap::from([
+                (
+                    linux.to_bazel(),
+                    BTreeSet::from([linux.clone(), nixos.clone()]),
+                ),
+                (nixos.to_bazel(), BTreeSet::from([nixos.clone()])),
+                (
+                    "cfg(unix)".to_owned(),
+                    BTreeSet::from([linux.clone(), nixos.clone()]),
+                ),
+            ]),
+            ..Context::default()
+        };
+
+        let written = serde_json::to_value(&context).unwrap();
+        let written = written["conditions"].as_object().unwrap();
+        assert!(
+            written.contains_key("x86_64-unknown-linux-gnu"),
+            "not an identity: {written:?}"
+        );
+        assert!(
+            !written.contains_key("x86_64-unknown-nixos-gnu"),
+            "implied: {written:?}"
+        );
+        assert!(written.contains_key("cfg(unix)"));
+
+        let mut reloaded: Context =
+            serde_json::from_value(serde_json::to_value(&context).unwrap()).unwrap();
+        restore_identity_conditions(
+            &mut reloaded.conditions,
+            &BTreeSet::from([linux.clone(), nixos.clone()]),
+        );
+        assert_eq!(reloaded.conditions, context.conditions);
+    }
     use camino::Utf8Path;
     use semver::Version;
 
-    use crate::config::Config;
+    use crate::config::{Config, CrateAnnotations, CrateNameAndVersionReq};
 
     fn mock_context_common() -> Context {
         let annotations = Annotations::new(
             crate::test::metadata::common(),
             &None,
             crate::test::lockfile::common(),
-            Config::default(),
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap();
 
-        Context::new(annotations, false).unwrap()
+        Context::new(annotations, &BTreeSet::new()).unwrap()
     }
 
     fn mock_context_aliases() -> Context {
@@ -323,12 +460,11 @@ mod test {
             crate::test::metadata::alias(),
             &None,
             crate::test::lockfile::alias(),
-            Config::default(),
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap();
 
-        Context::new(annotations, false).unwrap()
+        Context::new(annotations, &BTreeSet::new()).unwrap()
     }
 
     fn mock_context_workspace_build_scripts_deps() -> Context {
@@ -336,15 +472,17 @@ mod test {
             crate::test::metadata::workspace_build_scripts_deps(),
             &None,
             crate::test::lockfile::workspace_build_scripts_deps(),
-            Config {
-                generate_build_scripts: true,
-                ..Config::default()
-            },
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap();
 
-        Context::new(annotations, false).unwrap()
+        Context::new(annotations, &BTreeSet::new())
+            .unwrap()
+            .for_rendering(&Config {
+                generate_build_scripts: true,
+                ..Config::default()
+            })
+            .unwrap()
     }
 
     #[test]
@@ -400,6 +538,86 @@ mod test {
                 (&CrateId::new("tonic-build".to_owned(), Version::new(0, 4, 2)), false),
             ],
         }
+    }
+
+    #[test]
+    fn detect_unused_annotation() {
+        let annotations = Annotations::new(
+            crate::test::metadata::no_deps(),
+            &None,
+            crate::test::lockfile::no_deps(),
+            Utf8Path::new("/tmp/bazelworkspace"),
+        )
+        .unwrap();
+        let context = Context::new(annotations, &BTreeSet::new()).unwrap();
+
+        // Create a config with some random annotation
+        let mut config = Config::default();
+        config.annotations.insert(
+            CrateNameAndVersionReq::new("mock-crate".to_owned(), "0.1.0".parse().unwrap()),
+            CrateAnnotations::default(),
+        );
+
+        let result = context.for_rendering(&config);
+        assert!(result.is_err());
+
+        let result_str = format!("{result:?}");
+        assert!(result_str.contains("Unused annotations were provided. Please remove them"));
+        assert!(result_str.contains("mock-crate"));
+    }
+
+    /// The crate author's `[package.metadata.bazel]` fills in what the workspace's
+    /// annotation leaves unset, and nothing more.
+    #[test]
+    fn defaults_from_package_metadata() {
+        let crate_id = CrateId::new(
+            "has_package_metadata".to_owned(),
+            semver::Version::new(0, 0, 0),
+        );
+        let rustc_env = Select::from_value(BTreeMap::from([(
+            "BAR".to_owned(),
+            "bar is set".to_owned(),
+        )]));
+
+        let mut config = Config::default();
+        config.annotations.insert(
+            CrateNameAndVersionReq::new(
+                "has_package_metadata".to_owned(),
+                "0.0.0".parse().unwrap(),
+            ),
+            CrateAnnotations {
+                rustc_env: Some(rustc_env.clone()),
+                ..CrateAnnotations::default()
+            },
+        );
+
+        let annotations = Annotations::new(
+            crate::test::metadata::has_package_metadata(),
+            &None,
+            crate::test::lockfile::has_package_metadata(),
+            Utf8Path::new("/tmp/bazelworkspace"),
+        )
+        .unwrap();
+        let context = Context::new(annotations, &BTreeSet::new()).unwrap();
+
+        // The lockfile context carries the crate's metadata, not its effects.
+        assert!(context.crates[&crate_id].package_metadata.is_some());
+        assert!(context.crates[&crate_id]
+            .additive_build_file_content
+            .is_none());
+
+        let rendered = context.for_rendering(&config).unwrap();
+        let krate = &rendered.crates[&crate_id];
+
+        // This comes from has_package_metadata's [package.metadata.bazel].
+        assert_eq!(
+            krate.additive_build_file_content.as_deref(),
+            Some("genrule(**kwargs)\n")
+        );
+        // The package metadata defines a default rustc_env containing FOO, but it
+        // is superseded by the rustc_env annotation containing only BAR. These
+        // dictionaries are intentionally not merged together.
+        assert_eq!(krate.common_attrs.rustc_env, rustc_env);
     }
 
     #[test]

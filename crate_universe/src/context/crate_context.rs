@@ -7,10 +7,8 @@ use camino::Utf8PathBuf;
 use cargo_metadata::{Node, Package, PackageId};
 use serde::{Deserialize, Serialize};
 
-use crate::config::{AliasRule, CrateId, GenBinaries};
-use crate::metadata::{
-    CrateAnnotation, Dependency, PairedExtras, SourceAnnotation, TreeResolverMetadata,
-};
+use crate::config::{AliasRule, CrateAnnotations, CrateId, GenBinaries};
+use crate::metadata::{CrateAnnotation, Dependency, SourceAnnotation, TreeResolverMetadata};
 use crate::select::Select;
 use crate::utils::sanitize_module_name;
 use crate::utils::starlark::{Glob, Label};
@@ -412,19 +410,24 @@ pub(crate) struct CrateContext {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[serde(default)]
     pub(crate) override_targets: BTreeMap<String, Label>,
+
+    /// The `[package.metadata.bazel]` table of the crate's manifest, if any: the
+    /// annotation defaults the crate's own author supplies. Applied at render
+    /// time beneath the workspace's annotations, see [CrateContext::for_rendering].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) package_metadata: Option<serde_json::Value>,
 }
 
 impl CrateContext {
-    #[allow(clippy::too_many_arguments)]
+    /// Builds the context Cargo's resolution of a package implies: every target the
+    /// package has, its dependencies, features and source. Nothing here depends on
+    /// the workspace's configuration or annotations, which [Self::for_rendering]
+    /// applies, so this is what the lockfile records.
     pub(crate) fn new(
         annotation: &CrateAnnotation,
         packages: &BTreeMap<PackageId, Package>,
         source_annotations: &BTreeMap<PackageId, SourceAnnotation>,
-        extras: &BTreeMap<CrateId, PairedExtras>,
         resolver_data: &TreeResolverMetadata,
-        include_binaries: bool,
-        include_build_scripts: bool,
-        sources_are_present: bool,
     ) -> anyhow::Result<Self> {
         let package: &Package = &packages[&annotation.node.id];
         let current_crate_id = CrateId::new(package.name.clone(), package.version.clone());
@@ -487,31 +490,8 @@ impl CrateContext {
             ..Default::default()
         };
 
-        // Locate extra settings for the current package.
-        let package_extra = extras
-            .iter()
-            .find(|(_, settings)| settings.package_id == package.id);
-
-        let include_build_scripts =
-            Self::crate_includes_build_script(package_extra, include_build_scripts);
-
-        let gen_none = GenBinaries::Some(BTreeSet::new());
-        let gen_binaries = package_extra
-            .and_then(|(_, settings)| settings.crate_extra.gen_binaries.as_ref())
-            .unwrap_or(if include_binaries {
-                &GenBinaries::All
-            } else {
-                &gen_none
-            });
-
         // Iterate over each target and produce a Bazel target for all supported "kinds"
-        let targets = Self::collect_targets(
-            &annotation.node,
-            packages,
-            gen_binaries,
-            include_build_scripts,
-            sources_are_present,
-        )?;
+        let targets = Self::collect_targets(&annotation.node, packages)?;
 
         // Parse the library crate name from the set of included targets
         let library_target_name = {
@@ -587,7 +567,12 @@ impl CrateContext {
             None => package.homepage.clone(),
         };
 
-        // Create the crate's context and apply extra settings
+        let package_metadata = package
+            .metadata
+            .get("bazel")
+            .filter(|value| !value.is_null())
+            .cloned();
+
         Ok(CrateContext {
             name: package.name.clone(),
             version: package.version.clone(),
@@ -605,17 +590,89 @@ impl CrateContext {
             extra_aliased_targets: BTreeMap::new(),
             alias_rule: None,
             override_targets: BTreeMap::new(),
-        }
-        .with_overrides(extras))
+            package_metadata,
+        })
     }
 
-    fn with_overrides(mut self, extras: &BTreeMap<CrateId, PairedExtras>) -> Self {
-        let id = CrateId::new(self.name.clone(), self.version.clone());
+    /// Applies the workspace's render-time configuration: which of the crate's
+    /// targets to emit, whether its sources are present, and its annotations.
+    ///
+    /// `annotations` are the workspace's annotations for this crate with the
+    /// defaults from `package_metadata` already applied.
+    pub(crate) fn for_rendering(
+        mut self,
+        annotations: &CrateAnnotations,
+        generate_binaries: bool,
+        generate_build_scripts: bool,
+        sources_are_present: bool,
+    ) -> Self {
+        // The build script is emitted unless the crate's annotation, or failing
+        // that the workspace, says otherwise.
+        if !annotations
+            .gen_build_script
+            .unwrap_or(generate_build_scripts)
+        {
+            let build_script = self.targets.iter().find_map(|rule| match rule {
+                Rule::BuildScript(attrs) => Some(attrs.crate_name.clone()),
+                _ => None,
+            });
+            if let Some(crate_name) = build_script {
+                self.targets
+                    .retain(|rule| !matches!(rule, Rule::BuildScript(_)));
+                self.build_script_attrs = None;
 
-        // Insert all overrides/extras
-        if let Some(paired_override) = extras.get(&id) {
-            let crate_extra = &paired_override.crate_extra;
+                // `new` made the library depend on its build script.
+                let build_script_label = Label::from_str(&format!(":{crate_name}")).unwrap();
+                let mut extra_deps = Select::new();
+                for (configuration, label) in self.common_attrs.extra_deps.items() {
+                    if label != build_script_label {
+                        extra_deps.insert(label, configuration);
+                    }
+                }
+                self.common_attrs.extra_deps = extra_deps;
+            }
+        }
 
+        // Binaries are emitted per the crate's annotation, or failing that for every
+        // crate or none depending on the workspace.
+        let gen_binaries = annotations
+            .gen_binaries
+            .clone()
+            .unwrap_or(if generate_binaries {
+                GenBinaries::All
+            } else {
+                GenBinaries::Some(BTreeSet::new())
+            });
+        self.targets.retain(|rule| match rule {
+            Rule::Binary(bin) => match &gen_binaries {
+                GenBinaries::All => true,
+                GenBinaries::Some(bins) => bins.contains(&bin.crate_name),
+            },
+            _ => true,
+        });
+
+        // Vendored sources are expected to exist, so their globs may not be empty.
+        if sources_are_present {
+            self.targets = self
+                .targets
+                .into_iter()
+                .map(|mut rule| {
+                    match &mut rule {
+                        Rule::Library(attrs)
+                        | Rule::ProcMacro(attrs)
+                        | Rule::Binary(attrs)
+                        | Rule::BuildScript(attrs) => attrs.srcs.allow_empty = false,
+                    }
+                    rule
+                })
+                .collect();
+        }
+
+        self.with_overrides(annotations)
+    }
+
+    fn with_overrides(mut self, crate_extra: &CrateAnnotations) -> Self {
+        {
             // Deps
             if let Some(extra) = &crate_extra.deps {
                 self.common_attrs.extra_deps =
@@ -863,24 +920,11 @@ impl CrateContext {
 
     /// Determine whether or not a crate __should__ include a build script
     /// (build.rs) if it happens to have one.
-    fn crate_includes_build_script(
-        package_extra: Option<(&CrateId, &PairedExtras)>,
-        default_generate_build_script: bool,
-    ) -> bool {
-        // If the crate has extra settings, which explicitly set `gen_build_script`, always use
-        // this value, otherwise, fallback to the provided default.
-        package_extra
-            .and_then(|(_, settings)| settings.crate_extra.gen_build_script)
-            .unwrap_or(default_generate_build_script)
-    }
-
-    /// Collect all Bazel targets that should be generated for a particular Package
+    /// Collect every Bazel target a package can produce. Which of them are emitted
+    /// is decided by [Self::for_rendering].
     fn collect_targets(
         node: &Node,
         packages: &BTreeMap<PackageId, Package>,
-        gen_binaries: &GenBinaries,
-        include_build_scripts: bool,
-        sources_are_present: bool,
     ) -> anyhow::Result<BTreeSet<Rule>> {
         let package = &packages[&node.id];
 
@@ -910,12 +954,12 @@ impl CrateContext {
                         |root| root.to_string_lossy().replace('\\', "/"),
                     );
 
-                    // Conditionally check to see if the dependencies is a build-script target
-                    if include_build_scripts && matches!(kind, cargo_metadata::TargetKind::CustomBuild) {
+                    // Check to see if the dependencies is a build-script target
+                    if matches!(kind, cargo_metadata::TargetKind::CustomBuild) {
                         return Some(Ok(Rule::BuildScript(TargetAttributes {
                             crate_name,
                             crate_root,
-                            srcs: Glob::new_rust_srcs(!sources_are_present),
+                            srcs: Glob::new_rust_srcs(true),
                         })));
                     }
 
@@ -924,7 +968,7 @@ impl CrateContext {
                         return Some(Ok(Rule::ProcMacro(TargetAttributes {
                             crate_name,
                             crate_root,
-                            srcs: Glob::new_rust_srcs(!sources_are_present),
+                            srcs: Glob::new_rust_srcs(true),
                         })));
                     }
 
@@ -933,21 +977,15 @@ impl CrateContext {
                         return Some(Ok(Rule::Library(TargetAttributes {
                             crate_name,
                             crate_root,
-                            srcs: Glob::new_rust_srcs(!sources_are_present),
+                            srcs: Glob::new_rust_srcs(true),
                         })));
                     }
 
-                    // Check if the target kind is binary and is one of the ones included in gen_binaries
-                    if matches!(kind, cargo_metadata::TargetKind::Bin)
-                        && match gen_binaries {
-                            GenBinaries::All => true,
-                            GenBinaries::Some(set) => set.contains(&target.name),
-                        }
-                    {
+                    if matches!(kind, cargo_metadata::TargetKind::Bin) {
                         return Some(Ok(Rule::Binary(TargetAttributes {
                             crate_name: target.name.clone(),
                             crate_root,
-                            srcs: Glob::new_rust_srcs(!sources_are_present),
+                            srcs: Glob::new_rust_srcs(true),
                         })));
                     }
 
@@ -973,7 +1011,6 @@ mod test {
             crate::test::metadata::common(),
             &None,
             crate::test::lockfile::common(),
-            crate::config::Config::default(),
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap()
@@ -1013,13 +1050,15 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
+        )
+        .unwrap()
+        .for_rendering(
+            &CrateAnnotations::default(),
             include_binaries,
             include_build_scripts,
             are_sources_present,
-        )
-        .unwrap();
+        );
 
         assert_eq!(context.name, "common");
         assert_eq!(
@@ -1042,18 +1081,11 @@ mod test {
 
         let crate_annotation = &annotations.metadata.crates[&package_id];
 
-        let mut pairred_extras = BTreeMap::new();
-        pairred_extras.insert(
-            CrateId::new("common".to_owned(), semver::Version::new(0, 1, 0)),
-            PairedExtras {
-                package_id,
-                crate_extra: CrateAnnotations {
-                    gen_binaries: Some(GenBinaries::All),
-                    data_glob: Some(BTreeSet::from(["**/data_glob/**".to_owned()])),
-                    ..CrateAnnotations::default()
-                },
-            },
-        );
+        let crate_annotations = CrateAnnotations {
+            gen_binaries: Some(GenBinaries::All),
+            data_glob: Some(BTreeSet::from(["**/data_glob/**".to_owned()])),
+            ..CrateAnnotations::default()
+        };
 
         let include_binaries = false;
         let include_build_scripts = false;
@@ -1062,13 +1094,15 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
+        )
+        .unwrap()
+        .for_rendering(
+            &crate_annotations,
             include_binaries,
             include_build_scripts,
             are_sources_present,
-        )
-        .unwrap();
+        );
 
         assert_eq!(context.name, "common");
         assert_eq!(
@@ -1097,7 +1131,6 @@ mod test {
             crate::test::metadata::build_scripts(),
             &None,
             crate::test::lockfile::build_scripts(),
-            crate::config::Config::default(),
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap()
@@ -1108,7 +1141,6 @@ mod test {
             crate::test::metadata::crate_types(),
             &None,
             crate::test::lockfile::crate_types(),
-            crate::config::Config::default(),
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap()
@@ -1132,13 +1164,15 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
+        )
+        .unwrap()
+        .for_rendering(
+            &CrateAnnotations::default(),
             include_binaries,
             include_build_scripts,
             are_sources_present,
-        )
-        .unwrap();
+        );
 
         assert_eq!(context.name, "openssl-sys");
         assert!(context.build_script_attrs.is_some());
@@ -1171,26 +1205,12 @@ mod test {
             Some("x86_64-unknown-linux-gnu".to_owned()),
         );
 
-        let mut config = crate::config::Config::default();
-        config.annotations.insert(
-            crate::config::CrateNameAndVersionReq::new(
-                "openssl-sys".to_owned(),
-                "0.9.87".parse().unwrap(),
-            ),
-            CrateAnnotations {
-                build_script_env_files: Some(build_script_env_files.clone()),
-                ..CrateAnnotations::default()
-            },
-        );
+        let crate_annotations = CrateAnnotations {
+            build_script_env_files: Some(build_script_env_files.clone()),
+            ..CrateAnnotations::default()
+        };
 
-        let annotations = Annotations::new(
-            crate::test::metadata::build_scripts(),
-            &None,
-            crate::test::lockfile::build_scripts(),
-            config,
-            Utf8Path::new("/tmp/bazelworkspace"),
-        )
-        .unwrap();
+        let annotations = build_script_annotations();
         let package_id = PackageId {
             repr: "registry+https://github.com/rust-lang/crates.io-index#openssl-sys@0.9.87"
                 .to_owned(),
@@ -1201,13 +1221,10 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
-            false,
-            true,
-            false,
         )
-        .unwrap();
+        .unwrap()
+        .for_rendering(&crate_annotations, false, true, false);
 
         assert_eq!(
             context.build_script_attrs.unwrap().build_script_env_files,
@@ -1233,13 +1250,15 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
+        )
+        .unwrap()
+        .for_rendering(
+            &CrateAnnotations::default(),
             include_binaries,
             include_build_scripts,
             are_sources_present,
-        )
-        .unwrap();
+        );
 
         assert_eq!(context.name, "openssl-sys");
         assert!(context.build_script_attrs.is_none());
@@ -1270,13 +1289,15 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
+        )
+        .unwrap()
+        .for_rendering(
+            &CrateAnnotations::default(),
             include_binaries,
             include_build_scripts,
             are_sources_present,
-        )
-        .unwrap();
+        );
 
         assert_eq!(context.name, "sysinfo");
         assert!(context.build_script_attrs.is_none());
@@ -1313,13 +1334,15 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
+        )
+        .unwrap()
+        .for_rendering(
+            &CrateAnnotations::default(),
             include_binaries,
             include_build_scripts,
             are_sources_present,
-        )
-        .unwrap();
+        );
 
         assert_eq!(context.name, "common");
         check_context(context);
@@ -1446,13 +1469,15 @@ mod test {
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
+        )
+        .unwrap()
+        .for_rendering(
+            &CrateAnnotations::default(),
             include_binaries,
             include_build_scripts,
             are_sources_present,
-        )
-        .unwrap();
+        );
 
         let mut expected = Select::new();
         expected.insert("unique_feature".to_owned(), None);
@@ -1466,7 +1491,6 @@ mod test {
             crate::test::metadata::abspath(),
             &None,
             crate::test::lockfile::abspath(),
-            crate::config::Config::default(),
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap();
@@ -1475,18 +1499,11 @@ mod test {
             repr: "path+file://{TEMP_DIR}/common#0.1.0".to_owned(),
         }];
 
-        let include_binaries = false;
-        let include_build_scripts = false;
-        let are_sources_present = false;
         let err = CrateContext::new(
             crate_annotation,
             &annotations.metadata.packages,
             &annotations.lockfile.crates,
-            &annotations.pairred_extras,
             &annotations.metadata.workspace_metadata.tree_metadata,
-            include_binaries,
-            include_build_scripts,
-            are_sources_present,
         )
         .unwrap_err()
         .to_string();
