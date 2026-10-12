@@ -71,7 +71,7 @@ pub fn query(opt: QueryOptions) -> Result<()> {
         &Cargo::new(opt.cargo, opt.rustc.clone()),
         &opt.rustc,
     )?;
-    let expected = Digest::new(&lockfile, &provenance, &splicing_manifest)?;
+    let expected = Digest::new(&lockfile, &provenance, &splicing_manifest, None)?;
 
     if digest != expected {
         bail!("Digests do not match: Current {digest:?} != Expected {expected:?}");

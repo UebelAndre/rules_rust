@@ -1,6 +1,6 @@
 {
   "binary_crates": ["clap 4.6.0", "cxxbridge-cmd 1.0.194"],
-  "checksum": "f4836fca067a2e68f9c288709791968bda6ae9b43730450ca5d5f32c90af8060",
+  "checksum": "35e5c23c6b8740c8b02394d06296b7ee0650fd81a5d774ee6b5880f0e8539710",
   "conditions": {
     "cfg(any())": [],
     "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"]

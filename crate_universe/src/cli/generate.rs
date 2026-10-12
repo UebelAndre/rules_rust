@@ -43,9 +43,10 @@ pub struct GenerateOptions {
     #[clap(long)]
     pub lockfile: Option<PathBuf>,
 
-    /// The path to a [Cargo.lock](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html) file.
+    /// The path to a `Cargo.lock` file. Required when repinning; when
+    /// rendering from a lockfile it is not read.
     #[clap(long)]
-    pub cargo_lockfile: PathBuf,
+    pub cargo_lockfile: Option<PathBuf>,
 
     /// The directory of the current repository rule
     #[clap(long)]
@@ -180,6 +181,13 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         None => bail!("The `--metadata` argument is required when generating unpinned content"),
     };
 
+    let cargo_lockfile_path = match &opt.cargo_lockfile {
+        Some(path) => path,
+        None => {
+            bail!("The `--cargo-lockfile` argument is required when generating unpinned content")
+        }
+    };
+
     // Load Metadata and Lockfile
     let lockfile_path = metadata_path
         .parent()
@@ -231,6 +239,15 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
         opt.dry_run,
     )?;
 
+    // The `Cargo.lock` as it will be on disk after this run is what the digest
+    // covers, so the next check reads back what is recorded here. A lockfile
+    // which is not written back is read from disk instead.
+    let cargo_lockfile_to_write = if opt.strip_internal_dependencies_from_cargo_lockfile {
+        remove_internal_dependencies_from_cargo_lockfile(cargo_lockfile)
+    } else {
+        cargo_lockfile
+    };
+
     // Ensure Bazel lockfiles are written to disk so future generations can be short-circuited.
     if let Some(lockfile) = opt.lockfile {
         let lock_content = lock_context(
@@ -239,18 +256,14 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
             &splicing_manifest,
             &cargo_bin,
             rustc_bin,
+            (!opt.skip_cargo_lockfile_overwrite).then_some(&cargo_lockfile_to_write),
         )?;
 
         write_lockfile(lock_content, &lockfile, opt.dry_run)?;
     }
 
     if !opt.skip_cargo_lockfile_overwrite {
-        let cargo_lockfile_to_write = if opt.strip_internal_dependencies_from_cargo_lockfile {
-            remove_internal_dependencies_from_cargo_lockfile(cargo_lockfile)
-        } else {
-            cargo_lockfile
-        };
-        update_cargo_lockfile(&opt.cargo_lockfile, cargo_lockfile_to_write)?;
+        update_cargo_lockfile(cargo_lockfile_path, cargo_lockfile_to_write)?;
     }
 
     Ok(())

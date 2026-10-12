@@ -4,7 +4,9 @@ load(
     ":common_utils.bzl",
     "CARGO_BAZEL_DEBUG",
     "CARGO_BAZEL_ISOLATED",
+    "CARGO_BAZEL_LOCKFILE_MODE",
     "CARGO_BAZEL_TIMEOUT",
+    "LOCKFILE_MODES",
     "REPIN_ALLOWLIST_ENV_VAR",
     "REPIN_ENV_VARS",
     "parse_alias_rule",
@@ -23,6 +25,7 @@ CRATES_REPOSITORY_ENVIRON = GENERATOR_ENV_VARS + REPIN_ENV_VARS + [
     CARGO_BAZEL_ISOLATED,
     CARGO_BAZEL_DEBUG,
     CARGO_BAZEL_TIMEOUT,
+    CARGO_BAZEL_LOCKFILE_MODE,
 ]
 
 def get_generator(repository_ctx, host_triple):
@@ -354,6 +357,7 @@ def determine_repin(
         lockfile_path,
         config,
         splicing_manifest,
+        lockfile_mode = "update",
         repin_instructions = None):
     """Use the `cargo-bazel` binary to determine whether or not dependencies need to be re-pinned
 
@@ -364,6 +368,7 @@ def determine_repin(
         config (path): The path to a `cargo-bazel` config file. See `generate_config`.
         splicing_manifest (path): The path to a `cargo-bazel` splicing manifest. See `create_splicing_manifest`
         lockfile_path (path): The path to a "lock" file for reproducible outputs.
+        lockfile_mode (str): What to do when the lockfile is out of date, one of `LOCKFILE_MODES`.
         repin_instructions (optional string): Instructions to re-pin dependencies in your repository. Will be shown when re-pinning is required.
 
     Returns:
@@ -399,10 +404,22 @@ def determine_repin(
         allow_fail = True,
     )
 
-    # If it was determined repinning should occur but there was no
-    # flag indicating repinning was requested, an error is raised
-    # since repinning should be an explicit action
     if result.return_code:
+        mode = repository_ctx.os.environ.get(CARGO_BAZEL_LOCKFILE_MODE, lockfile_mode)
+        if mode not in LOCKFILE_MODES:
+            fail("`{}` must be one of {}, got `{}`".format(CARGO_BAZEL_LOCKFILE_MODE, LOCKFILE_MODES, mode))
+
+        # Regenerate in place unless the repository, or the environment, asks for
+        # an out of date lockfile to be an error.
+        if mode == "update":
+            # buildifier: disable=print
+            print(("\n".join([
+                result.stderr.strip(),
+                "The `lockfile` of '{}' is out of date and is being regenerated. Set " +
+                "`lockfile_mode = \"error\"` or `{}=error` to fail instead.",
+            ])).format(repository_name, CARGO_BAZEL_LOCKFILE_MODE))
+            return True
+
         if repin_instructions:
             msg = ("\n".join([
                 result.stderr,
@@ -443,7 +460,8 @@ def execute_generator(
     Args:
         cargo_bazel_fn (callable): A callback for invoking the `cargo-bazel` binary.
         lockfile_path (path): The path to a "lock" file (file used for reproducible renderings).
-        cargo_lockfile_path (path): The path to a "Cargo.lock" file within the root workspace.
+        cargo_lockfile_path (path, optional): The path to a "Cargo.lock" file within the root workspace.
+            Required when repinning.
         config (path): The path to a `cargo-bazel` config file.
         splicing_manifest (path): The path to a `cargo-bazel` splicing manifest. See `create_splicing_manifest`
         repository_dir (path): The output path for the Bazel module and BUILD files.
@@ -471,8 +489,6 @@ def execute_generator(
     """
     args = [
         "generate",
-        "--cargo-lockfile",
-        cargo_lockfile_path,
         "--config",
         config,
         "--splicing-manifest",
@@ -499,6 +515,14 @@ def execute_generator(
         args.extend([
             "--lockfile",
             lockfile_path,
+        ])
+
+    # Not needed when rendering from a lockfile: a repository without a
+    # `cargo_lockfile` has none to pass until it is repinned.
+    if cargo_lockfile_path:
+        args.extend([
+            "--cargo-lockfile",
+            cargo_lockfile_path,
         ])
 
     if skip_cargo_lockfile_overwrite:

@@ -380,6 +380,8 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load(
     "//crate_universe/private:common_utils.bzl",
+    "LOCKFILE_MODES",
+    "LOCKFILE_MODE_DOC",
     "new_cargo_bazel_fn",
 )
 load("//crate_universe/private:crate.bzl", _crate_universe_crate = "crate")
@@ -537,6 +539,7 @@ def _generate_hub_and_spokes(
         render_config,
         splicing_config,
         lockfile,
+        lockfile_mode,
         skip_cargo_lockfile_overwrite,
         strip_internal_dependencies_from_cargo_lockfile,
         is_root,
@@ -553,6 +556,7 @@ def _generate_hub_and_spokes(
         render_config (dict): The render config to use.
         splicing_config (dict): The splicing config to use.
         lockfile (path): The path to the crate_universe lock file, if one was provided.
+        lockfile_mode (str): What to do when the lockfile is out of date, one of `LOCKFILE_MODES`.
         skip_cargo_lockfile_overwrite (bool): Whether to skip writing the cargo lockfile back after resolving.
             You may want to set this if your dependency versions are maintained externally through a non-trivial set-up.
             But you probably don't want to set this.
@@ -603,11 +607,15 @@ def _generate_hub_and_spokes(
             cargo_config = cfg.cargo_config,
             manifests = manifests,
             manifest_to_path = module_ctx.path,
+            cargo_lockfile = cargo_lockfile,
         ),
     )
 
     # TODO: Repins should never be allowed if the lockfile is not within
     # https://github.com/bazelbuild/rules_rust/issues/1738
+
+    # Whether the resolution should be recorded in the extension's facts.
+    record_fact = False
 
     # Determine whether or not to repin dependencies. Transitive (non-root)
     # modules are taken as-is: the digest check would fail across rust /
@@ -616,11 +624,30 @@ def _generate_hub_and_spokes(
     # read-only bzlmod cache so repinning isn't an option anyway.
     if not is_root:
         if not lockfile:
-            fail(("crate_universe extension call `{}` is in a non-root module " +
-                  "but has no lockfile. Transitive crate_universe repositories " +
-                  "must ship a `lockfile = ...` because repinning is not " +
-                  "supported across module boundaries.").format(cfg.name))
+            fail(("The crate_universe repository `{}` is declared by a module consumed as a " +
+                  "dependency but ships no `lockfile`. A module's resolution must travel with it: " +
+                  "consumers cannot repin it, need no Rust toolchain for it, and must all get the " +
+                  "same crates. Add a `cargo-bazel-lock.json` to the module (an empty file is " +
+                  "filled in on the next build of the module itself), or add one through a Bazel " +
+                  "registry overlay if the module's source cannot carry it.").format(cfg.name))
         repin = False
+    elif not lockfile and hasattr(module_ctx, "facts"):
+        # Without a `lockfile`, the last resolution is kept in the extension's
+        # facts, which Bazel persists in `MODULE.bazel.lock`, so it is only
+        # redone when its inputs change.
+        lockfile = tag_path.get_child("cargo-bazel-lock.json")
+        cached = module_ctx.facts.get(cfg.name)
+        module_ctx.file(lockfile, cached or "")
+        record_fact = True
+        repin = not cached or determine_repin(
+            repository_ctx = module_ctx,
+            repository_name = cfg.name,
+            cargo_bazel_fn = cargo_bazel_fn,
+            lockfile_path = lockfile,
+            config = config_file,
+            splicing_manifest = splicing_manifest,
+            lockfile_mode = "update",
+        )
     else:
         repin = not lockfile or determine_repin(
             repository_ctx = module_ctx,
@@ -629,6 +656,7 @@ def _generate_hub_and_spokes(
             lockfile_path = lockfile,
             config = config_file,
             splicing_manifest = splicing_manifest,
+            lockfile_mode = lockfile_mode,
         )
 
     # The workspace root when one is explicitly provided.
@@ -799,6 +827,10 @@ def _generate_hub_and_spokes(
             )
         else:
             fail("Invalid repo: expected Http or Git to exist for crate %s-%s, got %s" % (name, version, repo))
+
+    return struct(
+        fact = module_ctx.read(lockfile) if record_fact else None,
+    )
 
 def _package_to_json(p):
     # Avoid adding unspecified properties.
@@ -1105,6 +1137,10 @@ def _crate_impl(module_ctx):
     # repositories are generated.
     global_annotations = {}
 
+    # The resolutions of root repositories without a `lockfile`, keyed by name.
+    # Returned as facts so Bazel persists them in `MODULE.bazel.lock`.
+    facts = {}
+
     for mod in module_ctx.modules:
         if not mod.tags.from_cargo and not mod.tags.from_specs:
             fail("`.from_cargo` or `.from_specs` are required. Please update {}".format(mod.name))
@@ -1214,7 +1250,7 @@ def _crate_impl(module_ctx):
             lockfile_path = None
             if cfg.lockfile:
                 lockfile_path = module_ctx.path(cfg.lockfile)
-            else:
+            elif not hasattr(module_ctx, "facts"):
                 reproducible = False
 
             cargo_lockfile = None
@@ -1235,12 +1271,13 @@ def _crate_impl(module_ctx):
                 for p in common_specs + repo_specific_specs.get(cfg.name, [])
             }
 
-            _generate_hub_and_spokes(
+            generated = _generate_hub_and_spokes(
                 module_ctx = module_ctx,
                 cargo_bazel_fn = cargo_bazel_fn,
                 cfg = cfg,
                 annotations = annotations,
                 lockfile = lockfile_path,
+                lockfile_mode = cfg.lockfile_mode,
                 cargo_lockfile = cargo_lockfile,
                 render_config = rendering_config,
                 splicing_config = splicing_config,
@@ -1250,6 +1287,8 @@ def _crate_impl(module_ctx):
                 strip_internal_dependencies_from_cargo_lockfile = cfg.strip_internal_dependencies_from_cargo_lockfile,
                 is_root = mod.is_root,
             )
+            if generated.fact != None:
+                facts[cfg.name] = generated.fact
 
             # Watch cfg.lockfile AFTER generation. The generator may modify it during
             # repin, and in Bazel 9 module_ctx.read verifies digests for files already
@@ -1260,6 +1299,8 @@ def _crate_impl(module_ctx):
     metadata_kwargs = {}
     if bazel_features.external_deps.extension_metadata_has_reproducible:
         metadata_kwargs["reproducible"] = reproducible
+    if facts:
+        metadata_kwargs["facts"] = facts
 
     return module_ctx.extension_metadata(**metadata_kwargs)
 
@@ -1285,8 +1326,15 @@ _FROM_COMMON_ATTRS = {
     "lockfile": attr.label(
         doc = (
             "The path to a file to use for reproducible renderings. " +
-            "If set, this file must exist within the workspace (but can be empty) before this rule will work."
+            "If set, this file must exist within the workspace (but can be empty) before this rule will work. " +
+            "Without one the resolution is kept in the extension's facts in `MODULE.bazel.lock` instead, " +
+            "and redone only when its inputs change. Repositories of other modules must have one."
         ),
+    ),
+    "lockfile_mode": attr.string(
+        doc = LOCKFILE_MODE_DOC,
+        values = LOCKFILE_MODES,
+        default = "update",
     ),
     "skip_cargo_lockfile_overwrite": attr.bool(
         doc = (

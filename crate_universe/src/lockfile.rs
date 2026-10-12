@@ -13,7 +13,7 @@ use sha2::{Digest as Sha2Digest, Sha256};
 
 use crate::context::Context;
 use crate::metadata::Cargo;
-use crate::splicing::{SplicingManifest, SplicingMetadata};
+use crate::splicing::{LockfileProjection, SplicingManifest, SplicingMetadata};
 use crate::utils::target_triple::TargetTriple;
 
 /// What produced a lockfile: the inputs to resolution which are neither in the
@@ -57,13 +57,14 @@ pub(crate) fn lock_context(
     splicing_manifest: &SplicingManifest,
     cargo_bin: &Cargo,
     rustc_bin: &Path,
+    cargo_lockfile: Option<&cargo_lock::Lockfile>,
 ) -> Result<Context> {
     // Ensure there is no existing checksum or provenance which could impact the lockfile results
     context.checksum = None;
     context.provenance = None;
 
     let provenance = Provenance::current(supported_platform_triples, cargo_bin, rustc_bin)?;
-    let checksum = Digest::new(&context, &provenance, splicing_manifest)
+    let checksum = Digest::new(&context, &provenance, splicing_manifest, cargo_lockfile)
         .context("Failed to generate context digest")?;
 
     Ok(Context {
@@ -216,12 +217,19 @@ pub(crate) struct Digest(String);
 impl Digest {
     /// The digest of a resolution: its context (without the checksum and provenance
     /// it will be stored with), what produced it, and the splicing inputs.
+    /// The digest of a resolution. `cargo_lockfile` is the `Cargo.lock` about
+    /// to be written back, when one is: the digest must cover what the next
+    /// check will read from disk, not the file as it was before resolving.
     pub(crate) fn new(
         context: &Context,
         provenance: &Provenance,
         splicing_manifest: &SplicingManifest,
+        cargo_lockfile: Option<&cargo_lock::Lockfile>,
     ) -> Result<Self> {
-        let splicing_metadata = SplicingMetadata::try_from((*splicing_manifest).clone())?;
+        let mut splicing_metadata = SplicingMetadata::try_from((*splicing_manifest).clone())?;
+        if let Some(cargo_lockfile) = cargo_lockfile {
+            splicing_metadata.cargo_lock = Some(LockfileProjection::from(cargo_lockfile));
+        }
         let context = Context {
             checksum: None,
             provenance: None,
@@ -425,6 +433,7 @@ mod test {
             )]),
             manifests: BTreeMap::new(),
             cargo_config: None,
+            cargo_lock: None,
             resolver_version: cargo_toml::Resolver::V2,
         };
 
@@ -433,6 +442,27 @@ mod test {
         assert_eq!(
             Digest("ea60764e1051f645e322033ff63f214f81fff7a8e51b8b513295e5015303e762".to_owned()),
             digest,
+        );
+
+        // The package set of the `Cargo.lock` is an input too.
+        let lockfile: cargo_lock::Lockfile = indoc::indoc! {r#"
+            version = 3
+
+            [[package]]
+            name = "rustonomicon"
+            version = "1.0.0"
+            source = "registry+https://github.com/rust-lang/crates.io-index"
+            checksum = "0000000000000000000000000000000000000000000000000000000000000000"
+        "#}
+        .parse()
+        .unwrap();
+        let with_lockfile = SplicingMetadata {
+            cargo_lock: Some(LockfileProjection::from(&lockfile)),
+            ..splicing_metadata
+        };
+        assert_ne!(
+            digest,
+            Digest::compute(&Context::default(), &provenance(), &with_lockfile)
         );
     }
 
@@ -482,7 +512,8 @@ mod test {
     #[test]
     fn digest_ignores_stored_checksum_and_provenance() {
         let context = Context::default();
-        let expected = Digest::new(&context, &provenance(), &SplicingManifest::default()).unwrap();
+        let expected =
+            Digest::new(&context, &provenance(), &SplicingManifest::default(), None).unwrap();
 
         let stored = Context {
             checksum: Some(expected.clone()),
@@ -491,7 +522,7 @@ mod test {
         };
         assert_eq!(
             expected,
-            Digest::new(&stored, &provenance(), &SplicingManifest::default()).unwrap()
+            Digest::new(&stored, &provenance(), &SplicingManifest::default(), None).unwrap()
         );
     }
 
