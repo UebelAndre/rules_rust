@@ -38,52 +38,44 @@ for these rules, you must define a toolchain with the [`prost`], [`prost-types`]
 [`tonic`]: https://crates.io/crates/tonic
 [`protoc`]: https://github.com/protocolbuffers/protobuf
 
-To get access to these crates, you can use the [crate_universe](./crate_universe.md) repository
-rules. For example:
+To get access to these crates, declare them in a `Cargo.toml` and resolve it with the
+[crate_universe](./crate_universe.md) module extension. For example:
+
+```toml
+[package]
+name = "prost_deps"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+prost = "0.13"
+prost-types = "0.13"
+protoc-gen-prost = "0.4"
+protoc-gen-tonic = "0.4"
+tonic = "0.12"
+```
 
 ```python
-load("//crate_universe:defs.bzl", "crate", "crates_repository")
-
-crates_repository(
-    name = "crates_io",
-    annotations = {
-        "protoc-gen-prost": [crate.annotation(
-            gen_binaries = ["protoc-gen-prost"],
-            patch_args = [
-                "-p1",
-            ],
-            patches = [
-                # Note: You will need to use this patch until a version greater than `0.2.2` of
-                # `protoc-gen-prost` is released.
-                "@rules_rust//proto/prost/private/3rdparty/patches:protoc-gen-prost.patch",
-            ],
-        )],
-        "protoc-gen-tonic": [crate.annotation(
-            gen_binaries = ["protoc-gen-tonic"],
-        )],
-    },
-    cargo_lockfile = "Cargo.Bazel.lock",
-    mode = "remote",
-    packages = {
-        "prost": crate.spec(
-            version = "0",
-        ),
-        "prost-types": crate.spec(
-            version = "0",
-        ),
-        "protoc-gen-prost": crate.spec(
-            version = "0",
-        ),
-        "protoc-gen-tonic": crate.spec(
-            version = "0",
-        ),
-        "tonic": crate.spec(
-            version = "0",
-        ),
-    },
-    repository_name = "rules_rust_prost",
-    tags = ["manual"],
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.annotation(
+    crate = "protoc-gen-prost",
+    gen_binaries = ["protoc-gen-prost"],
 )
+crate.annotation(
+    crate = "protoc-gen-tonic",
+    gen_binaries = ["protoc-gen-tonic"],
+)
+crate.from_cargo(
+    name = "crates_io",
+    cargo_lockfile = "//3rdparty:Cargo.lock",
+    lockfile = "//3rdparty:cargo-bazel-lock.json",
+    manifests = ["//3rdparty:Cargo.toml"],
+)
+use_repo(crate, "crates_io")
 ```
 
 You can then define a toolchain with the `rust_prost_toolchain` rule which uses the crates

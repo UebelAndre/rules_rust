@@ -28,7 +28,7 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":current_prost_runtime",
-        "@rrprd__heck//:heck",
+        "@rrprd//heck",
     ],
 )
 
@@ -43,7 +43,6 @@ bzl_library(
     srcs = glob(["**/*.bzl"]),
     visibility = ["//:__pkg__"],
     deps = [
-        "//private/3rdparty:bzl_lib",
         "@rules_proto//proto:defs",
         "@rules_proto//proto:repositories",
         "@rules_rust//rust:bzl_lib",

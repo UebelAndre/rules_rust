@@ -1,21 +1,7 @@
-load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_vendor")
-
-crates_vendor(
-    name = "crates_vendor",
-    annotations = {
-        "mdbook": [crate.annotation(
-            gen_binaries = ["mdbook"],
-        )],
-    },
-    mode = "remote",
-    packages = {
-        "mdbook": crate.spec(
-            version = "=0.4.44",
-        ),
-    },
-    # Use a short name to avoid MAX_PATH issues on windows.
-    # `rmdbi` == `rules_mdbook_crate_index`
-    repository_name = "rmdbi",
-    tags = ["manual"],
-    vendor_path = "crates",
-)
+# The crates of `@rmdbi` are declared in `Cargo.toml`; the lockfiles record
+# their resolution.
+exports_files([
+    "Cargo.lock",
+    "Cargo.toml",
+    "cargo-bazel-lock.json",
+])

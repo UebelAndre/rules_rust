@@ -1,0 +1,20 @@
+[package]
+name = "rules_rust_prost_deps"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# No crate is built from this manifest; it only declares dependencies.
+[lib]
+path = "lib.rs"
+
+[dependencies]
+h2 = "0.4.6"
+heck = "0.5.0"
+prost = "0.13.1"
+prost-types = "0.13.1"
+protoc-gen-prost = "0.4.0"
+protoc-gen-tonic = "0.4.0"
+tokio = { version = "1.39.3", features = ["full"] }
+tokio-stream = "0.1.15"
+tonic = "0.12.1"

@@ -1,0 +1,12 @@
+[package]
+name = "rules_rust_mdbook_deps"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# No crate is built from this manifest; it only declares dependencies.
+[lib]
+path = "lib.rs"
+
+[dependencies]
+mdbook = "=0.4.44"
