@@ -53,7 +53,10 @@ def _local_crate_mirror_impl(repository_ctx):
     repository_ctx.watch_tree(path)
     _copy_tree(repository_ctx, path)
 
-    execute(repository_ctx, [generator, "render", "--options-json", repository_ctx.attr.options_json, "--output-path", repository_ctx.path("BUILD.bazel")])
+    if repository_ctx.attr.build_file_content:
+        repository_ctx.file("BUILD.bazel", repository_ctx.attr.build_file_content)
+    else:
+        execute(repository_ctx, [generator, "render", "--options-json", repository_ctx.attr.options_json, "--output-path", repository_ctx.path("BUILD.bazel")])
 
     repository_ctx.file("WORKSPACE.bazel", "")
     if hasattr(repository_ctx, "repo_metadata"):
@@ -66,6 +69,9 @@ local_crate_mirror = repository_rule(
 This is effectively a `local_repository` rule implementation, but where the `BUILD.bazel` file is generated using the `cargo-bazel render` command.""",
     implementation = _local_crate_mirror_impl,
     attrs = {
+        "build_file_content": attr.string(
+            doc = "A pre-rendered `BUILD.bazel`. When set, `options_json` is not rendered.",
+        ),
         "generator": attr.string(
             doc = (
                 "The absolute label of a generator. Eg. `@cargo_bazel_bootstrap//:cargo-bazel`. " +

@@ -8,6 +8,7 @@ mod config;
 mod context;
 mod lockfile;
 mod metadata;
+mod pool;
 mod rendering;
 mod select;
 mod splicing;
