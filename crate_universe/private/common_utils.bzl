@@ -14,6 +14,21 @@ REPIN = "REPIN"
 
 CARGO_BAZEL_REPIN_ONLY = "CARGO_BAZEL_REPIN_ONLY"
 
+# Overrides every repository's `lockfile_mode`; how CI enforces `error`.
+CARGO_BAZEL_LOCKFILE_MODE = "CARGO_BAZEL_LOCKFILE_MODE"
+
+# What to do when a `lockfile` no longer matches its inputs. `update` regenerates
+# it in place, `error` fails, as Bazel's own `--lockfile_mode` does for
+# `MODULE.bazel.lock`.
+LOCKFILE_MODES = ["update", "error"]
+
+LOCKFILE_MODE_DOC = (
+    "What to do when `lockfile` no longer matches its inputs. `update` regenerates it in place " +
+    "and `error` fails with instructions to repin, as Bazel's own `--lockfile_mode` does for " +
+    "`MODULE.bazel.lock`. `" + CARGO_BAZEL_LOCKFILE_MODE + "` overrides this for every repository, " +
+    "which is how CI enforces `error`. Repositories of other modules are never regenerated."
+)
+
 REPIN_ENV_VARS = [
     CARGO_BAZEL_REPIN,
     REPIN,
