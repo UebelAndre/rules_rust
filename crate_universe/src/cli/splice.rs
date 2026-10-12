@@ -84,7 +84,6 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
     // Load the all config files required for splicing a workspace
     let splicing_manifest = SplicingManifest::try_from_path(&opt.splicing_manifest)
         .context("Failed to parse splicing manifest")?;
-    let incompatible_guppy_resolver = splicing_manifest.incompatible_guppy_resolver;
 
     // Determine the splicing workspace
     let temp_dir;
@@ -136,7 +135,6 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
         cargo.clone(),
         manifest_path.as_path_buf(),
         &config.supported_platform_triples,
-        incompatible_guppy_resolver,
     )
     .context("Failed to generate features")?;
 

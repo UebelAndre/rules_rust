@@ -1,9 +1,8 @@
-//! The output contract shared by the feature/dependency resolvers.
+//! The output contract of feature/dependency resolution.
 //!
-//! [crate::metadata::TreeResolver] and [crate::metadata::GuppyResolver] compute the
-//! same [TreeResolverMetadata] by very different means. Everything they agree on -
-//! the shape of the data, which platforms may act as a host, and how per-platform
-//! results are folded into [Select]s - lives here so the two cannot drift.
+//! The shape of [TreeResolverMetadata], which platforms may act as a host, and how
+//! per-platform results are folded into [Select]s live here, apart from the
+//! [crate::metadata::GuppyResolver] which produces them.
 
 use std::collections::{BTreeMap, BTreeSet};
 

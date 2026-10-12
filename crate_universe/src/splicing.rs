@@ -41,16 +41,6 @@ pub(crate) struct SplicingManifest {
 
     /// The Cargo resolver version to use for splicing
     pub(crate) resolver_version: cargo_toml::Resolver,
-
-    /// Incompatibility flag. Resolve crate features and dependencies with
-    /// [guppy](https://docs.rs/guppy) instead of `cargo tree`. `false` restores
-    /// the legacy `cargo tree` resolver, which is planned for removal.
-    #[serde(default = "default_incompatible_guppy_resolver")]
-    pub(crate) incompatible_guppy_resolver: bool,
-}
-
-fn default_incompatible_guppy_resolver() -> bool {
-    true
 }
 
 impl FromStr for SplicingManifest {
@@ -118,13 +108,9 @@ pub(crate) struct SplicingMetadata {
     /// The path of a Cargo config file
     pub(crate) cargo_config: Option<CargoConfig>,
 
-    /// The Cargo resolver version used for splicing.
+    /// The Cargo resolver version used for splicing, which changes what gets
+    /// resolved and so belongs in the lockfile digest.
     pub(crate) resolver_version: cargo_toml::Resolver,
-
-    /// Which feature resolver produced the lockfile. Both this and
-    /// `resolver_version` change what gets resolved, so both belong in the
-    /// lockfile digest.
-    pub(crate) incompatible_guppy_resolver: bool,
 }
 
 impl TryFrom<SplicingManifest> for SplicingMetadata {
@@ -164,7 +150,6 @@ impl TryFrom<SplicingManifest> for SplicingMetadata {
             manifests,
             cargo_config,
             resolver_version: value.resolver_version,
-            incompatible_guppy_resolver: value.incompatible_guppy_resolver,
         })
     }
 }
@@ -698,7 +683,6 @@ mod test {
             ]),
             cargo_config: None,
             resolver_version: cargo_toml::Resolver::V2,
-            incompatible_guppy_resolver: true,
         };
         let metadata = SplicingMetadata::try_from(manifest).unwrap();
         let metadata = serde_json::to_string(&metadata).unwrap();
