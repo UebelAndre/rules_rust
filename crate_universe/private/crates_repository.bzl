@@ -47,15 +47,9 @@ def _crates_repository_impl(repository_ctx):
     for m in repository_ctx.attr.manifests:
         repository_ctx.watch(repository_ctx.path(m))
 
-    # Locate Rust tools (cargo, rustc)
-    tools = get_rust_tools(repository_ctx, host_triple)
-    cargo_path = repository_ctx.path(tools.cargo)
-    rustc_path = repository_ctx.path(tools.rustc)
     cargo_bazel_fn = new_cargo_bazel_fn(
         repository_ctx = repository_ctx,
         cargo_bazel_path = generator,
-        cargo_path = cargo_path,
-        rustc_path = rustc_path,
         isolated = repository_ctx.attr.isolated,
         quiet = repository_ctx.attr.quiet,
     )
@@ -89,12 +83,24 @@ def _crates_repository_impl(repository_ctx):
     # If re-pinning is enabled, gather additional inputs for the generator
     kwargs = dict()
     if repin:
+        # Locate Rust tools (cargo, rustc). Resolving is the only step that
+        # needs them, so the toolchain is only fetched here.
+        tools = get_rust_tools(repository_ctx, host_triple)
+        resolving_cargo_bazel_fn = new_cargo_bazel_fn(
+            repository_ctx = repository_ctx,
+            cargo_bazel_path = generator,
+            cargo_path = repository_ctx.path(tools.cargo),
+            rustc_path = repository_ctx.path(tools.rustc),
+            isolated = repository_ctx.attr.isolated,
+            quiet = repository_ctx.attr.quiet,
+        )
+
         repository_ctx.report_progress("Splicing Cargo workspace.")
 
         # Generate a top level Cargo workspace and manifest for use in generation
         splice_outputs = splice_workspace_manifest(
             repository_ctx = repository_ctx,
-            cargo_bazel_fn = cargo_bazel_fn,
+            cargo_bazel_fn = resolving_cargo_bazel_fn,
             cargo_lockfile = lockfiles.cargo,
             splicing_manifest = splicing_manifest,
             config_path = config_path,
