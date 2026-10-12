@@ -1,6 +1,6 @@
 //! Utility module for interacting with the cargo-bazel lockfile.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
@@ -8,31 +8,67 @@ use std::process::Command;
 
 use anyhow::{bail, Context as AnyhowContext, Result};
 use hex::ToHex;
-use once_cell::sync::OnceCell;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as Sha2Digest, Sha256};
 
-use crate::config::Config;
 use crate::context::Context;
 use crate::metadata::Cargo;
 use crate::splicing::{SplicingManifest, SplicingMetadata};
+use crate::utils::target_triple::TargetTriple;
+
+/// What produced a lockfile: the inputs to resolution which are neither in the
+/// Cargo workspace nor in the splicing manifest. Recorded in the lockfile so a
+/// difference between two of them can be explained, and hashed into the digest
+/// so a change in any of them requires a repin.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Provenance {
+    /// The version of `cargo-bazel`.
+    pub(crate) cargo_bazel_version: String,
+
+    /// The platforms resolved for.
+    pub(crate) supported_platform_triples: BTreeSet<TargetTriple>,
+
+    /// The output of `cargo --version`.
+    pub(crate) cargo_version: String,
+
+    /// The output of `rustc --version`.
+    pub(crate) rustc_version: String,
+}
+
+impl Provenance {
+    /// The provenance of a resolution performed now, with the given inputs.
+    pub(crate) fn current(
+        supported_platform_triples: &BTreeSet<TargetTriple>,
+        cargo_bin: &Cargo,
+        rustc_bin: &Path,
+    ) -> Result<Self> {
+        Ok(Self {
+            cargo_bazel_version: env!("CARGO_PKG_VERSION").to_owned(),
+            supported_platform_triples: supported_platform_triples.clone(),
+            cargo_version: cargo_bin.full_version()?,
+            rustc_version: Digest::bin_version(rustc_bin)?,
+        })
+    }
+}
 
 pub(crate) fn lock_context(
     mut context: Context,
-    config: &Config,
+    supported_platform_triples: &BTreeSet<TargetTriple>,
     splicing_manifest: &SplicingManifest,
     cargo_bin: &Cargo,
     rustc_bin: &Path,
 ) -> Result<Context> {
-    // Ensure there is no existing checksum which could impact the lockfile results
+    // Ensure there is no existing checksum or provenance which could impact the lockfile results
     context.checksum = None;
+    context.provenance = None;
 
-    let checksum = Digest::new(&context, config, splicing_manifest, cargo_bin, rustc_bin)
+    let provenance = Provenance::current(supported_platform_triples, cargo_bin, rustc_bin)?;
+    let checksum = Digest::new(&context, &provenance, splicing_manifest)
         .context("Failed to generate context digest")?;
 
     Ok(Context {
         checksum: Some(checksum),
+        provenance: Some(provenance),
         ..context
     })
 }
@@ -41,7 +77,7 @@ pub(crate) fn lock_context(
 pub(crate) fn write_lockfile(lockfile: Context, path: &Path, dry_run: bool) -> Result<()> {
     let mut value = serde_json::to_value(&lockfile)?;
     compact_lockfile_value(&mut value);
-    let content = serde_json::to_string_pretty(&value)?;
+    let content = format_lockfile(&value);
 
     if dry_run {
         println!("{content:#?}");
@@ -55,6 +91,80 @@ pub(crate) fn write_lockfile(lockfile: Context, path: &Path, dry_run: bool) -> R
     }
 
     Ok(())
+}
+
+/// Width up to which an array or object of scalars is written on one line.
+const INLINE_WIDTH: usize = 100;
+
+/// Formats a lockfile one entry per line, except that arrays and objects whose
+/// members are all scalars are written on one line when short. Diffs stay
+/// per crate and per field while the file is well under half the size of
+/// `serde_json`'s pretty output, most of which is whitespace around one-word
+/// entries like a dependency's `id` and `target`.
+pub(crate) fn format_lockfile(value: &serde_json::Value) -> String {
+    let mut out = String::new();
+    write_json(&mut out, value, 0);
+    out
+}
+
+fn is_scalar(value: &serde_json::Value) -> bool {
+    !matches!(
+        value,
+        serde_json::Value::Array(_) | serde_json::Value::Object(_)
+    )
+}
+
+/// The one-line form of `value` if it is a scalar or a short container of scalars.
+fn inline_json(value: &serde_json::Value) -> Option<String> {
+    let text = match value {
+        serde_json::Value::Array(items) if items.iter().all(is_scalar) => {
+            let items: Vec<String> = items.iter().map(|item| item.to_string()).collect();
+            format!("[{}]", items.join(", "))
+        }
+        serde_json::Value::Object(map) if map.values().all(is_scalar) => {
+            let entries: Vec<String> = map
+                .iter()
+                .map(|(key, value)| format!("{}: {}", serde_json::Value::from(key.as_str()), value))
+                .collect();
+            format!("{{{}}}", entries.join(", "))
+        }
+        value if is_scalar(value) => value.to_string(),
+        _ => return None,
+    };
+    (text.len() <= INLINE_WIDTH || is_scalar(value)).then_some(text)
+}
+
+fn write_json(out: &mut String, value: &serde_json::Value, depth: usize) {
+    if let Some(text) = inline_json(value) {
+        out.push_str(&text);
+        return;
+    }
+    let indent = |out: &mut String, depth: usize| out.push_str(&"  ".repeat(depth));
+    match value {
+        serde_json::Value::Array(items) => {
+            out.push_str("[\n");
+            for (i, item) in items.iter().enumerate() {
+                indent(out, depth + 1);
+                write_json(out, item, depth + 1);
+                out.push_str(if i + 1 < items.len() { ",\n" } else { "\n" });
+            }
+            indent(out, depth);
+            out.push(']');
+        }
+        serde_json::Value::Object(map) => {
+            out.push_str("{\n");
+            for (i, (key, value)) in map.iter().enumerate() {
+                indent(out, depth + 1);
+                out.push_str(&serde_json::Value::from(key.as_str()).to_string());
+                out.push_str(": ");
+                write_json(out, value, depth + 1);
+                out.push_str(if i + 1 < map.len() { ",\n" } else { "\n" });
+            }
+            indent(out, depth);
+            out.push('}');
+        }
+        scalar => out.push_str(&scalar.to_string()),
+    }
 }
 
 /// Recursively rewrite `{"common": X, "selects": {}}` patterns in a lockfile
@@ -104,40 +214,20 @@ pub(crate) fn compact_lockfile_value(value: &mut serde_json::Value) {
 pub(crate) struct Digest(String);
 
 impl Digest {
+    /// The digest of a resolution: its context (without the checksum and provenance
+    /// it will be stored with), what produced it, and the splicing inputs.
     pub(crate) fn new(
         context: &Context,
-        config: &Config,
+        provenance: &Provenance,
         splicing_manifest: &SplicingManifest,
-        cargo_bin: &Cargo,
-        rustc_bin: &Path,
     ) -> Result<Self> {
         let splicing_metadata = SplicingMetadata::try_from((*splicing_manifest).clone())?;
-        let cargo_version = cargo_bin.full_version()?;
-        let rustc_version = Self::bin_version(rustc_bin)?;
-        let cargo_bazel_version = env!("CARGO_PKG_VERSION");
-
-        // Ensure the checksum of a digest is not present before computing one
-        Ok(match context.checksum {
-            Some(_) => Self::compute(
-                &Context {
-                    checksum: None,
-                    ..context.clone()
-                },
-                config,
-                &splicing_metadata,
-                cargo_bazel_version,
-                &cargo_version,
-                &rustc_version,
-            ),
-            None => Self::compute(
-                context,
-                config,
-                &splicing_metadata,
-                cargo_bazel_version,
-                &cargo_version,
-                &rustc_version,
-            ),
-        })
+        let context = Context {
+            checksum: None,
+            provenance: None,
+            ..context.clone()
+        };
+        Ok(Self::compute(&context, provenance, &splicing_metadata))
     }
 
     /// A helper for generating a hash and logging it's contents.
@@ -146,57 +236,22 @@ impl Digest {
         hasher.update(data.as_bytes());
         hasher.update(b"\0");
         let hash = hasher.finalize().encode_hex::<String>();
-        tracing::debug!("{} hash: {}", id, hash);
+        tracing::debug!("{} digest: {}", id, hash);
         hash
-    }
-
-    /// Normalize canonical Bazel labels in a JSON string for stable digest computation.
-    ///
-    /// The canonical name of a repository changes depending on whether it is used as the
-    /// root workspace/module or as a dependency:
-    ///
-    /// - bzlmod root:     `@@//package:target`
-    /// - bzlmod non-root: `@@module_name+//package:target`
-    /// - WORKSPACE root:  `@@//package:target` (or `//package:target`)
-    /// - WORKSPACE dep:   `@@repo_name//package:target`
-    ///
-    /// To ensure the lockfile digest is stable across these contexts (so that a lockfile
-    /// generated when a module is root remains valid when the module is used as a
-    /// non-root dependency), we normalize all canonical labels by stripping the
-    /// repository name component, treating `@@repo_name//` the same as `@@//`.
-    fn normalize_labels_for_digest(json: &str) -> std::borrow::Cow<'_, str> {
-        static RE: OnceCell<Regex> = OnceCell::new();
-        let re = RE.get_or_init(|| {
-            // Match canonical labels (@@...) with a non-empty repository name followed by //.
-            // The repository name is matched by [^/"]+ (one or more chars that are not / or ").
-            // This handles both bzlmod (@@module_name+//) and WORKSPACE (@@repo_name//) forms.
-            // This does NOT match @@// (root form, empty repo name) since [^/"]+ requires at
-            // least one character.
-            Regex::new(r#"@@[^/"]+//"#).expect("valid regex")
-        });
-        re.replace_all(json, "@@//")
     }
 
     fn compute(
         context: &Context,
-        config: &Config,
+        provenance: &Provenance,
         splicing_metadata: &SplicingMetadata,
-        cargo_bazel_version: &str,
-        cargo_version: &str,
-        rustc_version: &str,
     ) -> Self {
         // Since this method is private, it should be expected that context is
         // always None. This then allows us to have this method not return a
         // Result.
         debug_assert!(context.checksum.is_none());
+        debug_assert!(context.provenance.is_none());
 
         let mut hasher = Sha256::new();
-
-        hasher.update(Digest::compute_single_hash(
-            cargo_bazel_version,
-            "cargo-bazel version",
-        ));
-        hasher.update(b"\0");
 
         // The lockfile context (typically `cargo-bazel-lock.json`).
         hasher.update(Digest::compute_single_hash(
@@ -205,12 +260,10 @@ impl Digest {
         ));
         hasher.update(b"\0");
 
-        // This content is generated by various attributes in Bazel rules and written to a file behind the scenes.
-        // Labels are normalized to strip bzlmod canonical repository names so the digest is stable
-        // regardless of whether the module is used as a root module or a non-root dependency.
+        // The toolchain and platforms the context was produced with.
         hasher.update(Digest::compute_single_hash(
-            &Self::normalize_labels_for_digest(&serde_json::to_string(config).unwrap()),
-            "workspace config",
+            &serde_json::to_string(provenance).unwrap(),
+            "provenance",
         ));
         hasher.update(b"\0");
 
@@ -220,12 +273,6 @@ impl Digest {
             &serde_json::to_string(splicing_metadata).unwrap(),
             "splicing manifest",
         ));
-        hasher.update(b"\0");
-
-        hasher.update(Digest::compute_single_hash(cargo_version, "Cargo version"));
-        hasher.update(b"\0");
-
-        hasher.update(Digest::compute_single_hash(rustc_version, "Rustc version"));
         hasher.update(b"\0");
 
         let hash = hasher.finalize().encode_hex::<String>();
@@ -299,84 +346,75 @@ impl PartialEq<String> for Digest {
 
 #[cfg(test)]
 mod test {
-    use crate::config::{CrateAnnotations, CrateNameAndVersionReq};
     use crate::splicing::cargo_config::{AdditionalRegistry, CargoConfig, Registry};
     use crate::utils::target_triple::TargetTriple;
 
     use super::*;
 
-    use std::collections::BTreeSet;
+    fn provenance() -> Provenance {
+        Provenance {
+            cargo_bazel_version: "0.1.0".to_owned(),
+            supported_platform_triples: BTreeSet::from([
+                TargetTriple::from_bazel("aarch64-apple-darwin".to_owned()),
+                TargetTriple::from_bazel("x86_64-unknown-linux-gnu".to_owned()),
+            ]),
+            cargo_version: "cargo 1.57.0 (b2e52d7ca 2021-10-21)".to_owned(),
+            rustc_version: "rustc 1.57.0 (f1edd0429 2021-11-29)".to_owned(),
+        }
+    }
 
     #[test]
     fn simple_digest() {
-        let context = Context::default();
-        let config = Config::default();
-        let splicing_metadata = SplicingMetadata::default();
-
         let digest = Digest::compute(
-            &context,
-            &config,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
+            &Context::default(),
+            &provenance(),
+            &SplicingMetadata::default(),
         );
 
         assert_eq!(
-            Digest("8de57b50f32a2b8d3816c2e2c732ebc47dc9b4847990edba62c17cf1a14fc5e5".to_owned()),
+            Digest("a0151e01aa9344f798495fc6cc125b35e3eb3bfd35a35b5543257c0e985840c3".to_owned()),
             digest,
         );
     }
 
+    /// Every field of the provenance is an input to resolution.
     #[test]
-    fn digest_with_config() {
-        let context = Context::default();
-        let config = Config {
-            generate_binaries: false,
-            generate_build_scripts: false,
-            annotations: BTreeMap::from([(
-                CrateNameAndVersionReq::new("rustonomicon".to_owned(), "1.0.0".parse().unwrap()),
-                CrateAnnotations {
-                    compile_data_glob: Some(BTreeSet::from(["arts/**".to_owned()])),
-                    ..CrateAnnotations::default()
-                },
-            )]),
-            cargo_config: None,
-            supported_platform_triples: BTreeSet::from([
-                TargetTriple::from_bazel("aarch64-apple-darwin".to_owned()),
-                TargetTriple::from_bazel("aarch64-unknown-linux-gnu".to_owned()),
-                TargetTriple::from_bazel("aarch64-pc-windows-msvc".to_owned()),
-                TargetTriple::from_bazel("wasm32-unknown-unknown".to_owned()),
-                TargetTriple::from_bazel("wasm32-wasip1".to_owned()),
-                TargetTriple::from_bazel("x86_64-apple-darwin".to_owned()),
-                TargetTriple::from_bazel("x86_64-pc-windows-msvc".to_owned()),
-                TargetTriple::from_bazel("x86_64-unknown-freebsd".to_owned()),
-                TargetTriple::from_bazel("x86_64-unknown-linux-gnu".to_owned()),
-            ]),
-            ..Config::default()
-        };
-
-        let splicing_metadata = SplicingMetadata::default();
-
-        let digest = Digest::compute(
-            &context,
-            &config,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
+    fn digest_changes_with_provenance() {
+        let base = Digest::compute(
+            &Context::default(),
+            &provenance(),
+            &SplicingMetadata::default(),
         );
-
-        assert_eq!(
-            Digest("7aa2e69bfd734a5721a799ec2b74588d9e15d82a78dff8cca1092a34bd9ae948".to_owned()),
-            digest,
-        );
+        for changed in [
+            Provenance {
+                cargo_bazel_version: "0.2.0".to_owned(),
+                ..provenance()
+            },
+            Provenance {
+                supported_platform_triples: BTreeSet::from([TargetTriple::from_bazel(
+                    "aarch64-apple-darwin".to_owned(),
+                )]),
+                ..provenance()
+            },
+            Provenance {
+                cargo_version: "cargo 1.58.0".to_owned(),
+                ..provenance()
+            },
+            Provenance {
+                rustc_version: "rustc 1.58.0".to_owned(),
+                ..provenance()
+            },
+        ] {
+            assert_ne!(
+                base,
+                Digest::compute(&Context::default(), &changed, &SplicingMetadata::default()),
+                "{changed:?}"
+            );
+        }
     }
 
     #[test]
     fn digest_with_splicing_metadata() {
-        let context = Context::default();
-        let config = Config::default();
         let splicing_metadata = SplicingMetadata {
             direct_packages: BTreeMap::from([(
                 "rustonomicon".to_owned(),
@@ -390,25 +428,16 @@ mod test {
             resolver_version: cargo_toml::Resolver::V2,
         };
 
-        let digest = Digest::compute(
-            &context,
-            &config,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
+        let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("5e6538eb40b52a14d21d690c7953538ff628dde3f9ec4ba531ae1b4c5843b2d1".to_owned()),
+            Digest("ea60764e1051f645e322033ff63f214f81fff7a8e51b8b513295e5015303e762".to_owned()),
             digest,
         );
     }
 
     #[test]
     fn digest_with_cargo_config() {
-        let context = Context::default();
-        let config = Config::default();
         let cargo_config = CargoConfig {
             registries: BTreeMap::from([
                 (
@@ -440,228 +469,60 @@ mod test {
             ..SplicingMetadata::default()
         };
 
-        let digest = Digest::compute(
-            &context,
-            &config,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
+        let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("d587cdc66b4c3fea0824814a4645858bcde2f1d081e29967d91c733aed6e6d52".to_owned()),
+            Digest("399d8023e720073b10c726fa31c3547ec7e323a94634d45128bf7509bee25e0b".to_owned()),
             digest,
         );
     }
 
+    /// The digest covers the context's resolution, not its checksum or provenance
+    /// fields, so a lockfile read back from disk hashes to its own checksum.
     #[test]
-    fn digest_stable_with_crlf_cargo_config() {
+    fn digest_ignores_stored_checksum_and_provenance() {
         let context = Context::default();
-        let splicing_metadata = SplicingMetadata::default();
+        let expected = Digest::new(&context, &provenance(), &SplicingManifest::default()).unwrap();
 
-        let json_config = |cargo_config: &str| {
-            serde_json::to_string(&serde_json::json!({
-                "generate_binaries": false,
-                "generate_build_scripts": false,
-                "cargo_config": cargo_config,
-                "rendering": {
-                    "repository_name": "test",
-                    "regen_command": "//test",
-                    "generate_cargo_toml_env_vars": true
-                }
-            }))
-            .unwrap()
+        let stored = Context {
+            checksum: Some(expected.clone()),
+            provenance: Some(provenance()),
+            ..context
         };
-
-        let config_crlf: Config = serde_json::from_str(&json_config(
-            "[registries.my-registry]\r\nindex = \"sparse+https://example.com/\"",
-        ))
-        .unwrap();
-
-        let config_lf: Config = serde_json::from_str(&json_config(
-            "[registries.my-registry]\nindex = \"sparse+https://example.com/\"",
-        ))
-        .unwrap();
-
-        let digest_crlf = Digest::compute(
-            &context,
-            &config_crlf,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
-
-        let digest_lf = Digest::compute(
-            &context,
-            &config_lf,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
-
         assert_eq!(
-            digest_crlf, digest_lf,
-            "Digests should be identical regardless of CRLF vs LF line endings in cargo_config"
+            expected,
+            Digest::new(&stored, &provenance(), &SplicingManifest::default()).unwrap()
         );
     }
 
     #[test]
-    fn digest_stable_for_root_vs_non_root_module() {
-        // Verifies that the digest is stable when labels in the config use different
-        // canonical forms depending on whether the module is root (@@//) or a non-root
-        // dependency (@@module_name+//). See: https://github.com/bazelbuild/rules_rust/issues/3521
-        let context = Context::default();
-        let splicing_metadata = SplicingMetadata::default();
-
-        let make_config = |patch_label: &str| -> Config {
-            Config {
-                annotations: BTreeMap::from([(
-                    CrateNameAndVersionReq::new("some_crate".to_owned(), "1.0.0".parse().unwrap()),
-                    CrateAnnotations {
-                        patches: Some(BTreeSet::from([patch_label.to_owned()])),
-                        ..CrateAnnotations::default()
-                    },
-                )]),
-                ..Config::default()
-            }
-        };
-
-        // Same patch label in root vs non-root bzlmod context
-        let config_root = make_config("@@//patches/my_crate.patch");
-        let config_non_root = make_config("@@module1+//patches/my_crate.patch");
-
-        let digest_root = Digest::compute(
-            &context,
-            &config_root,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
-
-        let digest_non_root = Digest::compute(
-            &context,
-            &config_non_root,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
-
-        assert_eq!(
-            digest_root, digest_non_root,
-            "Digests should be identical for root (@@//...) and non-root (@@module_name+//...) module contexts"
-        );
-    }
-
-    #[test]
-    fn digest_stable_for_workspace_root_vs_dep() {
-        // Verifies that the digest is stable in legacy WORKSPACE mode, where labels also
-        // change canonical form when the workspace transitions from root to an external dep:
-        // - Root workspace:    @@//package:target
-        // - External workspace dep: @@repo_name//package:target  (no "+" suffix unlike bzlmod)
-        let context = Context::default();
-        let splicing_metadata = SplicingMetadata::default();
-
-        let make_config = |patch_label: &str| -> Config {
-            Config {
-                annotations: BTreeMap::from([(
-                    CrateNameAndVersionReq::new("some_crate".to_owned(), "1.0.0".parse().unwrap()),
-                    CrateAnnotations {
-                        patches: Some(BTreeSet::from([patch_label.to_owned()])),
-                        ..CrateAnnotations::default()
-                    },
-                )]),
-                ..Config::default()
-            }
-        };
-
-        // Same patch label in WORKSPACE root vs external dep context (no "+" in repo name)
-        let config_root = make_config("@@//patches/my_crate.patch");
-        let config_dep = make_config("@@my_workspace//patches/my_crate.patch");
-
-        let digest_root = Digest::compute(
-            &context,
-            &config_root,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
-
-        let digest_dep = Digest::compute(
-            &context,
-            &config_dep,
-            &splicing_metadata,
-            "0.1.0",
-            "cargo 1.57.0 (b2e52d7ca 2021-10-21)",
-            "rustc 1.57.0 (f1edd0429 2021-11-29)",
-        );
-
-        assert_eq!(
-            digest_root, digest_dep,
-            "Digests should be identical for WORKSPACE root (@@//...) and dep (@@repo_name//...) contexts"
-        );
-    }
-
-    #[test]
-    fn compact_collapses_empty_selects() {
-        let mut value = serde_json::json!({
+    fn lockfile_format_is_dense_and_round_trips() {
+        let value = serde_json::json!({
             "crates": {
-                "anyhow 1.0.69": {
+                "serde 1.0.0": {
                     "common_attrs": {
-                        "crate_features": {
-                            "common": ["default", "std"],
-                            "selects": {}
-                        },
-                        "deps": {
-                            "common": [{"id": "cfg-if 1.0.0", "target": "cfg_if"}],
-                            "selects": {
-                                "cfg(windows)": [{"id": "winapi 0.3.9", "target": "winapi"}]
-                            }
-                        }
-                    }
+                        "crate_features": ["default", "std"],
+                        "deps": [{"id": "serde_core 1.0.0", "target": "serde_core"}],
+                    },
+                    "name": "serde",
+                    "targets": [{"Library": {"crate_name": "serde", "crate_root": "src/lib.rs"}}],
                 }
-            }
+            },
+            "direct_deps": [],
+            "long": (0..40).map(|i| format!("entry-number-{i}")).collect::<Vec<_>>(),
         });
-        compact_lockfile_value(&mut value);
 
+        let text = format_lockfile(&value);
         assert_eq!(
-            value,
-            serde_json::json!({
-                "crates": {
-                    "anyhow 1.0.69": {
-                        "common_attrs": {
-                            // Empty `selects` collapsed to just the common list.
-                            "crate_features": ["default", "std"],
-                            // Non-empty `selects` preserved as-is.
-                            "deps": {
-                                "common": [{"id": "cfg-if 1.0.0", "target": "cfg_if"}],
-                                "selects": {
-                                    "cfg(windows)": [{"id": "winapi 0.3.9", "target": "winapi"}]
-                                }
-                            }
-                        }
-                    }
-                }
-            }),
+            serde_json::from_str::<serde_json::Value>(&text).unwrap(),
+            value
         );
-    }
-
-    // Guard against false positives: unrelated `{common, selects}`-shaped objects
-    // with extra keys (or a non-object `selects`) must not be collapsed.
-    #[test]
-    fn compact_leaves_non_select_objects_alone() {
-        let original = serde_json::json!({
-            "common": [1, 2],
-            "selects": {},
-            "extra_key": "value"
-        });
-        let mut value = original.clone();
-        compact_lockfile_value(&mut value);
-        assert_eq!(value, original);
+        assert!(text.contains(r#""crate_features": ["default", "std"]"#));
+        assert!(text.contains(r#"{"id": "serde_core 1.0.0", "target": "serde_core"}"#));
+        assert!(text.contains(r#""direct_deps": []"#));
+        // Long arrays and nested containers still go one entry per line.
+        assert!(text.contains("\"entry-number-0\",\n"));
+        assert!(text.contains("\"targets\": [\n"));
+        assert!(text.len() < serde_json::to_string_pretty(&value).unwrap().len());
     }
 }
