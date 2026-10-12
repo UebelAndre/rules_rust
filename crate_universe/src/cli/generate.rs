@@ -60,6 +60,11 @@ pub struct GenerateOptions {
     #[clap(long)]
     pub repin: bool,
 
+    /// Resolve and write the lockfile but render nothing. Used when crates are
+    /// pooled across hubs and rendered by `cargo-bazel pool` instead.
+    #[clap(long)]
+    pub skip_render: bool,
+
     /// The path to a Cargo metadata `json` file. This file must be next to a `Cargo.toml` and `Cargo.lock` file.
     #[clap(long)]
     pub metadata: Option<PathBuf>,
@@ -129,18 +134,20 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
             let context = Context::try_from_path(lockfile)?.for_rendering(&config)?;
 
             // Render build files
-            let renderer = Renderer::new(
-                Arc::new(config.rendering),
-                Arc::new(config.supported_platform_triples),
-            );
-            render_and_write_outputs(
-                &renderer,
-                &context,
-                opt.generator.clone(),
-                &opt.repository_dir,
-                &opt.hub_packages_output_path,
-                opt.dry_run,
-            )?;
+            if !opt.skip_render {
+                let renderer = Renderer::new(
+                    Arc::new(config.rendering),
+                    Arc::new(config.supported_platform_triples),
+                );
+                render_and_write_outputs(
+                    &renderer,
+                    &context,
+                    opt.generator.clone(),
+                    &opt.repository_dir,
+                    &opt.hub_packages_output_path,
+                    opt.dry_run,
+                )?;
+            }
 
             let splicing_manifest = SplicingManifest::try_from_path(&opt.splicing_manifest)?;
 
@@ -215,21 +222,23 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
     // The context of the resolution, which the lockfile records, and the one
     // rendered from it with this workspace's configuration applied.
     let context = Context::new(annotations, &config.supported_platform_triples)?;
-    let render_context = context.clone().for_rendering(&config)?;
 
     // Render build files
-    let renderer = Renderer::new(
-        Arc::new(config.rendering.clone()),
-        Arc::new(config.supported_platform_triples.clone()),
-    );
-    render_and_write_outputs(
-        &renderer,
-        &render_context,
-        opt.generator.clone(),
-        &opt.repository_dir,
-        &opt.hub_packages_output_path,
-        opt.dry_run,
-    )?;
+    if !opt.skip_render {
+        let render_context = context.clone().for_rendering(&config)?;
+        let renderer = Renderer::new(
+            Arc::new(config.rendering.clone()),
+            Arc::new(config.supported_platform_triples.clone()),
+        );
+        render_and_write_outputs(
+            &renderer,
+            &render_context,
+            opt.generator.clone(),
+            &opt.repository_dir,
+            &opt.hub_packages_output_path,
+            opt.dry_run,
+        )?;
+    }
 
     // Ensure Bazel lockfiles are written to disk so future generations can be short-circuited.
     if let Some(lockfile) = opt.lockfile {
