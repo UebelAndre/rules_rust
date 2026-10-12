@@ -211,16 +211,30 @@ impl Renderer {
             ),
         ]);
 
-        // Per-alias subpackage `BUILD.bazel`s let consumers migrate to
-        // `@<repo>//<alias>` independently of the hub owner flipping
-        // `incompatible_no_root_alias_targets`. Skip in local-vendor mode,
-        // where the per-crate paths `<output_pkg>/<name>-<version>/BUILD.bazel`
-        // are already occupied by the vendored `rust_library` `BUILD.bazel`s.
-        if self.config.vendor_mode != Some(VendorMode::Local) {
+        // Aliases are per-alias subpackages, `@<repo>//<alias>`, and, unless
+        // `incompatible_no_root_alias_targets` is set, root targets too. Local
+        // vendoring keeps them in the root package alone, since
+        // `<output_pkg>/<name>-<version>/BUILD.bazel` is the vendored crate's own
+        // BUILD file.
+        if self.alias_subpackages() {
             map.extend(self.render_alias_subpackages(engine, aliases)?);
         }
 
         Ok(map)
+    }
+
+    /// Whether hub aliases are rendered as per-alias subpackages,
+    /// `@<repo>//<alias>`. Local vendoring cannot, as its `<name>-<version>/`
+    /// directories are the vendored crates themselves.
+    fn alias_subpackages(&self) -> bool {
+        self.config.vendor_mode != Some(VendorMode::Local)
+    }
+
+    /// Whether the root package also holds the aliases, `@<repo>//:<alias>`.
+    /// `incompatible_no_root_alias_targets` turns them off; local vendoring
+    /// has nowhere else to put them.
+    fn root_aliases(&self) -> bool {
+        !self.alias_subpackages() || !self.config.incompatible_no_root_alias_targets
     }
 
     /// Render one `<alias>/BUILD.bazel` per hub alias. Each subpackage holds
@@ -282,10 +296,9 @@ impl Renderer {
         starlark.push(Starlark::Verbatim(header));
 
         // Load any `alias_rule`s referenced by the hub aliases. Per-alias
-        // subpackage `BUILD.bazel`s each carry their own scoped load, so when
-        // `incompatible_no_root_alias_targets` is on the root needs no
-        // alias-rule loads.
-        if !self.config.incompatible_no_root_alias_targets {
+        // subpackage `BUILD.bazel`s each carry their own scoped load, so the
+        // root only needs them when it holds the aliases itself.
+        if self.root_aliases() {
             let mut loads: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
             for alias_rule in std::iter::once(&self.config.default_alias_rule).chain(
                 aliases
@@ -330,11 +343,7 @@ impl Renderer {
         };
         starlark.push(Starlark::Filegroup(filegroup));
 
-        // `incompatible_no_root_alias_targets` drops the duplicate root-level
-        // `alias()` rules. Subpackage `BUILD.bazel`s always exist, so consumers
-        // can still use `@<repo>//<name>` — the flag just stops emitting the
-        // parallel `@<repo>//:<name>` form.
-        if !self.config.incompatible_no_root_alias_targets {
+        if self.root_aliases() {
             if !aliases.workspace_member.is_empty() {
                 let comment = "# Workspace Member Dependencies".to_owned();
                 starlark.push(Starlark::Verbatim(comment));

@@ -10,6 +10,6 @@ package(default_visibility = ["//visibility:public"])
 
 alias(
     name = "tokio",
-    actual = "@cvm__tokio-1.52.3//:tokio",
+    actual = "@cvm__tokio-1.53.2//:tokio",
     tags = ["manual"],
 )

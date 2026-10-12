@@ -276,9 +276,6 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
         )?
     };
 
-    // Load the config from disk. `config.label_injection_mapping` is applied
-    // to the Context just before render (see near `Renderer::new` below) and
-    // is sanitized out of the digest hash by `Digest::new`.
     let config = Config::try_from_path(&opt.config)?;
 
     let resolver_data = resolve_tree_metadata(
@@ -316,15 +313,7 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
     // rendered from it with this workspace's configuration applied.
     let context = Context::new(annotations, &config.supported_platform_triples)?;
 
-    // Apply label_injection just before render. The Context at this point
-    // contains the user's apparent labels (e.g. `@openssl//:install`); the
-    // mapping rewrites them to the per-session canonical (e.g.
-    // `@@openssl+v3.5.5//:install`), reflecting whatever the root module's
-    // current `single_version_override` etc. resolved to.
-    let render_context = context
-        .clone()
-        .for_rendering(&config)?
-        .apply_label_injection_mapping(&config.label_injection_mapping)?;
+    let render_context = context.clone().for_rendering(&config)?;
     let unused_annotations = render_context.unused_annotations(&config);
     if !unused_annotations.is_empty() {
         bail!("Unused annotations were provided. Please remove them: {unused_annotations:?}");

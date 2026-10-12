@@ -43,7 +43,7 @@ def optional_introspection_test_suite(name):
     """
     rust_pyo3_toolchain(
         name = "without_introspection",
-        pyo3 = "@rpyo3c//:pyo3",
+        pyo3 = "@rpyo3c//pyo3",
         tags = ["manual"],
     )
     native.toolchain(

@@ -17,7 +17,7 @@ rust_static_library(
         # is committed; the subpackage form `@ios_build//zstd` will work
         # after `bazel run //3rdparty:crates_vendor` re-renders those files
         # under rules_rust >= the version that always emits subpackages.
-        "@ios_build//:zstd",
+        "@ios_build//zstd",
     ],
 )
 

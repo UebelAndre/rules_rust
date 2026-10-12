@@ -29,7 +29,7 @@ build_test(
 
 # Exercise transitive consumption of another module's crate_universe
 # extension: `cu_test_complicated_dependencies` declares
-# `crate.from_specs(... annotation(label_injections = ...))` for openssl,
+# `crate.from_specs(... annotation(labels = ...))` for openssl,
 # and this root module never calls `use_extension` on it — yet building +
 # running its exposed `:openssl_version` binary forces the hub repo to be
 # fetched, the annotation-injected `@openssl` label to resolve, and the
