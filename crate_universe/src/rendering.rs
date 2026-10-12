@@ -1256,6 +1256,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1294,6 +1295,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1336,6 +1338,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1422,6 +1425,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets,
+                package_metadata: None,
             },
         );
 
@@ -1522,6 +1526,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1615,6 +1620,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1653,6 +1659,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1693,6 +1700,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1716,11 +1724,13 @@ mod test {
             test::metadata::alias(),
             &None,
             test::lockfile::alias(),
-            config,
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap();
-        let context = Context::new(annotations, false).unwrap();
+        let context = Context::new(annotations, &BTreeSet::new())
+            .unwrap()
+            .for_rendering(&config)
+            .unwrap();
 
         let renderer = Renderer::new(mock_render_config(None), mock_supported_platform_triples());
         let output = renderer.render(&context, None).unwrap();
@@ -1759,6 +1769,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1803,6 +1814,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1837,6 +1849,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1879,6 +1892,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1931,6 +1945,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -1981,11 +1996,13 @@ mod test {
             metadata,
             &None,
             lockfile,
-            config.clone(),
             Utf8Path::new("/tmp/bazelworkspace"),
         )
         .unwrap();
-        let context = Context::new(annotations, false).unwrap();
+        let context = Context::new(annotations, &config.supported_platform_triples)
+            .unwrap()
+            .for_rendering(&config)
+            .unwrap();
 
         let renderer = Renderer::new(
             Arc::new(config.rendering),
@@ -2053,6 +2070,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2100,6 +2118,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2155,6 +2174,7 @@ mod test {
                 license: None,
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2221,6 +2241,7 @@ mod test {
                 license: None,
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2294,6 +2315,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2374,6 +2396,7 @@ mod test {
                 license: None,
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2466,6 +2489,7 @@ mod test {
                 license: None,
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2505,6 +2529,7 @@ mod test {
                 license: None,
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 
@@ -2607,6 +2632,7 @@ mod test {
                 extra_aliased_targets: BTreeMap::default(),
                 alias_rule: None,
                 override_targets: BTreeMap::default(),
+                package_metadata: None,
             },
         );
 

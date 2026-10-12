@@ -527,10 +527,9 @@ pub(crate) struct AnnotationsProvidedByPackage {
 }
 
 impl CrateAnnotations {
-    pub(crate) fn apply_defaults_from_package_metadata(
-        &mut self,
-        pkg_metadata: &serde_json::Value,
-    ) {
+    /// Fills in whatever this annotation leaves unset from `bazel`, the
+    /// `[package.metadata.bazel]` table of the crate's own manifest.
+    pub(crate) fn apply_defaults_from_package_metadata(&mut self, bazel: &serde_json::Value) {
         #[deny(unused_variables)]
         let AnnotationsProvidedByPackage {
             gen_build_script,
@@ -549,7 +548,7 @@ impl CrateAnnotations {
             build_script_rundir,
             additive_build_file_content,
             extra_aliased_targets,
-        } = match AnnotationsProvidedByPackage::deserialize(&pkg_metadata["bazel"]) {
+        } = match AnnotationsProvidedByPackage::deserialize(bazel) {
             Ok(annotations) => annotations,
             // Ignore bad annotations. The set of supported annotations evolves
             // over time across different versions of crate_universe, and we
@@ -931,15 +930,16 @@ impl CrateNameAndVersionReq {
     }
 
     /// Compares a [CrateNameAndVersionReq] against a [cargo_metadata::Package].
-    pub fn matches(&self, package: &Package) -> bool {
+    /// Whether the annotation applies to the crate `name` at `version`.
+    pub fn matches_crate(&self, name: &str, version: &semver::Version) -> bool {
         // If the package name does not match, it's obviously
         // not the right package
-        if self.name != "*" && self.name != package.name {
+        if self.name != "*" && self.name != name {
             return false;
         }
 
         // First see if the package version matches exactly
-        if package.version.to_string() == self.version_req_string.original {
+        if version.to_string() == self.version_req_string.original {
             return true;
         }
 
@@ -955,7 +955,7 @@ impl CrateNameAndVersionReq {
 
         // Next, check to see if the version provided is a semver req and
         // check if the package matches the condition
-        self.version_req_string.parsed.matches(&package.version)
+        self.version_req_string.parsed.matches(version)
     }
 }
 
@@ -981,10 +981,10 @@ mod test {
         let id = CrateNameAndVersionReq::new("mock-pkg".to_owned(), "0.1.0".parse().unwrap());
 
         package.version = cargo_metadata::semver::Version::new(0, 1, 0);
-        assert!(id.matches(&package));
+        assert!(id.matches_crate(&package.name, &package.version));
 
         package.version = cargo_metadata::semver::Version::new(1, 0, 0);
-        assert!(!id.matches(&package));
+        assert!(!id.matches_crate(&package.name, &package.version));
     }
 
     #[test]
@@ -1018,14 +1018,14 @@ mod test {
         let mut package = mock_cargo_metadata_package();
         package.version = cargo_metadata::semver::Version::new(1, 0, 0);
         let id = CrateNameAndVersionReq::new("mock-pkg".to_owned(), "*".parse().unwrap());
-        assert!(id.matches(&package));
+        assert!(id.matches_crate(&package.name, &package.version));
 
         let mut prerelease = mock_cargo_metadata_package();
         prerelease.version = cargo_metadata::semver::Version::parse("1.0.0-pre.0").unwrap();
-        assert!(id.matches(&prerelease));
+        assert!(id.matches_crate(&prerelease.name, &prerelease.version));
 
         let id = CrateNameAndVersionReq::new("mock-pkg".to_owned(), "<1".parse().unwrap());
-        assert!(!id.matches(&package));
+        assert!(!id.matches_crate(&package.name, &package.version));
     }
 
     #[test]
