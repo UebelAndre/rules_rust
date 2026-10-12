@@ -429,6 +429,11 @@ def _crates_vendor_impl(ctx):
         args.extend(["--cargo-lockfile", _expand_env("CARGO_LOCK", is_windows)])
         cargo_bazel_runfiles.extend([ctx.file.cargo_lockfile])
 
+        # Files of other repositories are never modified: the lockfile is
+        # used as-is and the resolution must hold to it exactly.
+        if ctx.attr.cargo_lockfile.label.repo_name:
+            args.append("--skip-cargo-lockfile-overwrite")
+
     # Optionally include buildifier
     if ctx.attr.buildifier:
         environ.append(_sys_runfile_env(ctx, "BUILDIFIER", ctx.executable.buildifier, is_windows))
@@ -512,7 +517,11 @@ CRATES_VENDOR_ATTRS = {
         allow_single_file = True,
     ),
     "cargo_lockfile": attr.label(
-        doc = "The path to an existing `Cargo.lock` file",
+        doc = (
+            "The path to an existing `Cargo.lock` file. A lockfile in this workspace is updated " +
+            "when dependencies are resolved; one from another repository is read-only and the " +
+            "resolution must match it exactly."
+        ),
         allow_single_file = True,
     ),
     "generate_binaries": attr.bool(

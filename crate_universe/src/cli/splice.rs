@@ -11,7 +11,7 @@ use crate::cli::Result;
 use crate::config::Config;
 use crate::metadata::{locked_metadata, resolve_tree_metadata, Cargo, CargoUpdateRequest};
 use crate::splicing::{
-    generate_lockfile, Splicer, SplicerKind, SplicingManifest, WorkspaceMetadata,
+    generate_lockfile, install_lockfile, Splicer, SplicerKind, SplicingManifest, WorkspaceMetadata,
 };
 
 /// Command line options for the `splice` subcommand
@@ -105,16 +105,14 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
         .splice(&splicing_dir, &opt.nonhermetic_root_bazel_workspace_dir)
         .with_context(|| format!("Failed to splice workspace {}", opt.repository_name))?;
 
-    // Use the existing lockfile if possible, otherwise generate a new one.
+    // Use the existing lockfile as-is if it must not change, otherwise
+    // resolve (and possibly update) one.
     let cargo_lockfile = if let Some(cargo_lockfile_path) = opt
         .cargo_lockfile
         .as_ref()
         .filter(|_| opt.skip_cargo_lockfile_overwrite)
     {
-        cargo_lock::Lockfile::load(cargo_lockfile_path).context(format!(
-            "Failed to load lockfile: {}",
-            cargo_lockfile_path.display()
-        ))?
+        install_lockfile(&manifest_path, cargo_lockfile_path)?
     } else {
         generate_lockfile(
             &manifest_path,

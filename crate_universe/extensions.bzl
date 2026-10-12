@@ -382,6 +382,7 @@ load(
     "//crate_universe/private:common_utils.bzl",
     "LOCKFILE_MODES",
     "LOCKFILE_MODE_DOC",
+    "is_within_workspace",
     "new_cargo_bazel_fn",
 )
 load("//crate_universe/private:crate.bzl", _crate_universe_crate = "crate")
@@ -611,8 +612,17 @@ def _generate_hub_and_spokes(
         ),
     )
 
-    # TODO: Repins should never be allowed if the lockfile is not within
+    # The workspace root when one is explicitly provided.
+    # buildifier: disable=canonical-repository
+    nonhermetic_root_bazel_workspace_dir = module_ctx.path(Label("@@//:MODULE.bazel")).dirname
+
+    # Files of other repositories are never modified. A `Cargo.lock` from one
+    # is used as-is and the resolution must hold to it exactly; a lockfile
+    # from one cannot be repinned, so an out of date one is an error.
     # https://github.com/bazelbuild/rules_rust/issues/1738
+    if cargo_lockfile and not is_within_workspace(cargo_lockfile, nonhermetic_root_bazel_workspace_dir):
+        skip_cargo_lockfile_overwrite = True
+    lockfile_is_writable = lockfile == None or is_within_workspace(lockfile, nonhermetic_root_bazel_workspace_dir)
 
     # Whether the resolution should be recorded in the extension's facts.
     record_fact = False
@@ -657,11 +667,8 @@ def _generate_hub_and_spokes(
             config = config_file,
             splicing_manifest = splicing_manifest,
             lockfile_mode = lockfile_mode,
+            allow_repin = lockfile_is_writable,
         )
-
-    # The workspace root when one is explicitly provided.
-    # buildifier: disable=canonical-repository
-    nonhermetic_root_bazel_workspace_dir = module_ctx.path(Label("@@//:MODULE.bazel")).dirname
 
     # If re-pinning is enabled, gather additional inputs for the generator
     kwargs = dict()
@@ -677,7 +684,7 @@ def _generate_hub_and_spokes(
             config_path = config_file,
             output_dir = tag_path.get_child("splicing-output"),
             debug_workspace_dir = tag_path.get_child("splicing-workspace"),
-            skip_cargo_lockfile_overwrite = cfg.skip_cargo_lockfile_overwrite,
+            skip_cargo_lockfile_overwrite = skip_cargo_lockfile_overwrite,
             nonhermetic_root_bazel_workspace_dir = nonhermetic_root_bazel_workspace_dir,
             repository_name = cfg.name,
         )
@@ -1328,7 +1335,8 @@ _FROM_COMMON_ATTRS = {
             "The path to a file to use for reproducible renderings. " +
             "If set, this file must exist within the workspace (but can be empty) before this rule will work. " +
             "Without one the resolution is kept in the extension's facts in `MODULE.bazel.lock` instead, " +
-            "and redone only when its inputs change. Repositories of other modules must have one."
+            "and redone only when its inputs change. Repositories of other modules must have one. " +
+            "Files of other repositories are never modified, so a lockfile from one cannot be repinned."
         ),
     ),
     "lockfile_mode": attr.string(
