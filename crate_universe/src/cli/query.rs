@@ -8,7 +8,7 @@ use clap::Parser;
 
 use crate::config::Config;
 use crate::context::Context;
-use crate::lockfile::Digest;
+use crate::lockfile::{Digest, Provenance};
 use crate::metadata::Cargo;
 use crate::splicing::SplicingManifest;
 
@@ -66,13 +66,12 @@ pub fn query(opt: QueryOptions) -> Result<()> {
     let splicing_manifest = SplicingManifest::try_from_path(&opt.splicing_manifest)?;
 
     // Generate a new digest so we can compare it with the one in the lockfile
-    let expected = Digest::new(
-        &lockfile,
-        &config,
-        &splicing_manifest,
+    let provenance = Provenance::current(
+        &config.supported_platform_triples,
         &Cargo::new(opt.cargo, opt.rustc.clone()),
         &opt.rustc,
     )?;
+    let expected = Digest::new(&lockfile, &provenance, &splicing_manifest)?;
 
     if digest != expected {
         bail!("Digests do not match: Current {digest:?} != Expected {expected:?}");
