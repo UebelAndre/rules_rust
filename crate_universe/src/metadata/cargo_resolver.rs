@@ -29,6 +29,7 @@ use cargo_util_schemas::manifest::RustVersion;
 use tracing::{debug, trace, warn};
 
 use crate::config::CrateId;
+use crate::metadata::binary_only::locked_metadata;
 use crate::metadata::cargo_bin::Cargo;
 use crate::metadata::rustc_cfgs::{print_cfg, RustcCfgs};
 use crate::metadata::tree_resolver_metadata::{
@@ -116,34 +117,14 @@ impl CargoResolver {
         Ok(collapse_to_selects(per_triple))
     }
 
-    /// Runs `cargo metadata --all-features --locked`.
+    /// Runs `cargo metadata --all-features --locked`, completed with the
+    /// binary-only packages `cargo metadata` drops.
     ///
     /// `--all-features` is required: the `resolve` section omits optional
     /// dependencies nothing enables by default, and the feature resolver needs
     /// the complete graph to narrow.
     fn cargo_metadata(&self, manifest_path: &Utf8Path) -> Result<Metadata> {
-        let output = self
-            .cargo_bin
-            .metadata_command_with_options(
-                manifest_path.as_std_path(),
-                vec!["--locked".to_owned(), "--all-features".to_owned()],
-            )?
-            .cargo_command()
-            .output()
-            .with_context(|| {
-                format!(
-                    "Error spawning cargo in child process to compute metadata for manifest '{}'",
-                    manifest_path
-                )
-            })?;
-
-        if !output.status.success() {
-            tracing::error!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("Failed to run cargo metadata: {}", output.status);
-        }
-
-        let json = String::from_utf8(output.stdout)
-            .context("`cargo metadata` produced output which was not valid UTF-8")?;
+        let json = locked_metadata(&self.cargo_bin, manifest_path.as_std_path(), true)?;
         serde_json::from_str(&json)
             .with_context(|| format!("Failed to parse the metadata of '{manifest_path}'"))
     }
@@ -214,8 +195,9 @@ fn ensure_dependencies_resolved(
 
     bail!(
         "Dependencies on packages which `cargo metadata` did not resolve: [{}]. Cargo \
-         omits dependencies without a library target, so such a crate has to be \
-         resolved another way, such as a `crate.spec` of its own.",
+         omits dependencies without a library target; those from registries are put \
+         back from their downloaded sources, so this is a dependency which could not \
+         be recovered. Please report it to rules_rust.",
         unresolved.join(", "),
     )
 }

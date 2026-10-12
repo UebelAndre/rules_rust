@@ -1,5 +1,6 @@
 //! Tools for gathering various kinds of metadata (Cargo.lock, Cargo metadata, Crate Index info).
 
+mod binary_only;
 mod cargo_bin;
 mod cargo_resolver;
 mod cargo_tree_resolver;
@@ -16,6 +17,7 @@ use anyhow::{bail, Context, Result};
 use camino::Utf8Path;
 use tracing::debug;
 
+pub(crate) use self::binary_only::locked_metadata;
 pub(crate) use self::cargo_bin::*;
 pub(crate) use self::cargo_resolver::*;
 pub(crate) use self::dependency::*;

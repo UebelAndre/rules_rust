@@ -158,6 +158,11 @@ impl Context {
             add_crate_ids(&mut direct_dev_deps, &deps.proc_macro_dev_deps);
         }
 
+        // A crate whose binaries the hub aliases is reached from the hub even
+        // when nothing depends on its library, and a binary-only package has no
+        // library to depend on, so its repository must be visible to the module.
+        direct_deps.extend(binary_crates.iter().cloned());
+
         let unused_patches = annotations.lockfile.unused_patches;
 
         Ok(Self {

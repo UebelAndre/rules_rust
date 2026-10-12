@@ -8,4 +8,6 @@ edition = "2018"
 path = "fake.rs"
 
 [dependencies]
-hyperfine = { version = "1.16.1", artifact = "bin" }
+# A crate with no library target. crate_universe resolves it with a stable Cargo and
+# `generate_binaries` renders its binary.
+hyperfine = "1.16.1"

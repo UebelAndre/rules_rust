@@ -204,39 +204,37 @@ opting in.
 
 ### Binary Dependencies
 
-With cargo you `can install` binary dependencies (bindeps) as well with `cargo install` command.
-
-We don't have such easy facilities available in bazel besides specifying it as a dependency.
-To mimic cargo's bindeps feature we use the unstable feature called [artifact-dependencies](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html?highlight=feature#artifact-dependencies)
-which integrates well with bazel concepts.
-
-You could use the syntax specified in the above document to place it in `Cargo.toml`. For that you can consult the following [example](https://github.com/bazelbuild/rules_rust/blob/main/crate_universe/tests/integration/cargo_bindeps/MODULE.bazel).
-
-This method has the following consequences:
-* if you use shared dependency tree with your project these binary dependencies will interfere with yours (may conflict)
-* you have to use  nightly `host_tools` to generate dependencies because
-
-Alternatively you can specify this in a separate `repo` with `cargo.from_specs` syntax:
+A crate which ships only binaries, `bindgen-cli` or `cargo-machete` for example, is declared
+like any other dependency, in `Cargo.toml` or as a `crate.spec`, and `gen_binaries` or
+`gen_all_binaries` on its annotation renders its binaries. `cargo metadata` drops such a crate
+for having no library target, so crate_universe reads it back from the source Cargo already
+downloaded. No nightly toolchain is needed. The crate must come from a registry; git and path
+sources are not supported.
 
 ```python
 bindeps = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 
-bindeps.spec(package = "cargo-machete", version = "=0.7.0", artifact = "bin")
+bindeps.spec(package = "cargo-machete", version = "0.7.0")
 bindeps.annotation(crate = "cargo-machete", gen_all_binaries = True)
 
 bindeps.from_specs(
   name = "bindeps",
-  host_tools = "@rust_host_tools_nightly",
 )
 
 use_repo(bindeps, "bindeps")
 ```
 
-You can run the specified binary dependency with the following command or create additional more complex rules on top of it.
+Each binary is a target of the hub, to run or to depend on from a rule:
 
 ```bash
-bazel run @bindeps//:cargo-machete__cargo-machete
+bazel run @bindeps//cargo-machete__cargo-machete
 ```
+
+Cargo's unstable [artifact dependencies](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies),
+`artifact = "bin"` on a spec or in `Cargo.toml`, are supported as well, for a build script or a
+library which needs the binary of another package. `-Zbindeps` needs a nightly Cargo, so such a
+hub sets `host_tools` to a nightly toolchain, as `crate_universe/tests/integration/cargo_bindeps`
+does.
 
 Notice, direct dependencies do not need repining.
 Only a cargo workspace needs updating whenever the underlying Cargo.toml file changed.
