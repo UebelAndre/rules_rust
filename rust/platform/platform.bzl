@@ -149,3 +149,29 @@ def declare_config_settings():
         actual = "x86_64-unknown-fuchsia",
         deprecation = "Use `@rules_rust//rust/platform:x86_64-unknown-fuchsia` instead.",
     )
+
+# buildifier: disable=unnamed-macro
+def declare_platform_aliases(overrides = {}, visibility = ["//visibility:public"]):
+    """Declares one target per platform triple, named by the triple, for crate_universe `select()`s.
+
+    crate_universe renders platform specific dependencies as `select()`s whose keys are
+    `platforms_template` with the triple filled in, `@rules_rust//rust/platform:{triple}` by
+    default. A build which distinguishes platforms further than `rules_rust` does can point
+    the template at a package of its own, `//platforms:{triple}`, and declare the targets
+    with this macro: each is an alias to the `rules_rust` setting for the triple unless
+    `overrides` names another `config_setting` for it.
+
+    Args:
+        overrides (dict): Triple to the label of the `config_setting` (or group, or alias)
+            to use for it instead of `@rules_rust//rust/platform:<triple>`.
+        visibility (list): The visibility of the declared targets.
+    """
+    for triple in overrides:
+        if triple not in ALL_PLATFORM_TRIPLES:
+            fail("`{}` is not a platform triple known to rules_rust".format(triple))
+    for triple in ALL_PLATFORM_TRIPLES:
+        native.alias(
+            name = triple,
+            actual = overrides.get(triple, str(Label("//rust/platform:" + triple))),
+            visibility = visibility,
+        )
