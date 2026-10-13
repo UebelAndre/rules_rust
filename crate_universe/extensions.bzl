@@ -456,23 +456,109 @@ def _annotations_for_repo(global_annotations, module_annotations, repo_specific_
             _get_or_insert(annotations, crate, []).extend(values)
     return annotations
 
-def _collect_render_config(module, repository):
+# Render settings which describe the build rather than one hub. They reach every
+# crate's BUILD file, so they must agree across hubs for crates to be shared, and
+# they must match the platforms and toolchains the build registers. The root
+# module sets them for the whole build with `render_config(repositories = ["*"])`.
+_BUILD_WIDE_RENDER_SETTINGS = [
+    "generate_cargo_toml_env_vars",
+    "generate_rules_license_metadata",
+    "platforms_template",
+]
+
+def _is_global(tag):
+    return list(tag.repositories) == ["*"]
+
+def _canonical_platforms_template(template):
+    """Rewrites `platforms_template` so it resolves the same way from every generated repository.
+
+    The template is written verbatim into the BUILD files of hubs and pooled crates, whose
+    repository mapping is rules_rust's, not the root module's. A label of the main repository
+    (`//platforms:{triple}`) therefore has to be spelled with its canonical, empty repository name,
+    and `@rules_rust//...` is resolved through rules_rust's own mapping.
+
+    Args:
+        template (str): The template as the root module wrote it.
+
+    Returns:
+        str: The template with a canonical repository.
+    """
+
+    # buildifier: disable=canonical-repository
+    if template.startswith("@@"):
+        return template
+    if template.startswith("//"):
+        # buildifier: disable=canonical-repository
+        return "@@" + template
+    if template.startswith("@rules_rust//"):
+        placeholder = "__triple__"
+        return str(Label(template.replace("{triple}", placeholder))).replace(placeholder, "{triple}")
+    fail(("`platforms_template` `{}` cannot be resolved from the repositories crate_universe generates. " +
+          "Point it at a package of the main repository (`//platforms:{{triple}}`) or use a canonical " +
+          # buildifier: disable=canonical-repository
+          "label (`@@...`).").format(template))
+
+def _collect_build_wide_render_config(module_ctx):
+    """The build-wide render settings, from the root module's global `render_config`.
+
+    Args:
+        module_ctx (module_ctx): The module extension's context.
+
+    Returns:
+        dict: The values of `_BUILD_WIDE_RENDER_SETTINGS`, defaults when the root sets none.
+    """
+    defaults = json.decode(generate_render_config())
+    settings = {name: defaults[name] for name in _BUILD_WIDE_RENDER_SETTINGS}
+
+    global_tags = []
+    for mod in module_ctx.modules:
+        for tag in mod.tags.render_config:
+            if not _is_global(tag):
+                continue
+            if not mod.is_root:
+                fail("`render_config(repositories = [\"*\"])` may only be used by the root module, not by `{}`.".format(mod.name))
+            global_tags.append(tag)
+    if len(global_tags) > 1:
+        fail("Only one `render_config(repositories = [\"*\"])` is allowed.")
+    for tag in global_tags:
+        settings.update({name: getattr(tag, name) for name in _BUILD_WIDE_RENDER_SETTINGS})
+    settings["platforms_template"] = _canonical_platforms_template(settings["platforms_template"])
+    return settings
+
+def _collect_render_config(module, repository, build_wide):
     """Collect the render_config for the given crate_universe module.
 
     Args:
         module (StarlarkBazelModule): The current `crate` module.
         repository (str): The name of the repository to collect the config for.
+        build_wide (dict): The build-wide settings, see `_collect_build_wide_render_config`.
 
     Returns:
         dict: The rendering config to use.
     """
 
+    defaults = json.decode(generate_render_config())
     config = None
     for raw_config in module.tags.render_config:
+        # Global configs carry the build-wide settings and nothing else.
+        if _is_global(raw_config):
+            continue
+
         # if the repositories is empty we apply the config to all repositories
         # otherwise we filter for the requested repositories
         if raw_config.repositories and repository not in raw_config.repositories:
             continue
+
+        # The build-wide settings are the root's to make, for every hub at once.
+        for name in _BUILD_WIDE_RENDER_SETTINGS:
+            if getattr(raw_config, name) != defaults[name]:
+                if module.is_root:
+                    fail(("`render_config.{}` applies to the whole build. Set it on a " +
+                          "`render_config(repositories = [\"*\"])` in `{}`.").format(name, module.name))
+
+                # buildifier: disable=print
+                print(("WARN: `render_config.{}` set by module `{}` is ignored; the root module " +
+                       "decides it for the whole build.").format(name, module.name))
 
         if config:
             fail("Multiple render configs provided for module `{}`. Only 1 is allowed.".format(
@@ -505,10 +591,12 @@ def _collect_render_config(module, repository):
         config = json.decode(generate_render_config(**config_kwargs))
 
     if not config:
-        config = json.decode(generate_render_config())
+        config = defaults
 
     if not config["regen_command"]:
         config["regen_command"] = "bazel mod show_repo '{}'".format(module.name)
+
+    config.update(build_wide)
 
     return config
 
@@ -1172,6 +1260,9 @@ def _crate_impl(module_ctx):
     # Returned as facts so Bazel persists them in `MODULE.bazel.lock`.
     facts = {}
 
+    # Render settings the root module makes for every hub.
+    build_wide_render_config = _collect_build_wide_render_config(module_ctx)
+
     # Every resolved hub, rendered together once all are known.
     hubs = []
     pool_cargo_bazel_fn = None
@@ -1273,7 +1364,7 @@ def _crate_impl(module_ctx):
                 isolated = cfg.isolated,
             )
 
-            rendering_config = _collect_render_config(mod, cfg.name)
+            rendering_config = _collect_render_config(mod, cfg.name, build_wide_render_config)
             splicing_config = _collect_splicing_config(mod, cfg.name)
 
             annotations = _annotations_for_repo(
@@ -1753,11 +1844,11 @@ can be found below where the supported keys for each template can be found in th
             default = "",
         ),
         "generate_cargo_toml_env_vars": attr.bool(
-            doc = "Whether to generate cargo_toml_env_vars targets.",
+            doc = "Whether to generate cargo_toml_env_vars targets. Build-wide: honored only on the root module's `render_config(repositories = [\"*\"])`.",
             default = True,
         ),
         "generate_rules_license_metadata": attr.bool(
-            doc = "Whether to generate rules license metadata.",
+            doc = "Whether to generate rules license metadata. Build-wide: honored only on the root module's `render_config(repositories = [\"*\"])`.",
             default = False,
         ),
         "generate_target_compatible_with": attr.bool(
@@ -1765,7 +1856,15 @@ can be found below where the supported keys for each template can be found in th
             default = True,
         ),
         "platforms_template": attr.string(
-            doc = "The base template to use for platform names. See [platforms documentation](https://docs.bazel.build/versions/main/platforms.html). The available format keys are [`{triple}`].",
+            doc = (
+                "The base template for the `select()` keys of platform specific dependencies. The available " +
+                "format key is `{triple}`. Build-wide: honored only on the root module's " +
+                "`render_config(repositories = [\"*\"])`, so every hub, including those of dependencies, " +
+                "renders against the platforms this build registers. The package it points at must hold one " +
+                "`config_setting`, `config_setting_group` or `alias` per triple, named by the triple; " +
+                "`declare_platform_aliases` from `@rules_rust//rust/platform:platform.bzl` declares them, " +
+                "with overrides for the triples this build distinguishes further."
+            ),
             default = "@rules_rust//rust/platform:{triple}",
         ),
         "regen_command": attr.string(
