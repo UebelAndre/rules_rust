@@ -9,8 +9,6 @@
 //! [guppy]: https://docs.rs/guppy
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
-use std::process::Command;
 use std::sync::Arc;
 use std::thread;
 
@@ -20,11 +18,12 @@ use guppy::graph::cargo::{CargoOptions, CargoResolverVersion, CargoSet};
 use guppy::graph::feature::{FeatureSet, StandardFeatures};
 use guppy::graph::{DependencyDirection, PackageGraph, PackageMetadata};
 use guppy::platform::{Platform, TargetFeatures};
-use tracing::{debug, trace};
+use tracing::{debug, trace, warn};
 
 use crate::config::CrateId;
 use crate::metadata::binary_only::locked_metadata;
 use crate::metadata::cargo_bin::Cargo;
+use crate::metadata::rustc_cfgs::{print_cfg, RustcCfgs};
 use crate::metadata::tree_resolver_metadata::{
     collapse_to_selects, group_by_cargo_triple, host_triples_with_tools, merge_tree_data,
     CargoTreeEntry, PerTripleMetadata, TreeResolverMetadata,
@@ -75,11 +74,10 @@ impl GuppyResolver {
         let (package_graph, metadata) = self.build_package_graph(pristine_manifest_path)?;
         let resolver = resolver_version(pristine_manifest_path)?;
 
-        // Build a `Platform` per unique cargo triple from real `rustc --print=cfg`
-        // output. Using rustc rather than guppy's built-in target database means
-        // `cfg(target_feature = "...")` and out-of-tree triples evaluate the way rustc
-        // would. Hosts are a subset of the targets, so the target triples alone cover
-        // every platform needed below.
+        // Build a `Platform` per unique Cargo triple from the recorded `rustc
+        // --print=cfg` output, so `cfg(target_feature = "...")` evaluates as rustc
+        // would. Hosts are a subset of the targets, so the target triples cover every
+        // platform needed below.
         let mut platforms = BTreeMap::<String, Arc<Platform>>::new();
         let mut platform_cfgs = Vec::<(String, Vec<cargo_platform::Cfg>)>::new();
         for triple in cargo_target_triples.keys() {
@@ -186,7 +184,19 @@ impl GuppyResolver {
     /// Builds a guppy [Platform] for a cargo target triple from the output of
     /// `rustc --print=cfg --target={triple}`, along with the cfgs themselves.
     fn platform_for_triple(&self, triple: &str) -> Result<(Platform, Vec<cargo_platform::Cfg>)> {
-        let cfg_text = rustc_print_cfg(self.cargo_bin.rustc_path(), triple)?;
+        // The recorded table keeps the resolution independent of the rustc at
+        // hand; a triple it does not know, such as a custom target, falls back
+        // to asking rustc.
+        let cfg_text = match RustcCfgs::recorded().cfg_text(triple) {
+            Some(cfg_text) => cfg_text,
+            None => {
+                warn!(
+                    "The platform `{triple}` has no recorded `rustc --print=cfg` output; asking \
+                     the current rustc, which makes the resolution depend on its version"
+                );
+                print_cfg(self.cargo_bin.rustc_path(), triple)?.join("\n")
+            }
+        };
         let target_features = parse_target_features(&cfg_text);
 
         let platform = Platform::new_custom_cfg(triple.to_owned(), &cfg_text, target_features)
@@ -354,33 +364,6 @@ fn parse_cfgs(cfg_text: &str) -> Vec<cargo_platform::Cfg> {
         .lines()
         .filter_map(|line| line.trim().parse().ok())
         .collect()
-}
-
-/// Runs `rustc --print=cfg --target={triple}` and returns its stdout.
-fn rustc_print_cfg(rustc: &Path, triple: &str) -> Result<String> {
-    let output = Command::new(rustc)
-        .arg("--print=cfg")
-        .arg(format!("--target={triple}"))
-        .output()
-        .with_context(|| {
-            format!(
-                "Error spawning `{} --print=cfg --target={}`",
-                rustc.display(),
-                triple
-            )
-        })?;
-
-    if !output.status.success() {
-        tracing::error!("{}", String::from_utf8_lossy(&output.stderr));
-        bail!(
-            "Failed to query rustc for the cfg values of the target triple '{}': {}",
-            triple,
-            output.status
-        );
-    }
-
-    String::from_utf8(output.stdout)
-        .with_context(|| format!("`rustc --print=cfg --target={triple}` emitted invalid UTF-8"))
 }
 
 /// Extracts the `target_feature="..."` values from `rustc --print=cfg` output.
