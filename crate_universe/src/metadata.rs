@@ -6,6 +6,7 @@ mod cargo_tree_resolver;
 mod dependency;
 mod guppy_resolver;
 mod metadata_annotation;
+pub(crate) mod rustc_cfgs;
 mod tree_resolver_metadata;
 
 use std::fs;
