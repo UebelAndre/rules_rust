@@ -112,6 +112,6 @@ rust_library(
     }),
     version = "0.13.1",
     deps = [
-        "@rmdbi__siphasher-1.0.3//:siphasher",
+        "@rmdbi__siphasher-1.0.4//:siphasher",
     ],
 )

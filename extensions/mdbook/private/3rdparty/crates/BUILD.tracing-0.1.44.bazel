@@ -35,11 +35,17 @@ rust_library(
         ],
     ),
     crate_features = [
+        "attributes",
+        "default",
         "log",
         "std",
+        "tracing-attributes",
     ],
     crate_root = "src/lib.rs",
     edition = "2018",
+    proc_macro_deps = [
+        "@rmdbi__tracing-attributes-0.1.31//:tracing_attributes",
+    ],
     rustc_env_files = [
         ":cargo_toml_env_vars",
     ],
