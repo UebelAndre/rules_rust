@@ -28,6 +28,7 @@ CARGO_BAZEL_SRCS = [
     Label("//crate_universe:src/metadata/cargo_bin.rs"),
     Label("//crate_universe:src/metadata/dependency.rs"),
     Label("//crate_universe:src/metadata/guppy_resolver.rs"),
+    Label("//crate_universe:src/metadata/manifest_parser.rs"),
     Label("//crate_universe:src/metadata/metadata_annotation.rs"),
     Label("//crate_universe:src/metadata/rustc_cfgs.json"),
     Label("//crate_universe:src/metadata/rustc_cfgs.rs"),

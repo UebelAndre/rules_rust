@@ -17,6 +17,7 @@ use std::thread;
 
 use anyhow::{bail, Context, Result};
 use camino::Utf8Path;
+use cargo_resolver::ResolveBehavior;
 use guppy::graph::cargo::{CargoOptions, CargoResolverVersion, CargoSet};
 use guppy::graph::feature::{FeatureSet, StandardFeatures};
 use guppy::graph::{DependencyDirection, PackageGraph, PackageMetadata};
@@ -25,6 +26,7 @@ use tracing::{debug, trace, warn};
 
 use crate::config::CrateId;
 use crate::metadata::binary_only::locked_metadata;
+use crate::metadata::manifest_parser::resolve_behavior;
 use crate::metadata::cargo_bin::Cargo;
 use crate::metadata::rustc_cfgs::{print_cfg, RustcCfgs};
 use crate::metadata::tree_resolver_metadata::{
@@ -431,56 +433,20 @@ fn collect_tree_data<'g>(
     tree_data
 }
 
-/// Reads the resolver version out of the workspace manifest.
+/// The resolver version of the workspace manifest, as guppy names it.
 ///
 /// Cargo picks this up implicitly from the manifest it is pointed at, so the
 /// guppy resolver has to read it explicitly to match. Getting this wrong is not a
 /// subtle error: the v1 resolver unions features across every platform and ignores
 /// target-specific dependency filtering, so target-gated optional dependencies leak
-/// onto platforms that should not have them.
+/// onto platforms that should not have them. [resolve_behavior] applies Cargo's own
+/// rules through its parser.
 fn resolver_version(manifest_path: &Utf8Path) -> Result<CargoResolverVersion> {
-    let manifest = cargo_toml::Manifest::from_path(manifest_path.as_std_path())
-        .with_context(|| format!("Failed to parse Cargo.toml file at {manifest_path}"))?;
-
-    let explicit = manifest
-        .workspace
-        .as_ref()
-        .and_then(|workspace| workspace.resolver.as_ref())
-        .or_else(|| {
-            manifest
-                .package
-                .as_ref()
-                .and_then(|package| package.resolver.as_ref())
-        });
-
-    if let Some(resolver) = explicit {
-        return Ok(match resolver {
-            cargo_toml::Resolver::V1 => CargoResolverVersion::V1,
-            cargo_toml::Resolver::V2 => CargoResolverVersion::V2,
-            // `cargo_toml::Resolver` is `#[non_exhaustive]`. Treat anything newer as
-            // the newest resolver we know about rather than silently falling back to
-            // v1, which resolves features far more coarsely.
-            _ => CargoResolverVersion::V3,
-        });
-    }
-
-    // With no explicit `resolver`, Cargo derives the default from the edition of the
-    // package at the workspace root. A virtual manifest has no such package and stays
-    // on the v1 resolver no matter what editions its members declare (Cargo warns
-    // about this rather than inferring a version).
-    //
-    // https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
-    let edition = manifest
-        .package
-        .as_ref()
-        .map(|package| package.edition())
-        .unwrap_or(cargo_toml::Edition::E2015);
-
-    Ok(match edition {
-        cargo_toml::Edition::E2015 | cargo_toml::Edition::E2018 => CargoResolverVersion::V1,
-        cargo_toml::Edition::E2021 => CargoResolverVersion::V2,
-        // `cargo_toml::Edition` is `#[non_exhaustive]`; editions past 2024 keep the
-        // newest resolver we know about.
+    Ok(match resolve_behavior(manifest_path)? {
+        ResolveBehavior::V1 => CargoResolverVersion::V1,
+        ResolveBehavior::V2 => CargoResolverVersion::V2,
+        // `ResolveBehavior` is `#[non_exhaustive]`; anything newer keeps the newest
+        // resolver guppy knows about.
         _ => CargoResolverVersion::V3,
     })
 }
@@ -733,83 +699,6 @@ mod test {
                 &lockfile,
                 &package_graph,
                 &linux_platform_cfgs()
-            ),
-        );
-    }
-
-    /// Writes `contents` to a `Cargo.toml` in a fresh temp dir and resolves its
-    /// resolver version.
-    fn resolver_version_of(name: &str, contents: &str) -> CargoResolverVersion {
-        let (_tempdir, dir) = crate::test::test_tempdir(name);
-        let manifest_path = dir.join("Cargo.toml");
-        std::fs::write(&manifest_path, contents).unwrap();
-        resolver_version(Utf8Path::from_path(&manifest_path).unwrap()).unwrap()
-    }
-
-    #[test]
-    fn resolver_version_is_read_from_the_manifest() {
-        assert_eq!(
-            CargoResolverVersion::V2,
-            resolver_version_of(
-                "explicit_resolver",
-                indoc::indoc! {r#"
-                    [workspace]
-                    resolver = "2"
-
-                    [package]
-                    name = "example"
-                    version = "0.0.0"
-                    edition = "2015"
-                "#},
-            ),
-        );
-    }
-
-    /// Cargo infers the resolver from the edition of the package at the workspace
-    /// root when no `resolver` is declared. Defaulting to v1 here instead would
-    /// union features across platforms and pull target-gated optional dependencies
-    /// onto every platform.
-    #[test]
-    fn resolver_version_defaults_to_the_edition_default() {
-        for (edition, expected) in [
-            ("2015", CargoResolverVersion::V1),
-            ("2018", CargoResolverVersion::V1),
-            ("2021", CargoResolverVersion::V2),
-            ("2024", CargoResolverVersion::V3),
-        ] {
-            assert_eq!(
-                expected,
-                resolver_version_of(
-                    &format!("edition_{edition}"),
-                    &format!(
-                        indoc::indoc! {r#"
-                            [workspace]
-
-                            [package]
-                            name = "example"
-                            version = "0.0.0"
-                            edition = "{}"
-                        "#},
-                        edition,
-                    ),
-                ),
-                "unexpected resolver for edition {edition}",
-            );
-        }
-    }
-
-    /// A virtual manifest has no root package to take an edition from, so Cargo
-    /// leaves it on the v1 resolver.
-    #[test]
-    fn resolver_version_of_a_virtual_manifest_defaults_to_v1() {
-        assert_eq!(
-            CargoResolverVersion::V1,
-            resolver_version_of(
-                "virtual_manifest",
-                indoc::indoc! {r#"
-                    [workspace]
-                    members = []
-                "#},
             ),
         );
     }

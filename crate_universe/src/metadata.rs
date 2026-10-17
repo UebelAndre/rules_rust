@@ -4,6 +4,7 @@ mod binary_only;
 mod cargo_bin;
 mod dependency;
 mod guppy_resolver;
+mod manifest_parser;
 mod metadata_annotation;
 pub(crate) mod rustc_cfgs;
 mod tree_resolver_metadata;
