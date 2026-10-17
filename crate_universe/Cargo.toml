@@ -88,8 +88,6 @@ clap = { version = "4.5.37", features = ["derive", "env"] }
 crates-index = { version = "3.7.0", default-features = false, features = [
     "git",
 ] }
-# `custom-cfg-platforms` builds platforms from real `rustc --print=cfg` output.
-guppy = { version = "0.19.1", features = ["custom-cfg-platforms"] }
 hex = "0.4.3"
 indoc = "2.0.6"
 itertools = "0.14.0"
@@ -116,6 +114,3 @@ glob = "0.3.2"
 
 [dev-dependencies]
 maplit = "1.0.2"
-# Only used directly by unit tests which evaluate `cfg` expressions. The
-# resolver itself goes through `guppy::platform`.
-target-spec = "3.7.0"

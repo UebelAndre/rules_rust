@@ -199,7 +199,7 @@ fn text(value: &Value) -> &str {
 /// The name a dependency on `pkg` is used under in the resolve graph: its
 /// library target as a module name, or the rename. A package without a
 /// library target has nothing to use, so Cargo leaves the name empty, as it
-/// does for artifact dependencies; guppy relies on that.
+/// does for artifact dependencies; the feature resolver relies on that.
 fn extern_name(pkg: &Value, rename: Option<&str>) -> String {
     let lib_target = pkg["targets"].as_array().and_then(|targets| {
         targets.iter().find(|target| {

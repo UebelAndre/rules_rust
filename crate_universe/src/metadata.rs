@@ -2,8 +2,8 @@
 
 mod binary_only;
 mod cargo_bin;
+mod cargo_resolver;
 mod dependency;
-mod guppy_resolver;
 mod manifest_parser;
 mod metadata_annotation;
 pub(crate) mod rustc_cfgs;
@@ -19,8 +19,8 @@ use tracing::debug;
 
 pub(crate) use self::binary_only::locked_metadata;
 pub(crate) use self::cargo_bin::*;
+pub(crate) use self::cargo_resolver::*;
 pub(crate) use self::dependency::*;
-pub(crate) use self::guppy_resolver::*;
 pub(crate) use self::metadata_annotation::*;
 pub(crate) use self::tree_resolver_metadata::*;
 
@@ -28,13 +28,14 @@ use crate::utils::target_triple::TargetTriple;
 
 use std::collections::BTreeSet;
 
-/// Computes feature and dependency metadata for a spliced workspace.
+/// Computes feature and dependency metadata for a spliced workspace with Cargo's
+/// own resolver.
 pub(crate) fn resolve_tree_metadata(
     cargo_bin: Cargo,
     manifest_path: &Utf8Path,
     target_triples: &BTreeSet<TargetTriple>,
 ) -> Result<TreeResolverMetadata> {
-    GuppyResolver::new(cargo_bin).generate(manifest_path, target_triples)
+    CargoResolver::new(cargo_bin).generate(manifest_path, target_triples)
 }
 
 /// A configuration describing how to invoke [cargo update](https://doc.rust-lang.org/cargo/commands/cargo-update.html).
