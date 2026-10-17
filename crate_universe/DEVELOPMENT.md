@@ -40,3 +40,21 @@ re-vendor them all, a bash script is provided:
 ```sh
 bazel run //crate_universe/tools:vendor
 ```
+
+## Resolving without Cargo
+
+`splicing_config(experimental_cargo_free = True)` resolves a workspace with the
+extracted Cargo crates instead of the `cargo` binary: manifests are read with
+`cargo_parser`, dependencies and the lockfile come from `cargo_resolver` against
+the registry's sparse index over HTTP, crate archives are downloaded and unpacked
+into Cargo's own `$CARGO_HOME/registry` layout, and `cfg(...)` dependencies are
+decided by the recorded `rustc --print=cfg` table. The result is the same
+`cargo metadata` document the rest of the generator consumes, so rendering is
+unchanged, and neither the module extension nor `crates_repository` fetch the Rust
+host tools for such a hub. See `src/metadata/cargo_free.rs`.
+
+Not supported yet: git dependencies (which is why this repository's own
+`crates_vendor` cannot use it while the extracted crates come from git),
+`[patch]` and `[replace]`, git registries and source replacement from
+`.cargo/config`, and local vendoring. `cargo_integration_test` checks the mode
+against the Cargo-based path on the metadata fixtures.

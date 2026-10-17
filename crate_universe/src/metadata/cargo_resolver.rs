@@ -170,7 +170,7 @@ impl CargoResolver {
 
 /// Parses `rustc --print=cfg` output into the form Cargo's feature resolver
 /// evaluates `[target.'cfg(...)']` dependency tables against.
-fn parse_cfgs(cfg_text: &str) -> Result<Vec<Cfg>> {
+pub(super) fn parse_cfgs(cfg_text: &str) -> Result<Vec<Cfg>> {
     cfg_text
         .lines()
         .map(str::trim)
@@ -291,6 +291,40 @@ fn unresolved_dependencies(
     unresolved
 }
 
+/// Runs Cargo's feature resolver over `graph` for every (host, target) pair and
+/// folds the result into [TreeResolverMetadata], as [CargoResolver::generate]
+/// does, but on one thread over a graph the caller already built: Cargo's
+/// `Resolve` is `Rc` based and cannot be shared across threads.
+pub(crate) fn feature_tree_metadata(
+    graph: &ResolveGraph,
+    behavior: ResolveBehavior,
+    target_triples: &BTreeSet<TargetTriple>,
+    cfgs_for: impl Fn(&str) -> Result<Vec<Cfg>>,
+) -> Result<TreeResolverMetadata> {
+    let host_triples = host_triples_with_tools(target_triples)?;
+    let cargo_host_triples = group_by_cargo_triple(&host_triples);
+    let cargo_target_triples = group_by_cargo_triple(target_triples);
+
+    let mut cfgs: HashMap<String, Vec<Cfg>> = HashMap::new();
+    for triple in cargo_target_triples.keys() {
+        cfgs.insert(triple.clone(), cfgs_for(triple)?);
+    }
+
+    let mut per_triple = PerTripleMetadata::new();
+    for (cargo_host, host_plats) in &cargo_host_triples {
+        for (cargo_target, target_plats) in &cargo_target_triples {
+            let resolution = resolve_pair(graph, &cfgs, behavior, cargo_host, cargo_target)?;
+            for target_plat in target_plats {
+                merge_tree_data(&mut per_triple, target_plat, &resolution.target_tree_data);
+            }
+            for host_plat in host_plats {
+                merge_tree_data(&mut per_triple, host_plat, &resolution.host_tree_data);
+            }
+        }
+    }
+    Ok(collapse_to_selects(per_triple))
+}
+
 /// The resolution of a single (host, target) pair, split by which side each crate
 /// is built for.
 struct PairResolution {
@@ -334,14 +368,26 @@ fn resolve_pair(
 // ---------------------------------------------------------------------------
 // The dependency graph, as Cargo's `Resolve`.
 
-struct ResolveGraph {
-    resolve: Resolve,
-    members: Vec<(PackageId, CliFeatures)>,
+pub(crate) struct ResolveGraph {
+    pub(crate) resolve: Resolve,
+    pub(crate) members: Vec<(PackageId, CliFeatures)>,
     /// Whether each package has a proc-macro target.
-    proc_macro: HashMap<PackageId, bool>,
+    pub(crate) proc_macro: HashMap<PackageId, bool>,
 }
 
 impl ResolveGraph {
+    pub(crate) fn new(
+        resolve: Resolve,
+        members: Vec<(PackageId, CliFeatures)>,
+        proc_macro: HashMap<PackageId, bool>,
+    ) -> Self {
+        Self {
+            resolve,
+            members,
+            proc_macro,
+        }
+    }
+
     fn build(metadata: &Metadata) -> Result<Self> {
         let resolve_section = metadata
             .resolve

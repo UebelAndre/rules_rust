@@ -90,8 +90,18 @@ fn run_with(
         manifests,
         lockfile,
         supported_platform_triples,
+        Mode::WithCargo,
     )
     .unwrap()
+}
+
+/// How a test resolves: through `cargo`, or with `experimental_cargo_free`,
+/// where `cargo` and `rustc` are given paths that do not exist so any attempt
+/// to run them fails the test.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    WithCargo,
+    CargoFree,
 }
 
 /// Splices and resolves the given manifests, returning the resulting metadata or
@@ -101,11 +111,19 @@ fn try_run_with(
     manifests: HashMap<String, String>,
     lockfile: &str,
     supported_platform_triples: &[&str],
+    mode: Mode,
 ) -> Result<Value> {
     let scratch = tempfile::tempdir().unwrap();
     let runfiles = runfiles::Runfiles::create().unwrap();
 
     let (cargo, rustc) = setup_cargo_env(&runfiles).unwrap();
+    let (cargo, rustc) = match mode {
+        Mode::WithCargo => (cargo, rustc),
+        Mode::CargoFree => (
+            PathBuf::from("/nonexistent/cargo"),
+            PathBuf::from("/nonexistent/rustc"),
+        ),
+    };
 
     let splicing_manifest = scratch.path().join("splicing_manifest.json");
     fs::write(
@@ -114,6 +132,7 @@ fn try_run_with(
             "manifests": manifests,
             "direct_packages": {},
             "resolver_version": "2",
+            "experimental_cargo_free": mode == Mode::CargoFree,
         }))
         .unwrap(),
     )
@@ -145,8 +164,8 @@ fn try_run_with(
         dry_run: false,
         cargo_config: None,
         config,
-        cargo,
-        rustc,
+        cargo: Some(cargo),
+        rustc: Some(rustc),
         repository_name: String::from("crates_index"),
         skip_cargo_lockfile_overwrite: false,
         nonhermetic_root_bazel_workspace_dir: Utf8PathBuf::from("/doesnotexist/unused/repo/root"),
@@ -977,4 +996,155 @@ fn host_and_target_features_are_unified_per_triple() {
         }),
         metadata["metadata"]["cargo-bazel"]["tree_metadata"]["log 0.4.17"],
     );
+}
+
+/// Fixtures the cargo-free path is checked against the Cargo-based path on.
+/// `aliases` and `git_repos` are left out: git dependencies are not supported
+/// without Cargo.
+const CARGO_FREE_AGREES_WITH_CARGO: &[&str] = &[
+    "build_scripts",
+    "crate_combined_features",
+    "crate_optional_deps_disabled",
+    "crate_types",
+    "example_proc_macro_dep",
+    "host_specific_build_deps",
+    "multi_cfg_dep",
+    "multi_kind_proc_macro_dep",
+    "nested_build_dependencies",
+    "no_deps",
+    "resolver_2_deps",
+    "target_cfg_features",
+    "target_features",
+    "workspace_build_scripts_deps",
+    "workspace_path",
+];
+
+/// The parts of a `cargo metadata` document that drive rendering: the package
+/// set with its targets and dependency declarations, and the resolve graph.
+/// Manifest paths differ only when `CARGO_HOME` layouts differ, so they are
+/// compared through the same environment.
+fn rendering_inputs(metadata: &Value) -> Value {
+    let mut packages: Vec<Value> = metadata["packages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| {
+            json!({
+                "id": p["id"],
+                "name": p["name"],
+                "version": p["version"],
+                "edition": p["edition"],
+                "links": p["links"],
+                "features": p["features"],
+                "manifest_path": p["manifest_path"],
+                "targets": p["targets"].as_array().unwrap().iter().map(|t| json!({
+                    "kind": t["kind"], "crate_types": t["crate_types"], "name": t["name"], "src_path": t["src_path"],
+                })).collect::<Vec<_>>(),
+                "dependencies": p["dependencies"].as_array().unwrap().iter().map(|d| json!({
+                    "name": d["name"], "kind": d["kind"], "target": d["target"], "optional": d["optional"],
+                    "uses_default_features": d["uses_default_features"], "features": d["features"], "rename": d["rename"],
+                })).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    packages.sort_by_key(|p| p["id"].to_string());
+    let mut nodes: Vec<Value> = metadata["resolve"]["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| {
+            let mut deps: Vec<Value> = n["deps"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|d| {
+                    let mut kinds: Vec<Value> = d["dep_kinds"].as_array().unwrap().clone();
+                    kinds.sort_by_key(|k| k.to_string());
+                    json!({"name": d["name"], "pkg": d["pkg"], "dep_kinds": kinds})
+                })
+                .collect();
+            deps.sort_by_key(|d| d["pkg"].to_string());
+            json!({"id": n["id"], "deps": deps})
+        })
+        .collect();
+    nodes.sort_by_key(|n| n["id"].to_string());
+    let mut workspace_members: Vec<Value> = metadata["workspace_members"].as_array().unwrap().clone();
+    workspace_members.sort_by_key(|m| m.to_string());
+    json!({
+        "packages": packages,
+        "nodes": nodes,
+        "workspace_members": workspace_members,
+        "tree_metadata": metadata["metadata"]["cargo-bazel"]["tree_metadata"],
+        "sources": metadata["metadata"]["cargo-bazel"]["sources"],
+    })
+}
+
+#[test]
+fn cargo_free_agrees_with_cargo() {
+    if should_skip_test() {
+        eprintln!("Skipping!");
+        return;
+    }
+
+    for fixture in CARGO_FREE_AGREES_WITH_CARGO {
+        let (manifests, lockfile) = test_input(fixture);
+        let with_cargo = try_run_with(
+            "cargo_free_parity",
+            manifests.clone(),
+            &lockfile,
+            DEFAULT_TEST_TRIPLES,
+            Mode::WithCargo,
+        )
+        .unwrap();
+        let without_cargo = try_run_with(
+            "cargo_free_parity",
+            manifests,
+            &lockfile,
+            DEFAULT_TEST_TRIPLES,
+            Mode::CargoFree,
+        )
+        .unwrap_or_else(|e| panic!("`{fixture}` without Cargo: {e:?}"));
+        let left = normalized_rendering_inputs(&with_cargo);
+        let right = normalized_rendering_inputs(&without_cargo);
+        for key in ["workspace_members", "packages", "nodes", "tree_metadata", "sources"] {
+            assert_same(fixture, key, &left[key], &right[key]);
+        }
+    }
+}
+
+/// `rendering_inputs` with the scratch workspace directory, which differs per
+/// run, replaced by a placeholder.
+fn normalized_rendering_inputs(metadata: &Value) -> Value {
+    let workspace_root = metadata["workspace_root"].as_str().unwrap();
+    let text = serde_json::to_string(&rendering_inputs(metadata))
+        .unwrap()
+        .replace(workspace_root, "{WS}");
+    serde_json::from_str(&text).unwrap()
+}
+
+/// Compares element by element where elements carry an `id`, so a mismatch
+/// names the package rather than dumping both documents.
+fn assert_same(fixture: &str, key: &str, left: &Value, right: &Value) {
+    if let (Some(l), Some(r)) = (left.as_array(), right.as_array()) {
+        if l.iter().all(|v| v.get("id").is_some()) {
+            let ids = |a: &[Value]| a.iter().map(|v| v["id"].to_string()).collect::<Vec<_>>();
+            assert_eq!(ids(l), ids(r), "`{fixture}`: {key} list differs");
+            for (lv, rv) in l.iter().zip(r) {
+                assert_eq!(lv, rv, "`{fixture}`: {key} entry {} differs", lv["id"]);
+            }
+            return;
+        }
+    }
+    if let (Some(l), Some(r)) = (left.as_object(), right.as_object()) {
+        assert_eq!(
+            l.keys().collect::<Vec<_>>(),
+            r.keys().collect::<Vec<_>>(),
+            "`{fixture}`: {key} keys differ"
+        );
+        for (k, lv) in l {
+            assert_eq!(lv, &r[k], "`{fixture}`: {key}[{k}] differs");
+        }
+        return;
+    }
+    assert_eq!(left, right, "`{fixture}`: {key} differs");
 }

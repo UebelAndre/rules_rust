@@ -356,6 +356,7 @@ mod test {
             manifests: BTreeMap::new(),
             cargo_config: None,
             resolver_version: cargo_toml::Resolver::V2,
+            experimental_cargo_free: false,
         };
 
         let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
@@ -396,6 +397,7 @@ mod test {
         let splicing_metadata = SplicingMetadata {
             cargo_config: Some(cargo_config),
             resolver_version: cargo_toml::Resolver::V2,
+            experimental_cargo_free: false,
             ..SplicingMetadata::default()
         };
 

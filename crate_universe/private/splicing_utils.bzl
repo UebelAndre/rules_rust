@@ -2,7 +2,7 @@
 
 load(":common_utils.bzl", "CARGO_BAZEL_DEBUG", "CARGO_BAZEL_REPIN", "REPIN")
 
-def splicing_config(resolver_version = "2"):
+def splicing_config(resolver_version = "2", experimental_cargo_free = False):
     """Various settings used to configure Cargo manifest splicing behavior.
 
     [rv]: https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
@@ -11,13 +11,25 @@ def splicing_config(resolver_version = "2"):
         resolver_version (str, optional): The [resolver version][rv] to use in generated Cargo
             manifests. This flag is **only** used when splicing a manifest from direct package
             definitions. See `crates_repository::packages`.
+        experimental_cargo_free (bool, optional): Experimental. Resolve the workspace without running
+            `cargo` or `rustc` at all: manifests, dependency resolution, the lockfile and the registry
+            index are handled by the extracted Cargo crates, and crate sources are fetched from the
+            registry directly. No Rust toolchain is fetched to repin. Git dependencies, `[patch]`
+            sections, git registries and local vendoring are not supported yet. Part of the lockfile
+            digest.
 
     Returns:
         str: A json encoded string of the parameters provided
     """
-    return json.encode(struct(
-        resolver_version = resolver_version,
-    ))
+    config = {
+        "resolver_version": resolver_version,
+    }
+
+    # Only written when enabled, so generators that predate the setting keep
+    # accepting configs that do not opt in.
+    if experimental_cargo_free:
+        config["experimental_cargo_free"] = True
+    return json.encode(config)
 
 def kebab_case_keys(data):
     """Ensure the key value of the data given are kebab-case

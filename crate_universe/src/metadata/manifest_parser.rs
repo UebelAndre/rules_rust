@@ -27,7 +27,7 @@ pub(crate) fn resolve_behavior(manifest_path: &Utf8Path) -> Result<ResolveBehavi
     resolve_behavior_of(&parsed)
 }
 
-fn resolve_behavior_of(parsed: &ParsedManifest) -> Result<ResolveBehavior> {
+pub(crate) fn resolve_behavior_of(parsed: &ParsedManifest) -> Result<ResolveBehavior> {
     let toml = &parsed.normalized_toml;
     let package_resolver = toml.package().and_then(|p| p.resolver.as_deref());
     let workspace_resolver = toml.workspace.as_ref().and_then(|w| w.resolver.as_deref());
@@ -63,10 +63,6 @@ fn resolve_behavior_of(parsed: &ParsedManifest) -> Result<ResolveBehavior> {
 /// dependencies of members that lie inside the workspace root and are not
 /// excluded. A manifest without a `[workspace]` section is a workspace of
 /// one. Keys are normalized manifest paths.
-///
-/// Today this backs the conformance test against `cargo metadata`; it is the
-/// member discovery crate_universe needs once it stops running Cargo.
-#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn workspace_members(
     root_manifest: &Utf8Path,
     gctx: &ParseContext<'_>,
@@ -140,7 +136,6 @@ pub(crate) fn workspace_members(
 
 /// Every dependency declaration of a normalized manifest, across kinds and
 /// platforms, with the name it is declared under.
-#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn detailed_dependencies(
     toml: &TomlManifest,
 ) -> Vec<(

@@ -125,6 +125,21 @@ def new_cargo_bazel_fn(
 
     return _execute
 
+def is_cargo_free(splicing_config):
+    """Whether a splicing config asks for resolution without `cargo` and `rustc`.
+
+    Args:
+        splicing_config (str): A `splicing_config()` JSON string, or its decoded dict, or `None`.
+
+    Returns:
+        bool: True when `experimental_cargo_free` is set.
+    """
+    if not splicing_config:
+        return False
+    if type(splicing_config) == "string":
+        splicing_config = json.decode(splicing_config)
+    return bool(splicing_config.get("experimental_cargo_free", False))
+
 def get_rust_tools(repository_ctx, host_triple):
     """Retrieve a cargo and rustc binary based on the host triple.
 

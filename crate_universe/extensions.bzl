@@ -387,6 +387,7 @@ load(
     "//crate_universe/private:common_utils.bzl",
     "LOCKFILE_MODES",
     "LOCKFILE_MODE_DOC",
+    "is_cargo_free",
     "is_within_workspace",
     "new_cargo_bazel_fn",
 )
@@ -1009,23 +1010,28 @@ def _get_host_cargo_rustc(module_ctx, host_triple, host_tools_repo):
 
     return cargo_path, rustc_path
 
-def _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg):
+def _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg, splicing_config):
     """A callback producing a `cargo_bazel_fn` with the host `cargo` and `rustc` for `cfg`.
 
     The toolchain repository is fetched when the callback runs, so hubs whose
-    lockfile is up to date never fetch it.
+    lockfile is up to date never fetch it, and a hub resolved without Cargo
+    (`splicing_config(experimental_cargo_free = True)`) never fetches it at all.
 
     Args:
         module_ctx (module_ctx): The module extension's context.
         generator (path): The path to the `cargo-bazel` binary.
         host_triple (triple): The platform triple for the machine executing this extension.
         cfg (object): The module tag from `from_cargo` or `from_specs`.
+        splicing_config (dict): The hub's decoded splicing config.
     Returns:
         callable: A zero-argument function returning a `cargo_bazel_fn`.
     """
 
     def _new():
-        cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx, host_triple, cfg.host_tools)
+        cargo_path = None
+        rustc_path = None
+        if not is_cargo_free(splicing_config):
+            cargo_path, rustc_path = _get_host_cargo_rustc(module_ctx, host_triple, cfg.host_tools)
         return new_cargo_bazel_fn(
             repository_ctx = module_ctx,
             cargo_bazel_path = generator,
@@ -1403,7 +1409,7 @@ def _crate_impl(module_ctx):
             generated = _resolve_hub(
                 module_ctx = module_ctx,
                 cargo_bazel_fn = cargo_bazel_fn,
-                new_resolving_cargo_bazel_fn = _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg),
+                new_resolving_cargo_bazel_fn = _new_resolving_cargo_bazel_fn(module_ctx, generator, host_triple, cfg, splicing_config),
                 cfg = cfg,
                 annotations = annotations,
                 lockfile = lockfile_path,
@@ -1781,6 +1787,16 @@ _splicing_config = tag_class(
             default = [],
         ),
     } | {
+        "experimental_cargo_free": attr.bool(
+            doc = (
+                "Experimental. Resolve the workspace without running `cargo` or `rustc` at all: manifests, " +
+                "dependency resolution, the lockfile and the registry index are handled by the extracted " +
+                "Cargo crates, and crate sources are fetched from the registry directly. No Rust toolchain " +
+                "is fetched to repin. Git dependencies, `[patch]` sections, git registries and local " +
+                "vendoring are not supported yet. Part of the lockfile digest."
+            ),
+            default = False,
+        ),
         "resolver_version": attr.string(
             doc = "The [resolver version](https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions) to use in generated Cargo manifests. This flag is **only** used when splicing a manifest from direct package definitions. See `crates_repository::packages`",
             default = "2",

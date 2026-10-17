@@ -2,6 +2,7 @@
 
 mod binary_only;
 mod cargo_bin;
+mod cargo_free;
 mod cargo_resolver;
 mod dependency;
 mod manifest_parser;
@@ -19,6 +20,7 @@ use tracing::debug;
 
 pub(crate) use self::binary_only::locked_metadata;
 pub(crate) use self::cargo_bin::*;
+pub(crate) use self::cargo_free::*;
 pub(crate) use self::cargo_resolver::*;
 pub(crate) use self::dependency::*;
 pub(crate) use self::metadata_annotation::*;

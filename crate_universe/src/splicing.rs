@@ -41,6 +41,12 @@ pub(crate) struct SplicingManifest {
 
     /// The Cargo resolver version to use for splicing
     pub(crate) resolver_version: cargo_toml::Resolver,
+
+    /// Experimental: resolve the workspace without running Cargo or rustc at
+    /// all. Manifests, dependency resolution, the lockfile and the registry
+    /// index are handled by the extracted Cargo crates.
+    #[serde(default)]
+    pub(crate) experimental_cargo_free: bool,
 }
 
 impl FromStr for SplicingManifest {
@@ -193,6 +199,11 @@ pub(crate) struct SplicingMetadata {
     /// The Cargo resolver version used for splicing, which changes what gets
     /// resolved and so belongs in the lockfile digest.
     pub(crate) resolver_version: cargo_toml::Resolver,
+
+    /// Whether the workspace was resolved without Cargo. Omitted when false so
+    /// lockfiles produced with Cargo keep their digest.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) experimental_cargo_free: bool,
 }
 
 impl TryFrom<SplicingManifest> for SplicingMetadata {
@@ -232,6 +243,7 @@ impl TryFrom<SplicingManifest> for SplicingMetadata {
             manifests,
             cargo_config,
             resolver_version: value.resolver_version,
+            experimental_cargo_free: value.experimental_cargo_free,
         })
     }
 }
@@ -348,19 +360,23 @@ impl WorkspaceMetadata {
         input_manifest_path: &Utf8Path,
         output_manifest_path: &Utf8Path,
     ) -> Result<()> {
-        let mut manifest = read_manifest(input_manifest_path)?;
+        let sources = Self::registry_sources(cargo, lockfile, input_manifest_path)?;
+        Self::write_sources_and_feature_map(
+            sources,
+            resolver_data,
+            input_manifest_path,
+            output_manifest_path,
+        )
+    }
 
-        let mut workspace_metadata = WorkspaceMetadata::try_from(
-            manifest
-                .workspace
-                .as_ref()
-                .unwrap()
-                .metadata
-                .as_ref()
-                .unwrap()
-                .clone(),
-        )?;
-
+    /// The download URL and checksum of every registry package in `lockfile`,
+    /// looked up in the registry indexes Cargo populated.
+    #[tracing::instrument(skip_all)]
+    fn registry_sources(
+        cargo: &Cargo,
+        lockfile: &cargo_lock::Lockfile,
+        input_manifest_path: &Utf8Path,
+    ) -> Result<Vec<(CrateId, SourceInfo)>> {
         // Locate all packages sourced from a registry
         let pkg_sources: Vec<&cargo_lock::Package> = lockfile
             .packages
@@ -458,9 +474,33 @@ impl WorkspaceMetadata {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        workspace_metadata
-            .sources
-            .extend(additional_sources.into_iter());
+
+        Ok(additional_sources)
+    }
+
+    /// Records crate sources and the feature map in the root manifest's
+    /// `[workspace.metadata.cargo-bazel]` table, for the steps after splicing.
+    #[tracing::instrument(skip_all)]
+    pub(crate) fn write_sources_and_feature_map(
+        sources: impl IntoIterator<Item = (CrateId, SourceInfo)>,
+        resolver_data: TreeResolverMetadata,
+        input_manifest_path: &Utf8Path,
+        output_manifest_path: &Utf8Path,
+    ) -> Result<()> {
+        let mut manifest = read_manifest(input_manifest_path)?;
+
+        let mut workspace_metadata = WorkspaceMetadata::try_from(
+            manifest
+                .workspace
+                .as_ref()
+                .unwrap()
+                .metadata
+                .as_ref()
+                .unwrap()
+                .clone(),
+        )?;
+
+        workspace_metadata.sources.extend(sources);
         workspace_metadata.tree_metadata = resolver_data;
         workspace_metadata.inject_into(&mut manifest)?;
 
@@ -840,6 +880,7 @@ mod test {
             ]),
             cargo_config: None,
             resolver_version: cargo_toml::Resolver::V2,
+            experimental_cargo_free: false,
         };
         let metadata = SplicingMetadata::try_from(manifest).unwrap();
         let metadata = serde_json::to_string(&metadata).unwrap();

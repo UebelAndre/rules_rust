@@ -16,7 +16,7 @@ use crate::config::{Config, VendorMode};
 use crate::context::Context;
 use crate::lockfile::{lock_context, write_lockfile};
 use crate::metadata::CargoUpdateRequest;
-use crate::metadata::{locked_metadata, resolve_tree_metadata};
+use crate::metadata::{locked_metadata, resolve_tree_metadata, splice_without_cargo};
 use crate::metadata::{Annotations, Cargo, VendorGenerator};
 use crate::rendering::{render_module_label, write_outputs, Renderer};
 use crate::splicing::{
@@ -30,11 +30,11 @@ use crate::utils::normalize_cargo_file_paths;
 pub struct VendorOptions {
     /// The path to a Cargo binary to use for gathering metadata
     #[clap(long, env = "CARGO")]
-    pub cargo: PathBuf,
+    pub cargo: Option<PathBuf>,
 
     /// The path to a rustc binary for use with Cargo
     #[clap(long, env = "RUSTC")]
-    pub rustc: PathBuf,
+    pub rustc: Option<PathBuf>,
 
     /// The path to a buildifier binary for formatting generated BUILD files
     #[clap(long)]
@@ -242,6 +242,7 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
     // Load the all config files required for splicing a workspace
     let splicing_manifest = SplicingManifest::try_from_path(&opt.splicing_manifest)?
         .resolve(&opt.workspace_dir, &bazel_info.output_base);
+    let experimental_cargo_free = splicing_manifest.experimental_cargo_free;
 
     let temp_dir = tempfile::tempdir().context("Failed to create temporary directory")?;
     let temp_dir_path = Utf8PathBuf::from_path_buf(temp_dir.as_ref().to_path_buf())
@@ -251,53 +252,77 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
     let splicer = Splicer::new(temp_dir_path, splicing_manifest.clone())
         .context("Failed to create splicer")?;
 
-    let cargo = Cargo::new(opt.cargo, opt.rustc.clone());
-
     // Splice together the manifest
     let manifest_path = splicer
         .splice_workspace(&opt.nonhermetic_root_bazel_workspace_dir)
         .context("Failed to splice workspace")?;
 
-    // Gather a cargo lockfile
-    let cargo_lockfile = if let Some(cargo_lockfile_path) = opt
-        .cargo_lockfile
-        .as_ref()
-        .filter(|_| opt.skip_cargo_lockfile_overwrite)
-    {
-        install_lockfile(&manifest_path, cargo_lockfile_path)?
-    } else {
-        generate_lockfile(
-            &manifest_path,
-            &opt.cargo_lockfile,
-            cargo.clone(),
-            &opt.repin,
-        )?
-    };
-
     let config = Config::try_from_path(&opt.config)?;
 
-    let resolver_data = resolve_tree_metadata(
-        cargo.clone(),
-        manifest_path.as_path_buf(),
-        &config.supported_platform_triples,
-    )?;
+    let (cargo, cargo_lockfile, cargo_metadata) = if experimental_cargo_free {
+        let repin = if opt.skip_cargo_lockfile_overwrite {
+            None
+        } else {
+            opt.repin.as_ref()
+        };
+        let spliced = splice_without_cargo(
+            manifest_path.as_path_buf(),
+            opt.cargo_lockfile.as_deref(),
+            repin,
+            &config.supported_platform_triples,
+        )
+        .context("Failed to resolve the workspace without Cargo")?;
+        (None, spliced.lockfile, spliced.metadata)
+    } else {
+        let cargo = Cargo::new(
+            opt.cargo
+                .clone()
+                .context("The `--cargo` argument is required unless `experimental_cargo_free` is set")?,
+            opt.rustc
+                .clone()
+                .context("The `--rustc` argument is required unless `experimental_cargo_free` is set")?,
+        );
 
-    // Write the registry url info to the manifest now that a lockfile has been generated
-    WorkspaceMetadata::write_registry_urls_and_feature_map(
-        &cargo,
-        &cargo_lockfile,
-        resolver_data,
-        manifest_path.as_path_buf(),
-        manifest_path.as_path_buf(),
-    )?;
+        // Gather a cargo lockfile
+        let cargo_lockfile = if let Some(cargo_lockfile_path) = opt
+            .cargo_lockfile
+            .as_ref()
+            .filter(|_| opt.skip_cargo_lockfile_overwrite)
+        {
+            install_lockfile(&manifest_path, cargo_lockfile_path)?
+        } else {
+            generate_lockfile(
+                &manifest_path,
+                &opt.cargo_lockfile,
+                cargo.clone(),
+                &opt.repin,
+            )?
+        };
 
-    // Write metadata to the workspace for future reuse
-    let cargo_metadata: cargo_metadata::Metadata = serde_json::from_str(&locked_metadata(
-        &cargo,
-        manifest_path.as_path_buf().as_std_path(),
-        false,
-    )?)
-    .context("Failed to parse cargo metadata")?;
+        let resolver_data = resolve_tree_metadata(
+            cargo.clone(),
+            manifest_path.as_path_buf(),
+            &config.supported_platform_triples,
+        )?;
+
+        // Write the registry url info to the manifest now that a lockfile has been generated
+        WorkspaceMetadata::write_registry_urls_and_feature_map(
+            &cargo,
+            &cargo_lockfile,
+            resolver_data,
+            manifest_path.as_path_buf(),
+            manifest_path.as_path_buf(),
+        )?;
+
+        // Write metadata to the workspace for future reuse
+        let cargo_metadata: cargo_metadata::Metadata = serde_json::from_str(&locked_metadata(
+            &cargo,
+            manifest_path.as_path_buf().as_std_path(),
+            false,
+        )?)
+        .context("Failed to parse cargo metadata")?;
+        (Some(cargo), cargo_lockfile, cargo_metadata)
+    };
 
     // Annotate metadata
     let annotations = Annotations::new(
@@ -338,7 +363,10 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
     }
 
     if matches!(config.rendering.vendor_mode, Some(VendorMode::Local)) {
-        VendorGenerator::new(cargo.clone(), opt.rustc.clone())
+        let cargo = cargo.as_ref().context(
+            "Local vendoring runs `cargo vendor`, which `experimental_cargo_free` cannot replace yet",
+        )?;
+        VendorGenerator::new(cargo.clone(), cargo.rustc_path().to_path_buf())
             .generate(manifest_path.as_path_buf(), &vendor_dir)
             .context("Failed to vendor dependencies")?;
     }

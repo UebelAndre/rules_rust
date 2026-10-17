@@ -5,6 +5,7 @@ load(
     "LOCKFILE_MODES",
     "LOCKFILE_MODE_DOC",
     "get_rust_tools",
+    "is_cargo_free",
     "is_within_workspace",
     "new_cargo_bazel_fn",
 )
@@ -84,13 +85,19 @@ def _crates_repository_impl(repository_ctx):
     kwargs = dict()
     if repin:
         # Locate Rust tools (cargo, rustc). Resolving is the only step that
-        # needs them, so the toolchain is only fetched here.
-        tools = get_rust_tools(repository_ctx, host_triple)
+        # needs them, so the toolchain is only fetched here, and not at all
+        # when the workspace is resolved without Cargo.
+        cargo_path = None
+        rustc_path = None
+        if not is_cargo_free(repository_ctx.attr.splicing_config):
+            tools = get_rust_tools(repository_ctx, host_triple)
+            cargo_path = repository_ctx.path(tools.cargo)
+            rustc_path = repository_ctx.path(tools.rustc)
         resolving_cargo_bazel_fn = new_cargo_bazel_fn(
             repository_ctx = repository_ctx,
             cargo_bazel_path = generator,
-            cargo_path = repository_ctx.path(tools.cargo),
-            rustc_path = repository_ctx.path(tools.rustc),
+            cargo_path = cargo_path,
+            rustc_path = rustc_path,
             isolated = repository_ctx.attr.isolated,
             quiet = repository_ctx.attr.quiet,
         )
