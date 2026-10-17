@@ -74,6 +74,15 @@ cargo_metadata = "0.19.2"
 cargo_toml = "0.22.3"
 cargo-lock = "11.1.0"
 cargo-platform = "0.1.9"
+# Cargo's own manifest parser and dependency/feature resolver, extracted from
+# rust-lang/cargo at the Cargo of the current stable toolchain. The library
+# names stay `cargo_parser` and `cargo_resolver`, after Cargo's modules.
+cargo-ext-parser = { git = "https://github.com/UebelAndre/cargo-resolver", rev = "1520534da093b8d70be7677389e0595c445921c7" }
+cargo-ext-resolver = { git = "https://github.com/UebelAndre/cargo-resolver", rev = "1520534da093b8d70be7677389e0595c445921c7" }
+# The extracted crates speak the current `cargo-platform`; the 0.1 line above
+# is what `cargo_metadata` reports platforms with.
+cargo-platform3 = { package = "cargo-platform", version = "0.3.3" }
+cargo-util-schemas = "0.14.2"
 cfg-expr = "0.18.0"
 clap = { version = "4.5.37", features = ["derive", "env"] }
 crates-index = { version = "3.7.0", default-features = false, features = [
@@ -88,6 +97,7 @@ normpath = "1.3.0"
 once_cell = "1.21.3"
 pathdiff = "0.2.3"
 regex = "1.11.1"
+rustc-hash = "2"
 semver = "1.0.26"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
