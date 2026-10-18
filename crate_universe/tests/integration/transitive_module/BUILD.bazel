@@ -1,0 +1,15 @@
+load("@rules_rust//rust:defs.bzl", "rust_test")
+
+rust_test(
+    name = "test",
+    srcs = ["test.rs"],
+    edition = "2021",
+    deps = [
+        "@dep_locked",
+        "@dep_specs_only_crates//cfg-if",
+        "@dep_unlocked//:dep_unlocked_specs",
+        "@dep_unlocked//cargo:dep_unlocked_cargo",
+        "@dep_unreadable",
+        "@root_crates//lazy_static",
+    ],
+)

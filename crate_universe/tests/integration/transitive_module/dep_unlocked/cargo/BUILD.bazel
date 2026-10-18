@@ -1,0 +1,10 @@
+load("@dep_unlocked_cargo//:defs.bzl", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "dep_unlocked_cargo",
+    srcs = ["lib.rs"],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(),
+)
