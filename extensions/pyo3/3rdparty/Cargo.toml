@@ -1,0 +1,19 @@
+[package]
+name = "rules_rust_pyo3_deps"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# No crate is built from this manifest; it only declares dependencies.
+[lib]
+path = "lib.rs"
+
+[dependencies]
+pyo3 = { version = "0.29.0", features = [
+    "abi3",
+    "abi3-py311",
+    "extension-module",
+    "experimental-inspect",
+] }
+pyo3-ffi = "0.29.0"
+pyo3-introspection = "0.29.0"

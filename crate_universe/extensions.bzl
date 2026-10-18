@@ -42,17 +42,21 @@ use_repo(crate, "crates")
 
 ## Dependencies
 
-There are three different ways to declare dependencies in your MODULE.
+There are four different ways to declare dependencies in your MODULE.
 
-1) Cargo workspace
+1) Cargo manifests
 2) Direct Dependencies
 3) Binary Dependencies
 4) Vendored Dependencies
 
-### Cargo Workspaces
+Prefer a Cargo manifest. Everything Cargo can express about a dependency (features, targets,
+renames, `[patch]`, registries, workspace inheritance, ...) is available in a `Cargo.toml`, and
+Cargo tooling keeps working against it. The `spec` tags cover the simple cases only.
 
-One of the simpler ways to wire up dependencies would be to first structure your project into a Cargo workspace.
-The crates_repository rule can ingest a root Cargo.toml file and generate Bazel dependencies from there.
+### Cargo manifests
+
+Structure your project as a Cargo workspace, or write a `Cargo.toml` which only declares the
+dependencies, and `from_cargo` resolves it and generates Bazel dependencies from there.
 You find a complete example in the in the [example folder](https://github.com/bazelbuild/rules_rust/tree/main/examples/all_crate_deps).
 
 ```python
@@ -163,8 +167,9 @@ etc.), maintaining Cargo.toml files may have diminishing returns as things like 
 begin to be confused about missing targets or environment variables defined only in Bazel.
 In situations like this, it may be desirable to have a "Cargo free" setup. You find an example in the in the [example folder](https://github.com/bazelbuild/rules_rust/tree/main/examples/hello_world_no_cargo).
 
-crates_repository supports this through the packages attribute,
-as shown below.
+For simple sets of dependencies, `spec` tags describe them directly, as shown below. A `spec`
+cannot express everything a `Cargo.toml` can; when one is not enough, write a manifest which
+only declares the dependencies and use `from_cargo` with it instead.
 
 ```python
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
@@ -1828,7 +1833,10 @@ _annotation = tag_class(
 )
 
 _from_specs = tag_class(
-    doc = "Generates a repo @crates from the defined `spec` tags.",
+    doc = (
+        "Generates a repo @crates from the defined `spec` tags. Meant for simple sets of " +
+        "dependencies; prefer `from_cargo` with a `Cargo.toml` which declares them otherwise."
+    ),
     attrs = {
         "name": attr.string(
             doc = "The name of the repo to generate.",
