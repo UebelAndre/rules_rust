@@ -3,7 +3,6 @@
 load("@bazel_features//:features.bzl", "bazel_features")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 load("//private:toolchain.bzl", "mdbook_toolchain_repository")
-load("//private/3rdparty/crates:crates.bzl", "crate_repositories")
 
 def _rust_ext_impl(module_ctx):
     direct_deps = []
@@ -12,8 +11,6 @@ def _rust_ext_impl(module_ctx):
         repo = "rules_rust_mdbook_toolchain",
         is_dev_dep = False,
     ))
-    direct_deps.extend(crate_repositories())
-
     maybe(
         mdbook_toolchain_repository,
         name = "rules_rust_mdbook_toolchain",
