@@ -1,0 +1,9 @@
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "dep_locked",
+    srcs = ["lib.rs"],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = ["@dep_locked_crates//cfg-if"],
+)

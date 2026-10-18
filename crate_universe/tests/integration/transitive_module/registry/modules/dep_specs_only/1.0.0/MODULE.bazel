@@ -1,0 +1,25 @@
+"""A dependency module whose crate_universe repository is declared by specs alone.
+
+Every input is in this file, which Bazel reads from the registry, so a consumer
+resolves the repository without fetching the module's archive. The archive URL in
+`source.json` does not exist: a consumer which touches any file of this module
+fails to build.
+"""
+
+module(
+    name = "dep_specs_only",
+    version = "1.0.0",
+)
+
+bazel_dep(name = "rules_rust", version = "0.0.0")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_specs(
+    name = "dep_specs_only_crates",
+)
+crate.spec(
+    package = "cfg-if",
+    repositories = ["dep_specs_only_crates"],
+    version = "=1.0.0",
+)
+use_repo(crate, "dep_specs_only_crates")
