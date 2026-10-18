@@ -1,0 +1,966 @@
+{
+  "binary_crates": ["pyo3-introspection 0.29.0"],
+  "checksum": "916b98844741ff2505084e1a92232c5ad99a9f0b05bb8d453793161982d3fce6",
+  "conditions": {
+    "cfg(any())": [],
+    "cfg(not(target_has_atomic = \"64\"))": [
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv32imac-unknown-none-elf",
+      "riscv32imc-unknown-none-elf",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf"
+    ]
+  },
+  "crates": {
+    "anyhow 1.0.100": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default", "std"],
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "anyhow",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "anyhow",
+      "package_url": "https://github.com/dtolnay/anyhow",
+      "repository": {
+        "Http": {
+          "sha256": "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61",
+          "url": "https://static.crates.io/crates/anyhow/1.0.100/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "anyhow", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "1.0.100"
+    },
+    "goblin 0.10.1": {
+      "common_attrs": {
+        "crate_features": [
+          "alloc",
+          "archive",
+          "default",
+          "elf32",
+          "elf64",
+          "endian_fd",
+          "log",
+          "mach32",
+          "mach64",
+          "pe32",
+          "pe64",
+          "std",
+          "te"
+        ],
+        "deps": [
+          {"id": "log 0.4.28", "target": "log"},
+          {"id": "plain 0.2.3", "target": "plain"},
+          {"id": "scroll 0.13.0", "target": "scroll"}
+        ],
+        "edition": "2024"
+      },
+      "library_target_name": "goblin",
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "license_ids": ["MIT"],
+      "name": "goblin",
+      "package_url": "https://github.com/m4b/goblin",
+      "repository": {
+        "Http": {
+          "sha256": "d6a80adfd63bd7ffd94fefc3d22167880c440a724303080e5aa686fa36abaa96",
+          "url": "https://static.crates.io/crates/goblin/0.10.1/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "goblin", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.10.1"
+    },
+    "heck 0.5.0": {
+      "common_attrs": {"edition": "2021"},
+      "library_target_name": "heck",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "heck",
+      "package_url": "https://github.com/withoutboats/heck",
+      "repository": {
+        "Http": {
+          "sha256": "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea",
+          "url": "https://static.crates.io/crates/heck/0.5.0/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "heck", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.5.0"
+    },
+    "itoa 1.0.15": {
+      "common_attrs": {"edition": "2018"},
+      "library_target_name": "itoa",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "itoa",
+      "package_url": "https://github.com/dtolnay/itoa",
+      "repository": {
+        "Http": {
+          "sha256": "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c",
+          "url": "https://static.crates.io/crates/itoa/1.0.15/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "itoa", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "1.0.15"
+    },
+    "libc 0.2.176": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default", "std"],
+        "edition": "2021",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "libc",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "libc",
+      "package_url": "https://github.com/rust-lang/libc",
+      "repository": {
+        "Http": {
+          "sha256": "58f929b4d672ea937a23a1ab494143d968337a5f47e56d0815df1e0890ddf174",
+          "url": "https://static.crates.io/crates/libc/0.2.176/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "libc", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "0.2.176"
+    },
+    "log 0.4.28": {
+      "common_attrs": {"edition": "2021"},
+      "library_target_name": "log",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "log",
+      "package_url": "https://github.com/rust-lang/log",
+      "repository": {
+        "Http": {
+          "sha256": "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432",
+          "url": "https://static.crates.io/crates/log/0.4.28/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "log", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.4.28"
+    },
+    "memchr 2.7.6": {
+      "common_attrs": {
+        "crate_features": ["alloc", "std"],
+        "edition": "2021"
+      },
+      "library_target_name": "memchr",
+      "license": "Unlicense OR MIT",
+      "license_file": "LICENSE-MIT",
+      "license_ids": ["MIT", "Unlicense"],
+      "name": "memchr",
+      "package_url": "https://github.com/BurntSushi/memchr",
+      "repository": {
+        "Http": {
+          "sha256": "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273",
+          "url": "https://static.crates.io/crates/memchr/2.7.6/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "memchr", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "2.7.6"
+    },
+    "once_cell 1.21.3": {
+      "common_attrs": {
+        "crate_features": ["alloc", "default", "race", "std"],
+        "edition": "2021"
+      },
+      "library_target_name": "once_cell",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "once_cell",
+      "package_url": "https://github.com/matklad/once_cell",
+      "repository": {
+        "Http": {
+          "sha256": "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d",
+          "url": "https://static.crates.io/crates/once_cell/1.21.3/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "once_cell", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "1.21.3"
+    },
+    "plain 0.2.3": {
+      "common_attrs": {"edition": "2015"},
+      "library_target_name": "plain",
+      "license": "MIT/Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "plain",
+      "package_url": "https://github.com/randomites/plain",
+      "repository": {
+        "Http": {
+          "sha256": "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6",
+          "url": "https://static.crates.io/crates/plain/0.2.3/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "plain", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.2.3"
+    },
+    "portable-atomic 1.11.1": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default", "fallback"],
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "portable_atomic",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "portable-atomic",
+      "package_url": "https://github.com/taiki-e/portable-atomic",
+      "repository": {
+        "Http": {
+          "sha256": "f84267b20a16ea918e43c6a88433c2d54fa145c92a811b5b047ccbe153674483",
+          "url": "https://static.crates.io/crates/portable-atomic/1.11.1/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "portable_atomic", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "1.11.1"
+    },
+    "proc-macro2 1.0.101": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default", "proc-macro"],
+        "deps": [
+          {"id": "unicode-ident 1.0.19", "target": "unicode_ident"}
+        ],
+        "edition": "2021",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "proc_macro2",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "proc-macro2",
+      "package_url": "https://github.com/dtolnay/proc-macro2",
+      "repository": {
+        "Http": {
+          "sha256": "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de",
+          "url": "https://static.crates.io/crates/proc-macro2/1.0.101/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "proc_macro2", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "1.0.101"
+    },
+    "pyo3 0.29.0": {
+      "build_script_attrs": {
+        "deps": [
+          {"id": "pyo3-build-config 0.29.0", "target": "pyo3_build_config"}
+        ],
+        "link_deps": [
+          {"id": "pyo3-ffi 0.29.0", "target": "pyo3_ffi"}
+        ],
+        "links": "pyo3-python"
+      },
+      "common_attrs": {
+        "crate_features": [
+          "abi3",
+          "abi3-py311",
+          "abi3-py312",
+          "abi3-py313",
+          "abi3-py314",
+          "abi3-py315",
+          "default",
+          "experimental-inspect",
+          "extension-module",
+          "macros",
+          "pyo3-macros"
+        ],
+        "deps": {
+          "common": [
+            {"id": "libc 0.2.176", "target": "libc"},
+            {"id": "once_cell 1.21.3", "target": "once_cell"},
+            {"id": "pyo3-ffi 0.29.0", "target": "pyo3_ffi"}
+          ],
+          "selects": {
+            "cfg(not(target_has_atomic = \"64\"))": [
+              {"id": "portable-atomic 1.11.1", "target": "portable_atomic"}
+            ]
+          }
+        },
+        "edition": "2021",
+        "extra_deps": [":build_script_build"],
+        "proc_macro_deps": [
+          {"id": "pyo3-macros 0.29.0", "target": "pyo3_macros"}
+        ]
+      },
+      "library_target_name": "pyo3",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "pyo3",
+      "package_url": "https://github.com/pyo3/pyo3",
+      "repository": {
+        "Http": {
+          "sha256": "cd274650b21d4bfc26a0a47587962c1edb425f69287324355cd040c3ea66071c",
+          "url": "https://static.crates.io/crates/pyo3/0.29.0/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "pyo3", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "0.29.0"
+    },
+    "pyo3-build-config 0.29.0": {
+      "common_attrs": {
+        "crate_features": ["default", "extension-module"],
+        "deps": [
+          {"id": "target-lexicon 0.13.3", "target": "target_lexicon"}
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "pyo3_build_config",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "pyo3-build-config",
+      "package_url": "https://github.com/pyo3/pyo3",
+      "repository": {
+        "Http": {
+          "sha256": "c5e2a7d2f0d013342f295c048ad19237add5154a55b1c5a254c0ec93d4109078",
+          "url": "https://static.crates.io/crates/pyo3-build-config/0.29.0/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "pyo3_build_config", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.29.0"
+    },
+    "pyo3-ffi 0.29.0": {
+      "build_script_attrs": {
+        "deps": [
+          {"id": "pyo3-build-config 0.29.0", "target": "pyo3_build_config"}
+        ],
+        "links": "python"
+      },
+      "common_attrs": {
+        "crate_features": [
+          "abi3",
+          "abi3-py311",
+          "abi3-py312",
+          "abi3-py313",
+          "abi3-py314",
+          "abi3-py315",
+          "default",
+          "extension-module"
+        ],
+        "deps": [
+          {"id": "libc 0.2.176", "target": "libc"}
+        ],
+        "edition": "2021",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "pyo3_ffi",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "pyo3-ffi",
+      "package_url": "https://github.com/pyo3/pyo3",
+      "repository": {
+        "Http": {
+          "sha256": "ca85c467da1bbc8d866eea5deff9cf29ea5f7785054a17da36e65bda9c05845b",
+          "url": "https://static.crates.io/crates/pyo3-ffi/0.29.0/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "pyo3_ffi", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "0.29.0"
+    },
+    "pyo3-introspection 0.29.0": {
+      "common_attrs": {
+        "deps": [
+          {"id": "anyhow 1.0.100", "target": "anyhow"},
+          {"id": "goblin 0.10.1", "target": "goblin"},
+          {"id": "serde 1.0.228", "target": "serde"},
+          {"id": "serde_json 1.0.145", "target": "serde_json"}
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "pyo3_introspection",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "pyo3-introspection",
+      "package_url": "https://github.com/pyo3/pyo3",
+      "repository": {
+        "Http": {
+          "sha256": "7775fcc875acdce3872dcb91a4b7bd155ffba6e0ea8be88b8caab7d0b34539a6",
+          "url": "https://static.crates.io/crates/pyo3-introspection/0.29.0/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "pyo3_introspection", "crate_root": "src/lib.rs"}
+        },
+        {
+          "Binary": {"crate_name": "pyo3-introspection", "crate_root": "src/main.rs"}
+        }
+      ],
+      "version": "0.29.0"
+    },
+    "pyo3-macros 0.29.0": {
+      "common_attrs": {
+        "crate_features": ["experimental-inspect"],
+        "deps": [
+          {"id": "proc-macro2 1.0.101", "target": "proc_macro2"},
+          {"id": "pyo3-macros-backend 0.29.0", "target": "pyo3_macros_backend"},
+          {"id": "quote 1.0.41", "target": "quote"},
+          {"id": "syn 2.0.106", "target": "syn"}
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "pyo3_macros",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "pyo3-macros",
+      "package_url": "https://github.com/pyo3/pyo3",
+      "repository": {
+        "Http": {
+          "sha256": "9ac53762fd065daa3194dd09337a38bd793a188100fd1a9304c4ab312d901771",
+          "url": "https://static.crates.io/crates/pyo3-macros/0.29.0/download"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {"crate_name": "pyo3_macros", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.29.0"
+    },
+    "pyo3-macros-backend 0.29.0": {
+      "common_attrs": {
+        "crate_features": ["experimental-inspect"],
+        "deps": [
+          {"id": "heck 0.5.0", "target": "heck"},
+          {"id": "proc-macro2 1.0.101", "target": "proc_macro2"},
+          {"id": "quote 1.0.41", "target": "quote"},
+          {"id": "syn 2.0.106", "target": "syn"}
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "pyo3_macros_backend",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "pyo3-macros-backend",
+      "package_url": "https://github.com/pyo3/pyo3",
+      "repository": {
+        "Http": {
+          "sha256": "4ca3a1557399783172dc5bf39cfca835157732532cba56b71d2292161e53b362",
+          "url": "https://static.crates.io/crates/pyo3-macros-backend/0.29.0/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "pyo3_macros_backend", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.29.0"
+    },
+    "quote 1.0.41": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default", "proc-macro"],
+        "deps": [
+          {"id": "proc-macro2 1.0.101", "target": "proc_macro2"}
+        ],
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "quote",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "quote",
+      "package_url": "https://github.com/dtolnay/quote",
+      "repository": {
+        "Http": {
+          "sha256": "ce25767e7b499d1b604768e7cde645d14cc8584231ea6b295e9c9eb22c02e1d1",
+          "url": "https://static.crates.io/crates/quote/1.0.41/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "quote", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "1.0.41"
+    },
+    "rules_rust_pyo3_deps 0.0.0": {
+      "common_attrs": {
+        "deps": [
+          {"id": "pyo3 0.29.0", "target": "pyo3"},
+          {"id": "pyo3-ffi 0.29.0", "target": "pyo3_ffi"},
+          {"id": "pyo3-introspection 0.29.0", "target": "pyo3_introspection"}
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "rules_rust_pyo3_deps",
+      "name": "rules_rust_pyo3_deps",
+      "repository": null,
+      "targets": [
+        {
+          "Library": {"crate_name": "rules_rust_pyo3_deps", "crate_root": "lib.rs"}
+        }
+      ],
+      "version": "0.0.0"
+    },
+    "ryu 1.0.20": {
+      "common_attrs": {"edition": "2018"},
+      "library_target_name": "ryu",
+      "license": "Apache-2.0 OR BSL-1.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "BSL-1.0"],
+      "name": "ryu",
+      "package_url": "https://github.com/dtolnay/ryu",
+      "repository": {
+        "Http": {
+          "sha256": "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f",
+          "url": "https://static.crates.io/crates/ryu/1.0.20/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "ryu", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "1.0.20"
+    },
+    "scroll 0.13.0": {
+      "common_attrs": {
+        "crate_features": ["derive", "std"],
+        "edition": "2024",
+        "proc_macro_deps": [
+          {"id": "scroll_derive 0.13.1", "target": "scroll_derive"}
+        ]
+      },
+      "library_target_name": "scroll",
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "license_ids": ["MIT"],
+      "name": "scroll",
+      "package_url": "https://github.com/m4b/scroll",
+      "repository": {
+        "Http": {
+          "sha256": "c1257cd4248b4132760d6524d6dda4e053bc648c9070b960929bf50cfb1e7add",
+          "url": "https://static.crates.io/crates/scroll/0.13.0/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "scroll", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.13.0"
+    },
+    "scroll_derive 0.13.1": {
+      "common_attrs": {
+        "deps": [
+          {"id": "proc-macro2 1.0.101", "target": "proc_macro2"},
+          {"id": "quote 1.0.41", "target": "quote"},
+          {"id": "syn 2.0.106", "target": "syn"}
+        ],
+        "edition": "2024"
+      },
+      "library_target_name": "scroll_derive",
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "license_ids": ["MIT"],
+      "name": "scroll_derive",
+      "package_url": "https://github.com/m4b/scroll",
+      "repository": {
+        "Http": {
+          "sha256": "ed76efe62313ab6610570951494bdaa81568026e0318eaa55f167de70eeea67d",
+          "url": "https://static.crates.io/crates/scroll_derive/0.13.1/download"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {"crate_name": "scroll_derive", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "0.13.1"
+    },
+    "serde 1.0.228": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default", "derive", "serde_derive", "std"],
+        "deps": [
+          {"id": "serde_core 1.0.228", "target": "serde_core"}
+        ],
+        "edition": "2021",
+        "extra_deps": [":build_script_build"],
+        "proc_macro_deps": [
+          {"id": "serde_derive 1.0.228", "target": "serde_derive"}
+        ]
+      },
+      "library_target_name": "serde",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "serde",
+      "package_url": "https://github.com/serde-rs/serde",
+      "repository": {
+        "Http": {
+          "sha256": "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e",
+          "url": "https://static.crates.io/crates/serde/1.0.228/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "serde", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "1.0.228"
+    },
+    "serde_core 1.0.228": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["result", "std"],
+        "edition": "2021",
+        "extra_deps": [":build_script_build"],
+        "proc_macro_deps": {
+          "common": [],
+          "selects": {
+            "cfg(any())": [
+              {"id": "serde_derive 1.0.228", "target": "serde_derive"}
+            ]
+          }
+        }
+      },
+      "library_target_name": "serde_core",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "serde_core",
+      "package_url": "https://github.com/serde-rs/serde",
+      "repository": {
+        "Http": {
+          "sha256": "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad",
+          "url": "https://static.crates.io/crates/serde_core/1.0.228/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "serde_core", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "1.0.228"
+    },
+    "serde_derive 1.0.228": {
+      "common_attrs": {
+        "crate_features": ["default"],
+        "deps": [
+          {"id": "proc-macro2 1.0.101", "target": "proc_macro2"},
+          {"id": "quote 1.0.41", "target": "quote"},
+          {"id": "syn 2.0.106", "target": "syn"}
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "serde_derive",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "serde_derive",
+      "package_url": "https://github.com/serde-rs/serde",
+      "repository": {
+        "Http": {
+          "sha256": "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79",
+          "url": "https://static.crates.io/crates/serde_derive/1.0.228/download"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {"crate_name": "serde_derive", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "1.0.228"
+    },
+    "serde_json 1.0.145": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default", "std"],
+        "deps": {
+          "common": [
+            {"id": "itoa 1.0.15", "target": "itoa"},
+            {"id": "memchr 2.7.6", "target": "memchr"},
+            {"id": "ryu 1.0.20", "target": "ryu"},
+            {"id": "serde_core 1.0.228", "target": "serde_core"}
+          ],
+          "selects": {
+            "cfg(any())": [
+              {"id": "serde 1.0.228", "target": "serde"}
+            ]
+          }
+        },
+        "edition": "2021",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "serde_json",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "serde_json",
+      "package_url": "https://github.com/serde-rs/json",
+      "repository": {
+        "Http": {
+          "sha256": "402a6f66d8c709116cf22f558eab210f5a50187f702eb4d7e5ef38d9a7f1c79c",
+          "url": "https://static.crates.io/crates/serde_json/1.0.145/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "serde_json", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "1.0.145"
+    },
+    "syn 2.0.106": {
+      "common_attrs": {
+        "crate_features": [
+          "clone-impls",
+          "default",
+          "derive",
+          "extra-traits",
+          "full",
+          "parsing",
+          "printing",
+          "proc-macro",
+          "visit-mut"
+        ],
+        "deps": [
+          {"id": "proc-macro2 1.0.101", "target": "proc_macro2"},
+          {"id": "quote 1.0.41", "target": "quote"},
+          {"id": "unicode-ident 1.0.19", "target": "unicode_ident"}
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "syn",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT"],
+      "name": "syn",
+      "package_url": "https://github.com/dtolnay/syn",
+      "repository": {
+        "Http": {
+          "sha256": "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6",
+          "url": "https://static.crates.io/crates/syn/2.0.106/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "syn", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "2.0.106"
+    },
+    "target-lexicon 0.13.3": {
+      "build_script_attrs": {},
+      "common_attrs": {
+        "crate_features": ["default"],
+        "edition": "2018",
+        "extra_deps": [":build_script_build"]
+      },
+      "library_target_name": "target_lexicon",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_file": "LICENSE",
+      "license_ids": ["Apache-2.0"],
+      "name": "target-lexicon",
+      "package_url": "https://github.com/bytecodealliance/target-lexicon",
+      "repository": {
+        "Http": {
+          "sha256": "df7f62577c25e07834649fc3b39fafdc597c0a3527dc1c60129201ccfcbaa50c",
+          "url": "https://static.crates.io/crates/target-lexicon/0.13.3/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "target_lexicon", "crate_root": "src/lib.rs"}
+        },
+        {
+          "BuildScript": {"crate_name": "build_script_build", "crate_root": "build.rs"}
+        }
+      ],
+      "version": "0.13.3"
+    },
+    "unicode-ident 1.0.19": {
+      "common_attrs": {"edition": "2018"},
+      "library_target_name": "unicode_ident",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": ["Apache-2.0", "MIT", "Unicode-3.0"],
+      "name": "unicode-ident",
+      "package_url": "https://github.com/dtolnay/unicode-ident",
+      "repository": {
+        "Http": {
+          "sha256": "f63a545481291138910575129486daeaf8ac54aee4387fe7906919f7830c7d9d",
+          "url": "https://static.crates.io/crates/unicode-ident/1.0.19/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {"crate_name": "unicode_ident", "crate_root": "src/lib.rs"}
+        }
+      ],
+      "version": "1.0.19"
+    }
+  },
+  "direct_deps": ["pyo3 0.29.0", "pyo3-ffi 0.29.0", "pyo3-introspection 0.29.0"],
+  "direct_dev_deps": [],
+  "provenance": {
+    "cargo_bazel_version": "0.18.0",
+    "supported_platform_triples": [
+      "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-macabi",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-fuchsia",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-nixos-gnu",
+      "aarch64-unknown-none",
+      "aarch64-unknown-nto-qnx710",
+      "aarch64-unknown-uefi",
+      "arm-unknown-linux-gnueabi",
+      "arm-unknown-linux-musleabi",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabi",
+      "i686-apple-darwin",
+      "i686-linux-android",
+      "i686-pc-windows-msvc",
+      "i686-unknown-freebsd",
+      "i686-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "mips-unknown-linux-gnu",
+      "powerpc-unknown-linux-gnu",
+      "riscv32imac-unknown-none-elf",
+      "riscv32imc-unknown-none-elf",
+      "riscv64gc-unknown-fuchsia",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-none-elf",
+      "s390x-unknown-linux-gnu",
+      "sparc64-unknown-linux-gnu",
+      "sparc64-unknown-netbsd",
+      "sparc64-unknown-openbsd",
+      "thumbv6m-none-eabi",
+      "thumbv7em-none-eabi",
+      "thumbv7em-none-eabihf",
+      "thumbv7m-none-eabi",
+      "thumbv8m.main-none-eabi",
+      "thumbv8m.main-none-eabihf",
+      "wasm32-unknown-emscripten",
+      "wasm32-unknown-unknown",
+      "wasm32-wasip1",
+      "wasm32-wasip1-threads",
+      "wasm32-wasip2",
+      "x86_64-apple-darwin",
+      "x86_64-apple-ios",
+      "x86_64-apple-ios-macabi",
+      "x86_64-linux-android",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-fuchsia",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-nixos-gnu",
+      "x86_64-unknown-none",
+      "x86_64-unknown-uefi"
+    ]
+  },
+  "workspace_members": {"rules_rust_pyo3_deps 0.0.0": "3rdparty"}
+}

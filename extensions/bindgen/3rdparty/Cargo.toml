@@ -1,0 +1,17 @@
+[package]
+name = "rules_rust_bindgen_deps"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# No crate is built from this manifest; it only declares dependencies.
+[lib]
+path = "lib.rs"
+
+[dependencies]
+# The `bindgen` binary. It ships no library, which `cargo metadata` would drop;
+# crate_universe puts it back from its source. It declares the features it
+# needs of the `bindgen` library itself.
+bindgen-cli = "0.71.1"
+# Should match the version of llvm-project being used.
+clang-sys = { version = "1.8.1", features = ["clang_17_0"] }
