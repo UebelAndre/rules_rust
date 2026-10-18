@@ -433,6 +433,12 @@ def determine_repin(
     if not lockfile_path:
         return True
 
+    # A new, empty lockfile has nothing to check: it is simply filled in.
+    if not repository_ctx.read(lockfile_path).strip():
+        if not allow_repin:
+            fail("The lockfile '{}' is empty and cannot be repinned from this workspace.".format(lockfile_path))
+        return True
+
     # Run the binary to check if a repin is needed
     result = cargo_bazel_fn(
         args = [
