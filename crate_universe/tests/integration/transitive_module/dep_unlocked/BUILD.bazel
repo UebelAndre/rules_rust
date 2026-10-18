@@ -1,0 +1,9 @@
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "dep_unlocked_specs",
+    srcs = ["lib.rs"],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = ["@dep_unlocked_specs//lazy_static"],
+)
