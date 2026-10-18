@@ -820,6 +820,35 @@ tasks:
     run_targets:
       - "//:vendor_edit_test_in_tree"
 
+  cu_integ_transitive_module_ubuntu2204:
+    name: Crate Universe - transitive_module
+    platform: ubuntu2204
+    working_directory: crate_universe/tests/integration/transitive_module
+    build_targets:
+      - "//..."
+    test_targets:
+      - "//..."
+    shell_commands:
+      # A dependency whose repository is declared by specs alone is resolved without
+      # fetching its archive, which here does not exist anyway.
+      - test ! -e "$(bazel info output_base)/external/dep_specs_only+"
+  cu_integ_transitive_module_macos:
+    name: Crate Universe - transitive_module
+    platform: macos_arm64
+    working_directory: crate_universe/tests/integration/transitive_module
+    build_targets:
+      - "//..."
+    test_targets:
+      - "//..."
+  cu_integ_transitive_module_windows:
+    name: Crate Universe - transitive_module
+    platform: windows
+    working_directory: crate_universe/tests/integration/transitive_module
+    build_targets:
+      - "//..."
+    test_targets:
+      - "//..."
+
   example_bindgen_toolchain:
     name: Example custom bindgen toolchain registration
     platform: ubuntu2204
