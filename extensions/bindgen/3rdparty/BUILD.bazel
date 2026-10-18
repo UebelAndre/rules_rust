@@ -1,72 +1,14 @@
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_vendor")
-load("//:extensions.bzl", "BINDGEN_VERSION")
-
-_BINDGEN_CLI_PACKAGES = {
-    "clap": crate.spec(
-        version = "4.3.3",
-    ),
-    "clap_complete": crate.spec(
-        version = "4.3.1",
-    ),
-    "env_logger": crate.spec(
-        version = "0.10.0",
-    ),
-}
-
-crates_vendor(
-    name = "crates_vendor",
-    annotations = {
-        "bindgen": [crate.annotation(
-            gen_build_script = True,
-        )],
-        "clang-sys": [crate.annotation(
-            gen_build_script = True,
-        )],
-        "libc": [crate.annotation(
-            gen_build_script = True,
-        )],
-    },
-    cargo_lockfile = "Cargo.Bazel.lock",
-    generate_build_scripts = False,
-    mode = "remote",
-    packages = dict({
-        # `bindgen-cli` is a binary-only package, which `cargo metadata` drops
-        # entirely, so it cannot be listed here. It is built by hand from
-        # `//3rdparty:BUILD.bindgen-cli.bazel` instead, and the features it
-        # requires of `bindgen` are declared here directly.
-        "bindgen": crate.spec(
-            default_features = False,
-            features = [
-                "__cli",
-                "experimental",
-                "prettyplease",
-                "runtime",
-            ],
-            version = BINDGEN_VERSION,
-        ),
-        "clang-sys": crate.spec(
-            # Should match the version of llvm-project being used.
-            features = ["clang_17_0"],
-            version = "1.8.1",
-        ),
-    }.items() + _BINDGEN_CLI_PACKAGES.items()),
-    repository_name = "rules_rust_bindgen_deps",
-    tags = ["manual"],
-)
+# The crates of `@rules_rust_bindgen_deps` are declared in `Cargo.toml`; the
+# lockfiles record their resolution.
+exports_files([
+    "Cargo.lock",
+    "Cargo.toml",
+    "cargo-bazel-lock.json",
+])
 
 alias(
     name = "bindgen",
-    actual = "@rules_rust_bindgen__bindgen-cli-{}//:bindgen-cli".format(BINDGEN_VERSION),
+    actual = "@rules_rust_bindgen_deps//bindgen-cli__bindgen",
     tags = ["manual"],
     visibility = ["//visibility:public"],
-)
-
-bzl_library(
-    name = "bzl_lib",
-    srcs = [
-        "//3rdparty/crates:crates.bzl",
-        "//3rdparty/crates:defs.bzl",
-    ],
-    visibility = ["//:__pkg__"],
 )

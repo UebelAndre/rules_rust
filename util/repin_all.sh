@@ -24,12 +24,18 @@ for target in $(bazel query 'kind("crates_vendor", //...)'); do
   bazel run "${target}"
 done
 
-for d in extensions/* examples/hello_world examples/sys examples/all_deps_vendor examples/ios_build; do
+for d in examples/hello_world examples/sys examples/all_deps_vendor examples/ios_build; do
   pushd "${d}"
   for target in $(bazel query 'kind("crates_vendor", //...)'); do
     bazel run "${target}"
   done
   popd
+done
+
+# The extensions declare their crates with the `crate` module extension; querying
+# a hub evaluates the extension, which repins its lockfiles.
+for pair in bindgen:rules_rust_bindgen_deps mdbook:rmdbi prost:rrprd pyo3:rpyo3c wasm_bindgen:rrwbd; do
+  (cd "extensions/${pair%%:*}" && CARGO_BAZEL_REPIN=true bazel query "@${pair#*:}//..." >/dev/null)
 done
 
 # Vendor consolidated workspace. Locally vendored crate sources are not checked
