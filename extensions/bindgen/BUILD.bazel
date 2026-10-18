@@ -21,7 +21,6 @@ bzl_library(
     name = "bzl_lib",
     srcs = glob(["**/*.bzl"]),
     deps = [
-        "//3rdparty:bzl_lib",
         "//private:bzl_lib",
     ],
 )
