@@ -1,0 +1,41 @@
+"""A dependency module which ships no `cargo-bazel-lock.json`.
+
+Its consumers resolve both repositories: `dep_unlocked_specs` from its
+requirements alone, `dep_unlocked_cargo` from the `Cargo.lock` next to its
+manifest, which pins `cfg-if` to `1.0.0` behind a `1` requirement.
+"""
+
+module(
+    name = "dep_unlocked",
+    version = "0.0.0",
+)
+
+bazel_dep(name = "rules_rust", version = "0.0.0")
+local_path_override(
+    module_name = "rules_rust",
+    path = "../../../../..",
+)
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(edition = "2021")
+use_repo(rust, "rust_toolchains")
+
+register_toolchains("@rust_toolchains//:all")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_specs(
+    name = "dep_unlocked_specs",
+)
+crate.spec(
+    package = "lazy_static",
+    repositories = ["dep_unlocked_specs"],
+    version = "1",
+)
+use_repo(crate, "dep_unlocked_specs")
+
+crate.from_cargo(
+    name = "dep_unlocked_cargo",
+    cargo_lockfile = "//cargo:Cargo.lock",
+    manifests = ["//cargo:Cargo.toml"],
+)
+use_repo(crate, "dep_unlocked_cargo")

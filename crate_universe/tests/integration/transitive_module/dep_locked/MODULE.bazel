@@ -1,0 +1,35 @@
+"""A dependency module which ships the lockfile of its crate_universe repository.
+
+The requirement on `cfg-if` is `1`; the shipped lockfiles pin `1.0.0`, which a
+consumer must honor rather than resolve anew.
+"""
+
+module(
+    name = "dep_locked",
+    version = "0.0.0",
+)
+
+bazel_dep(name = "rules_rust", version = "0.0.0")
+local_path_override(
+    module_name = "rules_rust",
+    path = "../../../../..",
+)
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(edition = "2021")
+use_repo(rust, "rust_toolchains")
+
+register_toolchains("@rust_toolchains//:all")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_specs(
+    name = "dep_locked_crates",
+    cargo_lockfile = "//:Cargo.Bazel.lock",
+    lockfile = "//:cargo-bazel-lock.json",
+)
+crate.spec(
+    package = "cfg-if",
+    repositories = ["dep_locked_crates"],
+    version = "1",
+)
+use_repo(crate, "dep_locked_crates")

@@ -35,6 +35,11 @@ pub struct QueryOptions {
     /// The path to a rustc binary for use with Cargo
     #[clap(long, env = "RUSTC")]
     pub rustc: PathBuf,
+
+    /// Only check that this version of `cargo-bazel` can read the lockfile;
+    /// its digest is not compared.
+    #[clap(long)]
+    pub load_only: bool,
 }
 
 /// Determine if the current lockfile needs to be re-pinned
@@ -52,8 +57,16 @@ pub fn query(opt: QueryOptions) -> Result<()> {
     // Deserialize it so we can easily compare it with
     let lockfile: Context = match serde_json::from_str(&content) {
         Ok(ctx) => ctx,
-        Err(_) => bail!("Could not load lockfile"),
+        Err(e) => bail!(
+            "Could not load lockfile `{}`: {}",
+            opt.lockfile.display(),
+            e
+        ),
     };
+
+    if opt.load_only {
+        return Ok(());
+    }
 
     // Check to see if a digest has been set
     let digest = match &lockfile.checksum {

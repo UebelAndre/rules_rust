@@ -349,6 +349,36 @@ def get_lockfiles(repository_ctx):
         bazel = repository_ctx.path(repository_ctx.attr.lockfile) if repository_ctx.attr.lockfile else None,
     )
 
+def lockfile_is_readable(*, cargo_bazel_fn, lockfile_path, config, splicing_manifest):
+    """Check whether this version of `cargo-bazel` can read a lockfile.
+
+    Args:
+        cargo_bazel_fn (callable): A callback for invoking the `cargo-bazel` binary.
+        lockfile_path (path): The path to the lockfile.
+        config (path): The path to a `cargo-bazel` config file. See `generate_config`.
+        splicing_manifest (path): The path to a `cargo-bazel` splicing manifest. See `create_splicing_manifest`
+
+    Returns:
+        struct: `readable` (bool) and, when it is not, `error` (str) saying why.
+    """
+    result = cargo_bazel_fn(
+        args = [
+            "query",
+            "--lockfile",
+            lockfile_path,
+            "--config",
+            config,
+            "--splicing-manifest",
+            splicing_manifest,
+            "--load-only",
+        ],
+        allow_fail = True,
+    )
+    return struct(
+        readable = result.return_code == 0,
+        error = result.stderr.strip(),
+    )
+
 def determine_repin(
         *,
         repository_ctx,

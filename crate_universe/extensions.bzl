@@ -142,6 +142,20 @@ This will result in all dependencies being updated for a project. The `CARGO_BAZ
 environment variable can also be used to customize how dependencies are updated.
 For more details about repin, [please refer to the documentation](https://bazelbuild.github.io/rules_rust/crate_universe_workspace.html#crates_vendor).
 
+### Dependency modules
+
+A module consumed as a dependency declares its repositories the same way. `from_cargo` is
+the normal form: the module ships its `Cargo.lock`, and the consumer uses the module's
+`cargo-bazel-lock.json` as it is when one is shipped and readable, or otherwise resolves
+the repository itself as Cargo would, honoring the `Cargo.lock`. Either way the consumer
+reads files of the module, so its archive is fetched once per module version, which a
+consumer building any of its targets pays regardless.
+
+A `from_specs` repository with neither `lockfile` nor `cargo_lockfile` has every input in
+`MODULE.bazel`, which Bazel reads from the registry, so a consumer resolves it without
+fetching the module's archive at all. This suits modules which exist to provide crates
+rather than targets. Pin exact versions in such specs: the consumer resolves the rest.
+
 ### Direct Dependencies
 
 In cases where Rust targets have heavy interactions with other Bazel targets ([Cc](https://docs.bazel.build/versions/main/be/c-cpp.html), [Proto](https://rules-proto-grpc.com/en/4.5.0/lang/rust.html),
@@ -401,6 +415,7 @@ load(
     "GENERATOR_ENV_VARS",
     "determine_repin",
     "execute_generator",
+    "lockfile_is_readable",
     generate_render_config = "render_config",
 )
 load("//crate_universe/private:local_crate_mirror.bzl", "local_crate_mirror")
@@ -567,11 +582,9 @@ def _generate_hub_and_spokes(
             By removing internal dependencies, the lockfile changes less frequently which reduces merge conflicts
             in other lockfiles where the cargo lockfile's sha is stored.
         is_root (bool): Whether the module owning this extension call is the workspace's root module.
-            For non-root (transitive) modules the lockfile is trusted as-is — the digest check is
-            skipped and repinning is never attempted, because the digest can legitimately differ
-            across rust / cargo / rules_rust versions between the producing module and the consumer,
-            and the producer's lockfile typically lives in a read-only bzlmod cache that can't be
-            repinned anyway.
+            A dependency module's lockfile is used as shipped: the digest check is skipped and it is
+            never repinned. A dependency module without one is resolved here and the resolution kept
+            in the extension's facts.
         cargo_lockfile (path): Path to Cargo.lock, if we have one.
         manifests (dict): The set of Cargo.toml manifests that apply to this closure, if any, keyed by path.
         packages (dict): The set of extra cargo crate tags that apply to this closure, if any, keyed by package name.
@@ -627,19 +640,30 @@ def _generate_hub_and_spokes(
     # Whether the resolution should be recorded in the extension's facts.
     record_fact = False
 
-    # Determine whether or not to repin dependencies. Transitive (non-root)
-    # modules are taken as-is: the digest check would fail across rust /
-    # cargo / rules_rust version differences between the producing module
-    # and the consumer, and the producer's lockfile typically lives in a
-    # read-only bzlmod cache so repinning isn't an option anyway.
-    if not is_root:
-        if not lockfile:
-            fail(("The crate_universe repository `{}` is declared by a module consumed as a " +
-                  "dependency but ships no `lockfile`. A module's resolution must travel with it: " +
-                  "consumers cannot repin it, need no Rust toolchain for it, and must all get the " +
-                  "same crates. Add a `cargo-bazel-lock.json` to the module (an empty file is " +
-                  "filled in on the next build of the module itself), or add one through a Bazel " +
-                  "registry overlay if the module's source cannot carry it.").format(cfg.name))
+    # Determine whether or not to repin dependencies. A lockfile shipped by a
+    # dependency module is honored as it is: its digest is not checked, since it
+    # can legitimately differ across rules_rust versions between the producing
+    # module and the consumer, and it cannot be repinned, since it lives in a
+    # read-only bzlmod cache. A dependency module without one is resolved here,
+    # as Cargo would from its manifests and `Cargo.lock`, and the resolution is
+    # kept in this module's facts like a root repository without a lockfile.
+    if not is_root and lockfile:
+        # The lockfile may come from an older or newer rules_rust than this one.
+        # One this version cannot read is a hint rather than an input: the
+        # repository is resolved as if the module had shipped none.
+        shipped = lockfile_is_readable(
+            cargo_bazel_fn = cargo_bazel_fn,
+            lockfile_path = lockfile,
+            config = config_file,
+            splicing_manifest = splicing_manifest,
+        )
+        if not shipped.readable:
+            # buildifier: disable=print
+            print(("The lockfile shipped by a dependency module for the crate_universe repository " +
+                   "`{}` could not be understood by this version of rules_rust, so the repository's " +
+                   "crates were resolved from the module's manifests instead:\n{}").format(cfg.name, shipped.error))
+            lockfile = None
+    if not is_root and lockfile:
         repin = False
     elif not lockfile and hasattr(module_ctx, "facts"):
         # Without a `lockfile`, the last resolution is kept in the extension's
@@ -673,6 +697,12 @@ def _generate_hub_and_spokes(
     # If re-pinning is enabled, gather additional inputs for the generator
     kwargs = dict()
     if repin:
+        if not is_root and cargo_lockfile == None:
+            # buildifier: disable=print
+            print(("The crate_universe repository `{}` is declared by a dependency module with " +
+                   "neither a `lockfile` nor a `cargo_lockfile`, so its crates resolve to the newest " +
+                   "versions satisfying its requirements; other consumers of the module may resolve " +
+                   "different versions. The module should ship a `Cargo.lock`.").format(cfg.name))
         module_ctx.report_progress("Splicing Cargo workspace for `{}`".format(cfg.name))
 
         # Generate a top level Cargo workspace and manifest for use in generation
@@ -1335,8 +1365,9 @@ _FROM_COMMON_ATTRS = {
             "The path to a file to use for reproducible renderings. " +
             "If set, this file must exist within the workspace (but can be empty) before this rule will work. " +
             "Without one the resolution is kept in the extension's facts in `MODULE.bazel.lock` instead, " +
-            "and redone only when its inputs change. Repositories of other modules must have one. " +
-            "Files of other repositories are never modified, so a lockfile from one cannot be repinned."
+            "and redone only when its inputs change. A lockfile shipped by a dependency module is used " +
+            "as it is and never modified; a dependency module without one is resolved by the root module, " +
+            "from its `cargo_lockfile` when it has one, and the resolution kept in the root's facts."
         ),
     ),
     "lockfile_mode": attr.string(
