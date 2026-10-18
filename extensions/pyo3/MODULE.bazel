@@ -10,14 +10,38 @@ bazel_dep(name = "rules_python", version = "1.6.3")
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
 bazel_dep(name = "platforms", version = "1.1.0")
 
-rust_ext = use_extension("//private:internal_extensions.bzl", "rust_ext")
-use_repo(
-    rust_ext,
-    "rpyo3c",
-    "rpyo3c__pyo3-0.29.0",
-    "rpyo3c__pyo3-ffi-0.29.0",
-    "rpyo3c__pyo3-introspection-0.29.0",
+# Name is short to avoid windows paths being too long
+# https://github.com/bazelbuild/rules_rust/issues/1120
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+
+_PYO3_BUILD_SCRIPT_ENV = {
+    "PYO3_CROSS": "$(PYO3_CROSS)",
+    "PYO3_CROSS_LIB_DIR": "$(PYO3_CROSS_LIB_DIR)",
+    "PYO3_CROSS_PYTHON_IMPLEMENTATION": "$(PYO3_CROSS_PYTHON_IMPLEMENTATION)",
+    "PYO3_CROSS_PYTHON_VERSION": "$(PYO3_CROSS_PYTHON_VERSION)",
+    "PYO3_NO_PYTHON": "$(PYO3_NO_PYTHON)",
+    "PYO3_PYTHON": "$(PYO3_PYTHON)",
+}
+
+crate.annotation(
+    build_script_data = ["//:current_pyo3_toolchain"],
+    build_script_env = _PYO3_BUILD_SCRIPT_ENV,
+    build_script_toolchains = ["//:current_pyo3_toolchain"],
+    crate = "pyo3-build-config",
 )
+crate.annotation(
+    build_script_data = ["//:current_pyo3_toolchain"],
+    build_script_env = _PYO3_BUILD_SCRIPT_ENV,
+    build_script_toolchains = ["//:current_pyo3_toolchain"],
+    crate = "pyo3-ffi",
+)
+crate.from_cargo(
+    name = "rpyo3c",
+    cargo_lockfile = "//3rdparty:Cargo.lock",
+    lockfile = "//3rdparty:cargo-bazel-lock.json",
+    manifests = ["//3rdparty:Cargo.toml"],
+)
+use_repo(crate, "rpyo3c")
 
 register_toolchains(
     "//toolchains:toolchain",
