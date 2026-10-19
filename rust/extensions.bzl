@@ -6,6 +6,7 @@ load("//rust/platform:triple.bzl", "get_host_triple")
 load(
     "//rust/private:repositories.bzl",
     "DEFAULT_TOOLCHAIN_TRIPLES",
+    "cargo_toolchain_repositories",
     "rust_register_toolchains",
     "rust_repository_set",
     "rust_toolchain_tools_repository",
@@ -127,6 +128,16 @@ def _rust_impl(module_ctx):
             # so that the `register_toolchains()` in MODULES.bazel is still
             # valid.
             _empty_repository(name = "rust_toolchains")
+
+            # The Cargo repositories exist whether or not toolchains are
+            # registered: `rules_rust` names them in `use_repo` so that
+            # `crate_universe` can run the host's Cargo without a Rust
+            # toolchain.
+            cargo_toolchain_repositories(
+                exec_triples = DEFAULT_TOOLCHAIN_TRIPLES.keys(),
+                urls = toolchain.urls,
+                sha256s = toolchain.sha256s,
+            )
         else:
             extra_rustc_flags = toolchain.extra_rustc_flags if toolchain.extra_rustc_flags else toolchain.extra_rustc_flags_triples
             extra_exec_rustc_flags = toolchain.extra_exec_rustc_flags if toolchain.extra_rustc_flags else toolchain.extra_exec_rustc_flags_triples

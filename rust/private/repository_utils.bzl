@@ -780,6 +780,31 @@ def BUILD_for_rustfmt_toolchain(name, rustfmt, rustc, rustc_lib):
         rustc_lib = rustc_lib,
     )
 
+_build_file_for_cargo_toolchain_template = """\
+load("@rules_rust//cargo:cargo_toolchain.bzl", "cargo_toolchain")
+
+cargo_toolchain(
+    name = "{name}",
+    cargo = "{cargo}",
+    visibility = ["//visibility:public"],
+)
+"""
+
+def BUILD_for_cargo_toolchain(name, cargo):
+    """Emits a `cargo_toolchain` target.
+
+    Args:
+        name (str): The name of the toolchain target.
+        cargo (str): The label of the `cargo` binary.
+
+    Returns:
+        str: The contents of a BUILD file
+    """
+    return _build_file_for_cargo_toolchain_template.format(
+        name = name,
+        cargo = cargo,
+    )
+
 def load_rust_stdlib(ctx, target_triple, version, iso_date = None):
     """Loads a rust standard library and yields corresponding BUILD for it
 

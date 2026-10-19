@@ -2,8 +2,8 @@
 
 A Rust build in Bazel selects its compiler, standard library, and companion tools
 through a set of registered [Bazel toolchains][bazel_toolchains]. `rules_rust`
-ships one toolchain type per companion tool so that Rust, `rust-analyzer`, and
-`rustfmt` can be resolved independently.
+ships one toolchain type per companion tool so that Rust, `rust-analyzer`,
+`rustfmt`, and `cargo` can be resolved independently.
 
 [bazel_toolchains]: https://bazel.build/extending/toolchains
 
@@ -22,6 +22,14 @@ cover.
 - [rust_analyzer_toolchain](./rust_analyzer_toolchain.md) — Declare a toolchain
   providing the `rust-analyzer` binary and proc-macro server used by the
   [rust_analyzer](./rust_analyzer.md) integration.
+- [cargo_toolchain](./cargo_toolchain.md) — Declare a toolchain providing the
+  `cargo` binary used by rules which run Cargo, such as
+  [cargo_build_script](./cargo_build_script.md) and
+  [crates_vendor](./crates_vendor.md). The `rust` module extension registers one
+  per platform at `rules_rust`'s default Rust version, fetching Cargo on its own
+  so that resolving dependencies needs no `rustc`. The `cargo` attribute of
+  `rust_toolchain` is deprecated in its favor and is only consulted when no
+  `cargo_toolchain` is registered.
 
 ## Data rules
 
