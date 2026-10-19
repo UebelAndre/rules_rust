@@ -28,28 +28,22 @@ fn should_skip_test() -> bool {
     }
 }
 
-fn setup_cargo_env(rfiles: &runfiles::Runfiles) -> Result<(PathBuf, PathBuf)> {
+/// The cargo under test. There is no rustc: cargo-bazel stands in for it, as
+/// it does when resolving for a repository.
+fn setup_cargo_env(rfiles: &runfiles::Runfiles) -> Result<PathBuf> {
     let cargo = runfiles::rlocation!(
         rfiles,
         env::var("CARGO").context("CARGO environment variable must be set.")?
     )
     .unwrap();
-    let rustc = runfiles::rlocation!(
-        rfiles,
-        env::var("RUSTC").context("RUSTC environment variable must be set.")?
-    )
-    .unwrap();
     ensure!(cargo.exists());
-    ensure!(rustc.exists());
-    // If $RUSTC is a relative path it can cause issues with
+    // If $CARGO is a relative path it can cause issues with
     // `cargo_metadata::MetadataCommand`. Just to be on the safe side, we make
-    // both of these env variables absolute paths.
+    // the env variable an absolute path.
     if cargo != Path::new(&env::var("CARGO").unwrap()) {
         env::set_var("CARGO", cargo.as_os_str());
     }
-    if rustc != Path::new(&env::var("RUSTC").unwrap()) {
-        env::set_var("RUSTC", rustc.as_os_str());
-    }
+    env::remove_var("RUSTC");
 
     let cargo_home = PathBuf::from(
         env::var("TEST_TMPDIR").context("TEST_TMPDIR environment variable must be set.")?,
@@ -59,11 +53,10 @@ fn setup_cargo_env(rfiles: &runfiles::Runfiles) -> Result<(PathBuf, PathBuf)> {
     fs::create_dir_all(&cargo_home)?;
 
     println!("Environment:");
-    println!("\tRUSTC={}", rustc.display());
     println!("\tCARGO={}", cargo.display());
     println!("\tCARGO_HOME={}", cargo_home.display());
 
-    Ok((cargo, rustc))
+    Ok(cargo)
 }
 
 /// The platform triples used by [run]. A small set which still covers a unix, a
@@ -105,7 +98,7 @@ fn try_run_with(
     let scratch = tempfile::tempdir().unwrap();
     let runfiles = runfiles::Runfiles::create().unwrap();
 
-    let (cargo, rustc) = setup_cargo_env(&runfiles).unwrap();
+    let cargo = setup_cargo_env(&runfiles).unwrap();
 
     let splicing_manifest = scratch.path().join("splicing_manifest.json");
     fs::write(
@@ -146,7 +139,7 @@ fn try_run_with(
         cargo_config: None,
         config,
         cargo,
-        rustc,
+        rustc: None,
         repository_name: String::from("crates_index"),
         skip_cargo_lockfile_overwrite: false,
         nonhermetic_root_bazel_workspace_dir: Utf8PathBuf::from("/doesnotexist/unused/repo/root"),

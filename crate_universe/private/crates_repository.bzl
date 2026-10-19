@@ -83,14 +83,14 @@ def _crates_repository_impl(repository_ctx):
     # If re-pinning is enabled, gather additional inputs for the generator
     kwargs = dict()
     if repin:
-        # Locate Rust tools (cargo, rustc). Resolving is the only step that
-        # needs them, so the toolchain is only fetched here.
+        # Locate Cargo. Resolving is the only step that needs it, so the
+        # repository is only fetched here.
         tools = get_rust_tools(repository_ctx, host_triple)
         resolving_cargo_bazel_fn = new_cargo_bazel_fn(
             repository_ctx = repository_ctx,
             cargo_bazel_path = generator,
             cargo_path = repository_ctx.path(tools.cargo),
-            rustc_path = repository_ctx.path(tools.rustc),
+            rustc_path = repository_ctx.path(tools.rustc) if tools.rustc else None,
             isolated = repository_ctx.attr.isolated,
             quiet = repository_ctx.attr.quiet,
         )
@@ -365,18 +365,17 @@ CARGO_BAZEL_REPIN=1 CARGO_BAZEL_REPIN_ONLY=crate_index bazel sync --only=crate_i
                 "The template to use for finding the host `cargo` binary. `{version}` (eg. '1.53.0'), " +
                 "`{triple}` (eg. 'x86_64-unknown-linux-gnu'), `{arch}` (eg. 'aarch64'), `{vendor}` (eg. 'unknown'), " +
                 "`{system}` (eg. 'darwin'), `{cfg}` (eg. 'exec'), `{channel}` (eg. 'stable'), and `{tool}` (eg. " +
-                "'rustc.exe') will be replaced in the string if present."
+                "'cargo.exe') will be replaced in the string if present. The default is the repository behind " +
+                "the host's `cargo_toolchain`, which holds Cargo alone."
             ),
-            default = "@rust_{system}_{arch}__{triple}__{channel}_tools//:bin/{tool}",
+            default = "@cargo_{triple}_tools//:bin/{tool}",
         ),
         "rust_toolchain_rustc_template": attr.string(
             doc = (
-                "The template to use for finding the host `rustc` binary. `{version}` (eg. '1.53.0'), " +
-                "`{triple}` (eg. 'x86_64-unknown-linux-gnu'), `{arch}` (eg. 'aarch64'), `{vendor}` (eg. 'unknown'), " +
-                "`{system}` (eg. 'darwin'), `{cfg}` (eg. 'exec'), `{channel}` (eg. 'stable'), and `{tool}` (eg. " +
-                "'cargo.exe') will be replaced in the string if present."
+                "The template to use for finding a host `rustc` binary to pair with Cargo; the placeholders " +
+                "of `rust_toolchain_cargo_template` apply. Resolving needs none: `cargo-bazel` stands in for " +
+                "rustc, and a real one is consulted only for platforms with no recorded `rustc --print=cfg`."
             ),
-            default = "@rust_{system}_{arch}__{triple}__{channel}_tools//:bin/{tool}",
         ),
         "rust_version": attr.string(
             doc = "The version of Rust the currently registered toolchain is using. Eg. `1.56.0`, or `nightly/2021-09-08`",

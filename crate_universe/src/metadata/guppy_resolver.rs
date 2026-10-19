@@ -194,15 +194,22 @@ impl GuppyResolver {
     fn platform_for_triple(&self, triple: &str) -> Result<(Platform, Vec<cargo_platform::Cfg>)> {
         // The recorded table keeps the resolution independent of the rustc at
         // hand; a triple it does not know, such as a custom target, falls back
-        // to asking rustc.
+        // to asking rustc, when one was given.
         let cfg_text = match RustcCfgs::recorded().cfg_text(triple) {
             Some(cfg_text) => cfg_text,
             None => {
+                let Some(rustc) = self.cargo_bin.rustc_path() else {
+                    bail!(
+                        "The platform `{triple}` has no recorded `rustc --print=cfg` output and no \
+                         rustc was given to ask. Resolving needs no rustc otherwise; `host_tools` \
+                         can name a repository providing one, such as `@rust_host_tools`."
+                    );
+                };
                 warn!(
                     "The platform `{triple}` has no recorded `rustc --print=cfg` output; asking \
                      the current rustc, which makes the resolution depend on its version"
                 );
-                print_cfg(self.cargo_bin.rustc_path(), triple)?.join("\n")
+                print_cfg(rustc, triple)?.join("\n")
             }
         };
         let target_features = parse_target_features(&cfg_text);

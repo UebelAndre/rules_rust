@@ -10,30 +10,50 @@ use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::MetadataCommand;
 use semver::Version;
 
+use crate::metadata::rustc_shim::{self, RustcShim};
+
 /// Cargo encapsulates a path to a `cargo` binary.
 /// Any invocations of `cargo` (either as a `std::process::Command` or via `cargo_metadata`) should
 /// go via this wrapper to ensure that any environment variables needed are set appropriately.
+///
+/// Cargo runs without a `rustc`: unless one is given, `RUSTC` points at this
+/// very executable, which answers Cargo's questions about the toolchain from
+/// Cargo's own version and the recorded `cfg` table. See
+/// [rustc_shim](crate::metadata::rustc_shim).
 #[derive(Debug, Clone)]
 pub(crate) struct Cargo {
     path: PathBuf,
-    rustc_path: PathBuf,
+    rustc_path: Option<PathBuf>,
     full_version: Arc<Mutex<Option<String>>>,
+    shim: Arc<Mutex<Option<RustcShim>>>,
     cargo_home: Option<PathBuf>,
 }
 
 impl Cargo {
-    pub(crate) fn new(path: PathBuf, rustc: PathBuf) -> Cargo {
+    /// A cargo at `path`. `rustc` is the compiler to pair it with; `None`
+    /// stands in for one, which is all resolving needs.
+    pub(crate) fn new(path: PathBuf, rustc: Option<PathBuf>) -> Cargo {
         Cargo {
             path,
             rustc_path: rustc,
             full_version: Arc::new(Mutex::new(None)),
+            shim: Arc::new(Mutex::new(None)),
             cargo_home: None,
         }
     }
 
-    /// Returns the path to the `rustc` binary paired with this cargo.
-    pub(crate) fn rustc_path(&self) -> &Path {
-        &self.rustc_path
+    /// The `rustc` binary paired with this cargo, when a real one was given.
+    pub(crate) fn rustc_path(&self) -> Option<&Path> {
+        self.rustc_path.as_deref()
+    }
+
+    /// What this cargo's stand-in for `rustc` answers from.
+    fn shim(&self) -> Result<RustcShim> {
+        let mut shim = self.shim.lock().unwrap();
+        if shim.is_none() {
+            *shim = Some(RustcShim::for_cargo(&self.path)?);
+        }
+        Ok(shim.clone().unwrap())
     }
 
     /// The `CARGO_HOME` this cargo works in: the one set here, else the
@@ -149,7 +169,20 @@ impl Cargo {
     fn env(&self) -> Result<BTreeMap<String, OsString>> {
         let mut map = BTreeMap::new();
 
-        map.insert("RUSTC".into(), self.rustc_path.as_os_str().to_owned());
+        match &self.rustc_path {
+            Some(rustc) => {
+                map.insert("RUSTC".into(), rustc.as_os_str().to_owned());
+            }
+            None => {
+                map.insert("RUSTC".into(), rustc_shim::executable()?.into_os_string());
+                map.insert(rustc_shim::ENV.into(), self.shim()?.to_env().into());
+                // Cargo caches what rustc answered in `target/.rustc_info.json`,
+                // keyed by the rustc binary's path and mtime alone. The stand-in's
+                // answers follow the Cargo it runs next to, not its own binary, so
+                // a reused target directory must not serve a previous Cargo's.
+                map.insert("CARGO_CACHE_RUSTC_INFO".into(), "0".into());
+            }
+        }
 
         if self.use_sparse_registries_for_crates_io()? {
             map.insert(
