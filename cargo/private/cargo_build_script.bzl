@@ -5,6 +5,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@rules_cc//cc:action_names.bzl", "ACTION_NAMES")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
+load("//cargo:find_cargo_toolchain.bzl", "find_cargo", "use_cargo_toolchain")
 load("//rust:defs.bzl", "rust_common")
 load("//rust:rust_common.bzl", "BuildInfo", "CrateGroupInfo", "DepInfo")
 
@@ -444,7 +445,8 @@ def _cargo_build_script_impl(ctx):
     if pkg_name == "":
         pkg_name = name_to_pkg_name(ctx.label.name)
 
-    toolchain_tools = [toolchain.all_files]
+    cargo = find_cargo(ctx, toolchain)
+    toolchain_tools = [toolchain.all_files, cargo.files]
 
     env = {}
 
@@ -458,8 +460,8 @@ def _cargo_build_script_impl(ctx):
     if use_default_shell_env:
         env.update(ctx.configuration.default_shell_env)
 
-    if toolchain.cargo:
-        env["CARGO"] = "${pwd}/%s" % toolchain.cargo.path
+    if cargo.cargo:
+        env["CARGO"] = "${pwd}/%s" % cargo.cargo.path
 
     env.update({
         "CARGO_CRATE_NAME": name_to_crate_name(pkg_name),
@@ -942,6 +944,7 @@ cargo_build_script = rule(
     fragments = ["cpp"],
     toolchains = [
         str(Label("//rust:toolchain_type")),
+    ] + use_cargo_toolchain(mandatory = False) + [
         config_common.toolchain_type("@bazel_tools//tools/cpp:toolchain_type", mandatory = False),
     ],
 )

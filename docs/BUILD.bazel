@@ -276,6 +276,29 @@ stardoc(
 )
 
 stardoc(
+    name = "cargo_toolchain",
+    out = "src/cargo_toolchain.md",
+    input = "@rules_rust//cargo:cargo_toolchain.bzl",
+    symbol_names = [
+        "cargo_toolchain",
+        "cargo_toolchain_alias",
+    ],
+    deps = [":all_docs"],
+)
+
+stardoc(
+    name = "find_cargo_toolchain",
+    out = "src/find_cargo_toolchain.md",
+    input = "@rules_rust//cargo:find_cargo_toolchain.bzl",
+    symbol_names = [
+        "find_cargo",
+        "find_cargo_toolchain",
+        "use_cargo_toolchain",
+    ],
+    deps = [":all_docs"],
+)
+
+stardoc(
     name = "rust_analyzer_toolchain",
     out = "src/rust_analyzer_toolchain.md",
     input = "@rules_rust//rust:rust_analyzer_toolchain.bzl",
@@ -378,9 +401,11 @@ mdbook(
         ":cargo_build_script",
         ":cargo_env",
         ":cargo_settings",
+        ":cargo_toolchain",
         ":crate_universe_bzlmod",
         ":crate_universe_workspace",
         ":extract_cargo_lints",
+        ":find_cargo_toolchain",
         ":providers",
         ":rust_analyzer_toolchain",
         ":rust_analyzer_toolchain_alias",

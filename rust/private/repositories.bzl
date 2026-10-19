@@ -7,6 +7,7 @@ load("//rust/private:common.bzl", "rust_common")
 load("//rust/private:nightly_versions.bzl", "NIGHTLY_VERSION_TRANSITIONS")
 load(
     "//rust/private:repository_utils.bzl",
+    "BUILD_for_cargo_toolchain",
     "BUILD_for_rust_analyzer_proc_macro_srv",
     "BUILD_for_rust_analyzer_toolchain",
     "BUILD_for_rust_toolchain",
@@ -75,6 +76,8 @@ def rust_register_toolchains(
         compact_windows_names = _COMPACT_WINDOWS_NAMES,
         toolchain_triples = DEFAULT_TOOLCHAIN_TRIPLES,
         rustfmt_toolchain_triples = DEFAULT_TOOLCHAIN_TRIPLES,
+        cargo_toolchain_triples = DEFAULT_TOOLCHAIN_TRIPLES,
+        cargo_version = rust_common.default_version,
         target_settings = [],
         extra_toolchain_infos = None):
     """Emits a default set of toolchains for Linux, MacOS, and Freebsd
@@ -117,6 +120,9 @@ def rust_register_toolchains(
             toolchains. This is to avoid MAX_PATH issues.
         toolchain_triples (dict[str, str], optional): Mapping of rust target triple -> repository name to create.
         rustfmt_toolchain_triples (dict[str, str], optional): Like toolchain_triples, but for rustfmt toolchains.
+        cargo_toolchain_triples (list or dict, optional): The exec triples to register `cargo_toolchain`s for.
+        cargo_version (str, optional): The version of Cargo to register `cargo_toolchain`s with. Defaults to
+            `rules_rust`'s default Rust version, independently of `versions`.
         target_settings (list of labels as strings, optional): A list of `config_settings` that must be satisfied by the target configuration in order for this toolchain to be selected during toolchain resolution.
         extra_toolchain_infos: (dict[str, dict], optional): Mapping of information about extra toolchains which were created outside of this call, which should be added to the hub repo.
     """
@@ -242,6 +248,29 @@ def rust_register_toolchains(
         exec_compatible_with_by_toolchain[rustfmt_repo_name] = triple_to_constraint_set(exec_triple)
         target_compatible_with_by_toolchain[rustfmt_repo_name] = []
         toolchain_types[rustfmt_repo_name] = "@rules_rust//rust/rustfmt:toolchain_type"
+
+    # Cargo toolchains per exec triple
+    for exec_triple in cargo_toolchain_triples:
+        cargo_repo_name = cargo_toolchain_repository_name(exec_triple)
+        cargo_toolchain_repositories(
+            exec_triples = [exec_triple],
+            version = cargo_version,
+            urls = urls,
+            sha256s = sha256s,
+        )
+        toolchain_repository_proxy(
+            name = cargo_repo_name,
+            toolchain = "@{}_tools//:cargo_toolchain".format(cargo_repo_name),
+            toolchain_type = "@rules_rust//cargo:toolchain_type",
+            exec_compatible_with = triple_to_constraint_set(exec_triple),
+            target_compatible_with = [],
+        )
+
+        toolchain_names.append(cargo_repo_name)
+        toolchain_labels[cargo_repo_name] = "@{}_tools//:cargo_toolchain".format(cargo_repo_name)
+        exec_compatible_with_by_toolchain[cargo_repo_name] = triple_to_constraint_set(exec_triple)
+        target_compatible_with_by_toolchain[cargo_repo_name] = []
+        toolchain_types[cargo_repo_name] = "@rules_rust//cargo:toolchain_type"
 
     if aliases:
         fail("No repositories were created matching the requested names to alias:\n{}".format("\n".join(sorted(aliases))))
@@ -931,6 +960,130 @@ rustfmt_toolchain_tools_repository = repository_rule(
     attrs = _RUSTFMT_TOOLCHAIN_TOOLS_ATTRS,
     implementation = _rustfmt_toolchain_tools_repository_impl,
 )
+
+_CARGO_TOOLCHAIN_TOOLS_ATTRS = {
+    "auth": attr.string_dict(
+        doc = (
+            "Auth object compatible with repository_ctx.download to use when downloading files. " +
+            "See [repository_ctx.download](https://docs.bazel.build/versions/main/skylark/lib/repository_ctx.html#download) for more details."
+        ),
+    ),
+    "auth_patterns": attr.string_dict(
+        doc = "Override mapping of hostnames to authorization patterns; mirrors the eponymous attribute from http_archive",
+    ),
+    "exec_triple": attr.string(
+        doc = "The Rust-style triple Cargo is expected to run on.",
+        mandatory = True,
+    ),
+    "netrc": attr.string(
+        doc = ".netrc file to use for authentication; mirrors the eponymous attribute from http_archive",
+    ),
+    "sha256s": attr.string_dict(
+        doc = "A dict associating tool subdirectories to sha256 hashes. See [rust_register_toolchains](#rust_register_toolchains) for more details.",
+    ),
+    "urls": attr.string_list(
+        doc = "A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).",
+        default = DEFAULT_STATIC_RUST_URL_TEMPLATES,
+    ),
+    "version": attr.string(
+        doc = "The version of the tool among \"nightly\", \"beta\" with an iso date, or an exact version.",
+        mandatory = True,
+    ),
+}
+
+def _cargo_toolchain_tools_repository_impl(repository_ctx):
+    sha256s = dict(repository_ctx.attr.sha256s)
+
+    iso_date = None
+    version = repository_ctx.attr.version
+    version_array = version.split("/")
+    if len(version_array) > 1:
+        version = version_array[0]
+        iso_date = version_array[1]
+
+    exec_triple = triple(repository_ctx.attr.exec_triple)
+
+    cargo_content, cargo_sha256 = load_cargo(
+        ctx = repository_ctx,
+        iso_date = iso_date,
+        target_triple = exec_triple,
+        version = version,
+    )
+
+    build_contents = [
+        cargo_content,
+        BUILD_for_cargo_toolchain(
+            name = "cargo_toolchain",
+            cargo = "//:cargo",
+        ),
+    ]
+    sha256s.update(cargo_sha256)
+
+    repository_ctx.file("BUILD.bazel", "\n".join(build_contents))
+    repository_ctx.file("WORKSPACE.bazel", """workspace(name = "{}")""".format(
+        repository_ctx.name,
+    ))
+
+    repro = {"name": repository_ctx.name}
+    for key in _CARGO_TOOLCHAIN_TOOLS_ATTRS:
+        repro[key] = getattr(repository_ctx.attr, key)
+    repro["sha256s"] = sha256s
+
+    # Bazel <8.3.0 lacks ctx.repo_metadata
+    if not hasattr(repository_ctx, "repo_metadata"):
+        return repro
+
+    reproducible = sha256s == dict(repository_ctx.attr.sha256s)
+    return repository_ctx.repo_metadata(
+        reproducible = reproducible,
+        attrs_for_reproducibility = {} if reproducible else repro,
+    )
+
+cargo_toolchain_tools_repository = repository_rule(
+    doc = (
+        "Fetches a standalone Cargo for one platform and declares a `cargo_toolchain` for it. " +
+        "Nothing else of the Rust distribution is downloaded."
+    ),
+    attrs = _CARGO_TOOLCHAIN_TOOLS_ATTRS,
+    implementation = _cargo_toolchain_tools_repository_impl,
+)
+
+def cargo_toolchain_repository_name(exec_triple):
+    """The name of the repository registering the `cargo_toolchain` for `exec_triple`.
+
+    The tools live in the repository of the same name suffixed `_tools`. The
+    version is not part of the name: `rules_rust` registers Cargo at its default
+    Rust version only, so a bump does not rename repositories.
+
+    Args:
+        exec_triple (str): The Rust-style triple Cargo runs on.
+
+    Returns:
+        str: The repository name.
+    """
+    return "cargo_{}".format(exec_triple)
+
+def cargo_toolchain_repositories(*, exec_triples, version = rust_common.default_version, urls = DEFAULT_STATIC_RUST_URL_TEMPLATES, sha256s = None):
+    """Declares the `cargo_toolchain_tools_repository` for each of `exec_triples`.
+
+    Repositories which already exist are left alone, so this may be called
+    both when toolchains are registered and when they are not.
+
+    Args:
+        exec_triples (list[str]): The Rust-style triples to fetch Cargo for.
+        version (str, optional): The version of Cargo.
+        urls (list, optional): Mirror url templates for the Rust-lang static file server.
+        sha256s (dict, optional): Known sha256s of tool archives.
+    """
+    for exec_triple in exec_triples:
+        maybe(
+            cargo_toolchain_tools_repository,
+            name = cargo_toolchain_repository_name(exec_triple) + "_tools",
+            version = version,
+            urls = urls,
+            sha256s = sha256s,
+            exec_triple = exec_triple,
+        )
 
 # --- Internal helpers ---
 
