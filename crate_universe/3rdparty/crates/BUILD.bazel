@@ -46,15 +46,15 @@ alias(
 )
 
 alias(
-    name = "camino-1.1.9",
-    actual = "@cui__camino-1.1.9//:camino",
-    deprecation = "root aliases are deprecated, use `@cui//camino-1.1.9` instead.",
+    name = "camino-1.2.6",
+    actual = "@cui__camino-1.2.6//:camino",
+    deprecation = "root aliases are deprecated, use `@cui//camino-1.2.6` instead.",
     tags = ["manual"],
 )
 
 alias(
     name = "camino",
-    actual = "@cui__camino-1.1.9//:camino",
+    actual = "@cui__camino-1.2.6//:camino",
     deprecation = "root aliases are deprecated, use `@cui//camino` instead.",
     tags = ["manual"],
 )
@@ -74,29 +74,29 @@ alias(
 )
 
 alias(
-    name = "cargo-platform-0.1.9",
-    actual = "@cui__cargo-platform-0.1.9//:cargo_platform",
-    deprecation = "root aliases are deprecated, use `@cui//cargo-platform-0.1.9` instead.",
+    name = "cargo-platform-0.3.3",
+    actual = "@cui__cargo-platform-0.3.3//:cargo_platform",
+    deprecation = "root aliases are deprecated, use `@cui//cargo-platform-0.3.3` instead.",
     tags = ["manual"],
 )
 
 alias(
     name = "cargo-platform",
-    actual = "@cui__cargo-platform-0.1.9//:cargo_platform",
+    actual = "@cui__cargo-platform-0.3.3//:cargo_platform",
     deprecation = "root aliases are deprecated, use `@cui//cargo-platform` instead.",
     tags = ["manual"],
 )
 
 alias(
-    name = "cargo_metadata-0.19.2",
-    actual = "@cui__cargo_metadata-0.19.2//:cargo_metadata",
-    deprecation = "root aliases are deprecated, use `@cui//cargo_metadata-0.19.2` instead.",
+    name = "cargo_metadata-0.23.1",
+    actual = "@cui__cargo_metadata-0.23.1//:cargo_metadata",
+    deprecation = "root aliases are deprecated, use `@cui//cargo_metadata-0.23.1` instead.",
     tags = ["manual"],
 )
 
 alias(
     name = "cargo_metadata",
-    actual = "@cui__cargo_metadata-0.19.2//:cargo_metadata",
+    actual = "@cui__cargo_metadata-0.23.1//:cargo_metadata",
     deprecation = "root aliases are deprecated, use `@cui//cargo_metadata` instead.",
     tags = ["manual"],
 )
@@ -312,15 +312,15 @@ alias(
 )
 
 alias(
-    name = "serde_json-1.0.140",
-    actual = "@cui__serde_json-1.0.140//:serde_json",
-    deprecation = "root aliases are deprecated, use `@cui//serde_json-1.0.140` instead.",
+    name = "serde_json-1.0.154",
+    actual = "@cui__serde_json-1.0.154//:serde_json",
+    deprecation = "root aliases are deprecated, use `@cui//serde_json-1.0.154` instead.",
     tags = ["manual"],
 )
 
 alias(
     name = "serde_json",
-    actual = "@cui__serde_json-1.0.140//:serde_json",
+    actual = "@cui__serde_json-1.0.154//:serde_json",
     deprecation = "root aliases are deprecated, use `@cui//serde_json` instead.",
     tags = ["manual"],
 )
