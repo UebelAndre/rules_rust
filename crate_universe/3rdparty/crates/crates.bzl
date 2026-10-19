@@ -324,8 +324,8 @@ _NORMAL_DEPENDENCIES = {
             "anyhow": Label("@cui//anyhow-1.0.98"),
             "camino": Label("@cui//camino-1.2.6"),
             "cargo-lock": Label("@cui//cargo-lock-11.1.0"),
-            "cargo-platform": Label("@cui//cargo-platform-0.1.9"),
-            "cargo_metadata": Label("@cui//cargo_metadata-0.19.2"),
+            "cargo-platform": Label("@cui//cargo-platform-0.3.3"),
+            "cargo_metadata": Label("@cui//cargo_metadata-0.23.1"),
             "cargo_toml": Label("@cui//cargo_toml-0.22.3"),
             "cfg-expr": Label("@cui//cfg-expr-0.18.0"),
             "clap": Label("@cui//clap-4.5.37"),
@@ -802,32 +802,12 @@ def crate_repositories():
 
     maybe(
         http_archive,
-        name = "cui__cargo-platform-0.1.9",
-        sha256 = "e35af189006b9c0f00a064685c727031e3ed2d8020f7ba284d78cc2671bd36ea",
-        type = "tar.gz",
-        urls = ["https://static.crates.io/crates/cargo-platform/0.1.9/download"],
-        strip_prefix = "cargo-platform-0.1.9",
-        build_file = Label("//crate_universe/3rdparty/crates:BUILD.cargo-platform-0.1.9.bazel"),
-    )
-
-    maybe(
-        http_archive,
         name = "cui__cargo-platform-0.3.3",
         sha256 = "dd0061da739915fae12ea00e16397555ed4371a6bb285431aab930f61b0aa4ba",
         type = "tar.gz",
         urls = ["https://static.crates.io/crates/cargo-platform/0.3.3/download"],
         strip_prefix = "cargo-platform-0.3.3",
         build_file = Label("//crate_universe/3rdparty/crates:BUILD.cargo-platform-0.3.3.bazel"),
-    )
-
-    maybe(
-        http_archive,
-        name = "cui__cargo_metadata-0.19.2",
-        sha256 = "dd5eb614ed4c27c5d706420e4320fbe3216ab31fa1c33cd8246ac36dae4479ba",
-        type = "tar.gz",
-        urls = ["https://static.crates.io/crates/cargo_metadata/0.19.2/download"],
-        strip_prefix = "cargo_metadata-0.19.2",
-        build_file = Label("//crate_universe/3rdparty/crates:BUILD.cargo_metadata-0.19.2.bazel"),
     )
 
     maybe(
@@ -3553,10 +3533,11 @@ def crate_repositories():
     return [
         struct(repo = "cui", is_dev_dep = False),
         struct(repo = "cui__anyhow-1.0.98", is_dev_dep = False),
+        struct(repo = "cui__borsh-1.5.3", is_dev_dep = False),
         struct(repo = "cui__camino-1.2.6", is_dev_dep = False),
         struct(repo = "cui__cargo-lock-11.1.0", is_dev_dep = False),
-        struct(repo = "cui__cargo-platform-0.1.9", is_dev_dep = False),
-        struct(repo = "cui__cargo_metadata-0.19.2", is_dev_dep = False),
+        struct(repo = "cui__cargo-platform-0.3.3", is_dev_dep = False),
+        struct(repo = "cui__cargo_metadata-0.23.1", is_dev_dep = False),
         struct(repo = "cui__cargo_toml-0.22.3", is_dev_dep = False),
         struct(repo = "cui__cfg-expr-0.18.0", is_dev_dep = False),
         struct(repo = "cui__clap-4.5.37", is_dev_dep = False),

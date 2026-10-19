@@ -430,7 +430,7 @@ impl CrateContext {
         resolver_data: &TreeResolverMetadata,
     ) -> anyhow::Result<Self> {
         let package: &Package = &packages[&annotation.node.id];
-        let current_crate_id = CrateId::new(package.name.clone(), package.version.clone());
+        let current_crate_id = CrateId::new(package.name.to_string(), package.version.clone());
 
         let new_crate_dep = |dep: Dependency| -> CrateDependency {
             let pkg = &packages[&dep.package_id];
@@ -441,7 +441,7 @@ impl CrateContext {
             let target = sanitize_module_name(&dep.target_name);
 
             CrateDependency {
-                id: CrateId::new(pkg.name.clone(), pkg.version.clone()),
+                id: CrateId::new(pkg.name.to_string(), pkg.version.clone()),
                 target,
                 alias: dep.alias,
                 local_path: match source_annotations.get(&dep.package_id) {
@@ -574,7 +574,7 @@ impl CrateContext {
             .cloned();
 
         Ok(CrateContext {
-            name: package.name.clone(),
+            name: package.name.to_string(),
             version: package.version.clone(),
             license: package.license.clone(),
             license_ids,
@@ -945,7 +945,7 @@ impl CrateContext {
                     let crate_name = sanitize_module_name(&target.name);
 
                     if !target.src_path.starts_with(package_root) {
-                        return Some(Err(anyhow::anyhow!("Package {:?} target {:?} had an absolute source path {:?}, which is not supported", package.name, target.name, target.src_path)));
+                        return Some(Err(anyhow::anyhow!("Package {:?} target {:?} had an absolute source path {:?}, which is not supported", package.name.as_str(), target.name, target.src_path)));
                     }
 
                     // Locate the crate's root source file relative to the package root normalized for unix
