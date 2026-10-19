@@ -252,6 +252,30 @@ stardoc(
 )
 
 stardoc(
+    name = "rust_toolchain_alias",
+    out = "src/rust_toolchain_alias.md",
+    input = "@rules_rust//rust:rust_toolchain_alias.bzl",
+    symbol_names = ["rust_toolchain_alias"],
+    deps = [":all_docs"],
+)
+
+stardoc(
+    name = "rustfmt_toolchain_alias",
+    out = "src/rustfmt_toolchain_alias.md",
+    input = "@rules_rust//rust:rustfmt_toolchain_alias.bzl",
+    symbol_names = ["rustfmt_toolchain_alias"],
+    deps = [":all_docs"],
+)
+
+stardoc(
+    name = "rust_analyzer_toolchain_alias",
+    out = "src/rust_analyzer_toolchain_alias.md",
+    input = "@rules_rust//rust:rust_analyzer_toolchain_alias.bzl",
+    symbol_names = ["rust_analyzer_toolchain_alias"],
+    deps = [":all_docs"],
+)
+
+stardoc(
     name = "rust_analyzer_toolchain",
     out = "src/rust_analyzer_toolchain.md",
     input = "@rules_rust//rust:rust_analyzer_toolchain.bzl",
@@ -359,6 +383,7 @@ mdbook(
         ":extract_cargo_lints",
         ":providers",
         ":rust_analyzer_toolchain",
+        ":rust_analyzer_toolchain_alias",
         ":rust_binary",
         ":rust_bindgen",
         ":rust_bzlmod",
@@ -383,12 +408,14 @@ mdbook(
         ":rust_test",
         ":rust_test_suite",
         ":rust_toolchain",
+        ":rust_toolchain_alias",
         ":rust_unpretty",
         ":rust_unpretty_aspect",
         ":rust_wasm_bindgen",
         ":rustfmt_aspect",
         ":rustfmt_test",
         ":rustfmt_toolchain",
+        ":rustfmt_toolchain_alias",
     ],
     book = "book.toml",
 )

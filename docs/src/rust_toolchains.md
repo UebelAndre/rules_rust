@@ -23,6 +23,28 @@ cover.
   providing the `rust-analyzer` binary and proc-macro server used by the
   [rust_analyzer](./rust_analyzer.md) integration.
 
+## Toolchain aliases
+
+A toolchain alias is a target that stands in for whichever toolchain Bazel
+resolves for the current platform, in the manner of `cc_toolchain_alias` from
+`rules_cc`. It forwards the toolchain's providers, Make variables and files, so
+a `genrule` or a custom rule can depend on "the Rust toolchain" without naming
+one. `rules_rust` declares one alias per toolchain type under
+`@rules_rust//rust/toolchain`: `current_rust_toolchain`,
+`current_rustfmt_toolchain` and `current_rust_analyzer_toolchain`.
+
+- [rust_toolchain_alias](./rust_toolchain_alias.md) — Alias for the resolved
+  `rust_toolchain`.
+- [rustfmt_toolchain_alias](./rustfmt_toolchain_alias.md) — Alias for the
+  resolved `rustfmt_toolchain`.
+- [rust_analyzer_toolchain_alias](./rust_analyzer_toolchain_alias.md) — Alias
+  for the resolved `rust_analyzer_toolchain`.
+
+The rules were previously named `current_rust_toolchain`,
+`current_rustfmt_toolchain` and `current_rust_analyzer_toolchain`. Those names
+remain available and are deprecated; the targets of the same names under
+`@rules_rust//rust/toolchain` are unchanged.
+
 ## Data rules
 
 - [rust_stdlib_filegroup](./rust_stdlib_filegroup.md) — Group the files of a Rust
