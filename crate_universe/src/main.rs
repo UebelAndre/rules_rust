@@ -3,6 +3,11 @@
 use cargo_bazel::cli;
 
 fn main() -> cli::Result<()> {
+    // Cargo, run by cargo-bazel, invokes this executable as `rustc`.
+    if let Some(result) = cli::rustc_shim() {
+        return result;
+    }
+
     // Parse arguments
     let opt = cli::parse_args();
 

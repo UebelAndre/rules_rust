@@ -46,7 +46,22 @@ use_repo(
 
 rust = use_extension("//rust:extensions.bzl", "rust")
 rust.toolchain(edition = "2021")
-use_repo(rust, "rust_toolchains")
+use_repo(
+    rust,
+    # The stable Cargo of each host platform, which crate_universe resolves with.
+    "rust_freebsd_x86_64__stable__cargo",
+    "rust_linux_aarch64__stable__cargo",
+    "rust_linux_loongarch64__stable__cargo",
+    "rust_linux_powerpc64le__stable__cargo",
+    "rust_linux_riscv64__stable__cargo",
+    "rust_linux_s390x__stable__cargo",
+    "rust_linux_x86_64__stable__cargo",
+    "rust_macos_aarch64__stable__cargo",
+    "rust_macos_x86_64__stable__cargo",
+    "rust_toolchains",
+    "rust_windows_aarch64__stable__cargo",
+    "rust_windows_x86_64__stable__cargo",
+)
 
 register_toolchains(
     "@rust_toolchains//:all",
