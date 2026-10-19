@@ -6,6 +6,7 @@ load("//rust/platform:triple.bzl", "get_host_triple")
 load(
     "//rust/private:repositories.bzl",
     "DEFAULT_TOOLCHAIN_TRIPLES",
+    "cargo_tools_repositories",
     "rust_register_toolchains",
     "rust_repository_set",
     "rust_toolchain_tools_repository",
@@ -121,6 +122,17 @@ def _rust_impl(module_ctx):
             fail("Cannot define both extra_rustc_flags and extra_rustc_flags_triples")
         if toolchain.extra_exec_rustc_flags and toolchain.extra_exec_rustc_flags_triples:
             fail("Cannot define both extra_exec_rustc_flags and extra_exec_rustc_flags_triples")
+
+        # The Cargo of each host platform, at rules_rust's default Rust version
+        # and nothing else of the toolchain. `crate_universe` resolves
+        # dependencies with it, so it exists whether or not toolchains are
+        # registered; rules_rust names the repositories in `use_repo`.
+        cargo_tools_repositories(
+            exec_triples = DEFAULT_TOOLCHAIN_TRIPLES.keys(),
+            urls = toolchain.urls,
+            sha256s = toolchain.sha256s,
+        )
+
         if len(toolchain.versions) == 0:
             # If the root module has asked for rules_rust to not register default
             # toolchains, an empty repository named `rust_toolchains` is created

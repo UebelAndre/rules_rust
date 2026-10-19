@@ -996,6 +996,135 @@ rustfmt_toolchain_tools_repository = repository_rule(
     implementation = _rustfmt_toolchain_tools_repository_impl,
 )
 
+_CARGO_TOOLS_ATTRS = {
+    "auth": attr.string_dict(
+        doc = (
+            "Auth object compatible with repository_ctx.download to use when downloading files. " +
+            "See [repository_ctx.download](https://docs.bazel.build/versions/main/skylark/lib/repository_ctx.html#download) for more details."
+        ),
+    ),
+    "auth_patterns": attr.string_dict(
+        doc = "Override mapping of hostnames to authorization patterns; mirrors the eponymous attribute from http_archive",
+    ),
+    "exec_triple": attr.string(
+        doc = "The Rust-style triple Cargo is expected to run on.",
+        mandatory = True,
+    ),
+    "netrc": attr.string(
+        doc = ".netrc file to use for authentication; mirrors the eponymous attribute from http_archive",
+    ),
+    "sha256s": attr.string_dict(
+        doc = "A dict associating tool subdirectories to sha256 hashes. See [rust_register_toolchains](#rust_register_toolchains) for more details.",
+    ),
+    "urls": attr.string_list(
+        doc = "A list of mirror urls containing the tools from the Rust-lang static file server. These must contain the '{}' used to substitute the tool being fetched (using .format).",
+        default = DEFAULT_STATIC_RUST_URL_TEMPLATES,
+    ),
+    "version": attr.string(
+        doc = "The version of the tool among \"nightly\", \"beta\" with an iso date, or an exact version.",
+        mandatory = True,
+    ),
+}
+
+def _cargo_tools_repository_impl(repository_ctx):
+    sha256s = dict(repository_ctx.attr.sha256s)
+
+    iso_date = None
+    version = repository_ctx.attr.version
+    version_array = version.split("/")
+    if len(version_array) > 1:
+        version = version_array[0]
+        iso_date = version_array[1]
+    channel = version if version in ("nightly", "beta") else "stable"
+
+    exec_triple = triple(repository_ctx.attr.exec_triple)
+
+    cargo_content, cargo_sha256 = load_cargo(
+        ctx = repository_ctx,
+        iso_date = iso_date,
+        target_triple = exec_triple,
+        version = version,
+    )
+
+    build_contents = [
+        cargo_content,
+        BUILD_for_cargo_toolchain(
+            name = "cargo_toolchain",
+            cargo = "//:cargo",
+            version = version,
+            channel = channel,
+            iso_date = iso_date,
+        ),
+    ]
+    sha256s.update(cargo_sha256)
+
+    repository_ctx.file("BUILD.bazel", "\n".join(build_contents))
+    repository_ctx.file("WORKSPACE.bazel", """workspace(name = "{}")""".format(
+        repository_ctx.name,
+    ))
+
+    repro = {"name": repository_ctx.name}
+    for key in _CARGO_TOOLS_ATTRS:
+        repro[key] = getattr(repository_ctx.attr, key)
+    repro["sha256s"] = sha256s
+
+    # Bazel <8.3.0 lacks ctx.repo_metadata
+    if not hasattr(repository_ctx, "repo_metadata"):
+        return repro
+
+    reproducible = sha256s == dict(repository_ctx.attr.sha256s)
+    return repository_ctx.repo_metadata(
+        reproducible = reproducible,
+        attrs_for_reproducibility = {} if reproducible else repro,
+    )
+
+cargo_tools_repository = repository_rule(
+    doc = (
+        "Fetches a standalone Cargo for one platform: `//:cargo` is the binary and `//:cargo_toolchain` a " +
+        "`cargo_toolchain` for it, which rules_rust does not register. Nothing else of the Rust " +
+        "distribution is downloaded. This is the Cargo `crate_universe` resolves dependencies with."
+    ),
+    attrs = _CARGO_TOOLS_ATTRS,
+    implementation = _cargo_tools_repository_impl,
+)
+
+def cargo_tools_repository_name(exec_triple):
+    """The name of the `cargo_tools_repository` holding the Cargo for `exec_triple`.
+
+    The version is not part of the name: rules_rust fetches this Cargo at its
+    default Rust version only, so a bump does not rename repositories, and
+    `MODULE.bazel` can name them in `use_repo`.
+
+    Args:
+        exec_triple (str): The Rust-style triple Cargo runs on.
+
+    Returns:
+        str: The repository name.
+    """
+    return "cargo_{}_tools".format(exec_triple)
+
+def cargo_tools_repositories(*, exec_triples, version = rust_common.default_version, urls = DEFAULT_STATIC_RUST_URL_TEMPLATES, sha256s = None):
+    """Declares the `cargo_tools_repository` of each of `exec_triples`.
+
+    Repositories which already exist are left alone, so this may be called
+    whether or not toolchains are registered.
+
+    Args:
+        exec_triples (list[str]): The Rust-style triples to fetch Cargo for.
+        version (str, optional): The version of Cargo.
+        urls (list, optional): Mirror url templates for the Rust-lang static file server.
+        sha256s (dict, optional): Known sha256s of tool archives.
+    """
+    for exec_triple in exec_triples:
+        maybe(
+            cargo_tools_repository,
+            name = cargo_tools_repository_name(exec_triple),
+            version = version,
+            urls = urls,
+            sha256s = sha256s,
+            exec_triple = exec_triple,
+        )
+
 # --- Internal helpers ---
 
 def _get_toolchain_repositories(

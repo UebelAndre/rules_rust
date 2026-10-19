@@ -6,6 +6,7 @@ mod dependency;
 mod guppy_resolver;
 mod metadata_annotation;
 pub(crate) mod rustc_cfgs;
+pub(crate) mod rustc_shim;
 mod tree_resolver_metadata;
 
 use std::fs;
@@ -243,17 +244,11 @@ impl LockGenerator {
 pub(crate) struct VendorGenerator {
     /// The path to a `cargo` binary
     cargo_bin: Cargo,
-
-    /// The path to a `rustc` binary
-    rustc_bin: PathBuf,
 }
 
 impl VendorGenerator {
-    pub(crate) fn new(cargo_bin: Cargo, rustc_bin: PathBuf) -> Self {
-        Self {
-            cargo_bin,
-            rustc_bin,
-        }
+    pub(crate) fn new(cargo_bin: Cargo) -> Self {
+        Self { cargo_bin }
     }
     #[tracing::instrument(name = "VendorGenerator::generate", skip_all)]
     pub(crate) fn generate(&self, manifest_path: &Utf8Path, output_dir: &Path) -> Result<()> {
@@ -274,7 +269,6 @@ impl VendorGenerator {
             .arg("--locked")
             .arg("--versioned-dirs")
             .arg(output_dir)
-            .env("RUSTC", &self.rustc_bin)
             .output()
             .with_context(|| {
                 format!(

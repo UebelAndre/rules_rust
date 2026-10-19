@@ -768,25 +768,21 @@ mod test {
         }
     }
 
-    /// Get cargo and rustc binaries the Bazel way
+    /// Get the cargo binary the Bazel way. No rustc: cargo-bazel stands in.
     #[cfg(not(feature = "cargo"))]
-    fn get_cargo_and_rustc_paths() -> (std::path::PathBuf, std::path::PathBuf) {
+    fn get_cargo_path() -> std::path::PathBuf {
         let r = runfiles::Runfiles::create().unwrap();
-        let cargo_path = runfiles::rlocation!(r, concat!("rules_rust/", env!("CARGO"))).unwrap();
-        let rustc_path = runfiles::rlocation!(r, concat!("rules_rust/", env!("RUSTC"))).unwrap();
-
-        (cargo_path, rustc_path)
+        runfiles::rlocation!(r, concat!("rules_rust/", env!("CARGO"))).unwrap()
     }
 
-    /// Get cargo and rustc binaries the Cargo way
+    /// Get the cargo binary the Cargo way
     #[cfg(feature = "cargo")]
-    fn get_cargo_and_rustc_paths() -> (PathBuf, PathBuf) {
-        (PathBuf::from("cargo"), PathBuf::from("rustc"))
+    fn get_cargo_path() -> PathBuf {
+        PathBuf::from("cargo")
     }
 
     fn cargo() -> Cargo {
-        let (cargo, rustc) = get_cargo_and_rustc_paths();
-        Cargo::new(cargo, rustc)
+        Cargo::new(get_cargo_path(), None)
     }
 
     fn generate_metadata<P: AsRef<Path>>(manifest_path: P) -> cargo_metadata::Metadata {

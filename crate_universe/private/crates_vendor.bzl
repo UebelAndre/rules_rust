@@ -145,8 +145,7 @@ def _expand_env(value, is_windows):
     return "\"${{{}}}\"".format(value)
 
 def _is_windows(ctx):
-    toolchain = ctx.toolchains[Label("@rules_rust//rust:toolchain_type")]
-    return toolchain.target_os == "windows"
+    return ctx.target_platform_has_constraint(ctx.attr._windows_constraint[platform_common.ConstraintValueInfo])
 
 def _get_output_package(ctx):
     # Determine output directory
@@ -387,18 +386,19 @@ def generate_config_file(
     )
 
 def _crates_vendor_impl(ctx):
-    toolchain = ctx.toolchains[Label("@rules_rust//rust:toolchain_type")]
-    cargo = find_cargo(ctx, toolchain)
+    # Vendoring runs Cargo and nothing else of a toolchain: cargo-bazel stands
+    # in for rustc. The `rust_toolchain` is only a fallback source of `cargo`.
+    rust_toolchain = ctx.toolchains[rust_common.toolchain_type]
+    cargo = find_cargo(ctx, rust_toolchain)
     if not cargo.cargo:
         fail("{}: no `cargo_toolchain` is registered for the current platform and the `rust_toolchain` has no `cargo`".format(ctx.label))
-    mismatch = cargo_version_mismatch(cargo.toolchain, toolchain)
+    mismatch = cargo_version_mismatch(cargo.toolchain, rust_toolchain)
     if mismatch:
         fail("{}: {}".format(ctx.label, mismatch))
     is_windows = _is_windows(ctx)
 
     environ = [
         _sys_runfile_env(ctx, "CARGO", cargo.cargo, is_windows),
-        _sys_runfile_env(ctx, "RUSTC", toolchain.rustc, is_windows),
     ]
 
     args = ["vendor"]
@@ -480,7 +480,7 @@ def _crates_vendor_impl(ctx):
 
     runfiles = ctx.runfiles(
         files = cargo_bazel_runfiles,
-        transitive_files = depset(transitive = [toolchain.all_files, cargo.files]),
+        transitive_files = cargo.files,
     )
     if runner.basename.endswith(".sh"):
         runfiles = runfiles.merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
@@ -603,6 +603,9 @@ CRATES_VENDOR_ATTRS = {
         cfg = "target",
         default = Label("@bazel_tools//tools/bash/runfiles"),
     ),
+    "_windows_constraint": attr.label(
+        default = Label("@platforms//os:windows"),
+    ),
 }
 
 crates_vendor = rule(
@@ -682,7 +685,7 @@ call against the generated workspace. The following table describes how to contr
     attrs = CRATES_VENDOR_ATTRS,
     executable = True,
     toolchains = [
-        "@rules_rust//rust:toolchain_type",
+        config_common.toolchain_type(rust_common.toolchain_type, mandatory = False),
         config_common.toolchain_type(rust_common.cargo_toolchain_type, mandatory = False),
     ],
 )

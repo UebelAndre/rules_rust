@@ -155,16 +155,21 @@ rust_test(
     compile_data = glob(["test_data/**"]),
     crate = ":cargo_bazel",
     data = glob(["test_data/**"]) + [
+        ":cargo_bazel_bin",
         "//crate_universe/test_data/serialized_configs",
         "@rules_rust//cargo:current_cargo_toolchain",
-        "@rules_rust//rust/toolchain:current_rustc_files",
     ],
+    # Cargo alone: the tests run it the way resolving does, with cargo-bazel
+    # standing in for rustc. A test binary's `main` is not cargo-bazel's, so
+    # the real binary is named for that.
+    env = {
+        "CARGO_BAZEL_RUSTC_SHIM_EXECUTABLE": "$(rootpath :cargo_bazel_bin)",
+    },
     proc_macro_deps = all_crate_deps(
         proc_macro_dev = True,
     ),
     rustc_env = {
         "CARGO": "$(rootpath @rules_rust//cargo:current_cargo_toolchain)",
-        "RUSTC": "$(rootpath @rules_rust//rust/toolchain:current_rustc_files)",
     },
     # Passed through rather than duplicated in Rust so `RUSTC_TRIPLES_WITH_HOST_TOOLS`
     # can be checked against the `host_tools` bits `rules_rust` tracks.
@@ -189,13 +194,13 @@ rust_test(
     srcs = ["tests/cargo_integration_test.rs"],
     aliases = aliases(),
     data = glob(["test_data/**"]) + [
+        ":cargo_bazel_bin",
         "@rules_rust//cargo:current_cargo_toolchain",
-        "@rules_rust//rust/toolchain:current_rustc_files",
     ],
     edition = "2021",
     env = {
         "CARGO": "$(rlocationpath @rules_rust//cargo:current_cargo_toolchain)",
-        "RUSTC": "$(rlocationpath @rules_rust//rust/toolchain:current_rustc_files)",
+        "CARGO_BAZEL_RUSTC_SHIM_EXECUTABLE": "$(rootpath :cargo_bazel_bin)",
     },
     proc_macro_deps = all_crate_deps(
         proc_macro_dev = True,

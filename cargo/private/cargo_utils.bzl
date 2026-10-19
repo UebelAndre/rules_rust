@@ -106,7 +106,7 @@ def get_rust_tools(
 
     Args:
         cargo_template (str): A template used to identify the label of the host `cargo` binary.
-        rustc_template (str): A template used to identify the label of the host `rustc` binary.
+        rustc_template (str, optional): A template used to identify the label of the host `rustc` binary, or `None` for no rustc.
         host_triple (struct): The host's triple. See `@rules_rust//rust/platform:triple.bzl`.
         channel (str): The Rust toolchain channel.
         version (str): The version (or iso date in case of beta or nightly channels) of Cargo+Rustc to use.
@@ -131,18 +131,20 @@ def get_rust_tools(
         compress_windows_names = compress_windows_names,
     ))
 
-    rustc_label = Label(_resolve_repository_template(
-        template = rustc_template,
-        version = version,
-        channel = channel,
-        triple = host_triple.str,
-        arch = host_triple.arch,
-        vendor = host_triple.vendor,
-        system = host_triple.system,
-        abi = host_triple.abi,
-        tool = "rustc" + extension,
-        compress_windows_names = compress_windows_names,
-    ))
+    rustc_label = None
+    if rustc_template:
+        rustc_label = Label(_resolve_repository_template(
+            template = rustc_template,
+            version = version,
+            channel = channel,
+            triple = host_triple.str,
+            arch = host_triple.arch,
+            vendor = host_triple.vendor,
+            system = host_triple.system,
+            abi = host_triple.abi,
+            tool = "rustc" + extension,
+            compress_windows_names = compress_windows_names,
+        ))
 
     return struct(
         cargo = cargo_label,

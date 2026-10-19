@@ -31,6 +31,7 @@ CARGO_BAZEL_SRCS = [
     Label("//crate_universe:src/metadata/metadata_annotation.rs"),
     Label("//crate_universe:src/metadata/rustc_cfgs.json"),
     Label("//crate_universe:src/metadata/rustc_cfgs.rs"),
+    Label("//crate_universe:src/metadata/rustc_shim.rs"),
     Label("//crate_universe:src/metadata/tree_resolver_metadata.rs"),
     Label("//crate_universe:src/pool.rs"),
     Label("//crate_universe:src/rendering.rs"),
