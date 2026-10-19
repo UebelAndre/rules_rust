@@ -610,7 +610,7 @@ impl CrateId {
 impl From<&Package> for CrateId {
     fn from(package: &Package) -> Self {
         Self {
-            name: package.name.clone(),
+            name: package.name.to_string(),
             version: package.version.clone(),
         }
     }
