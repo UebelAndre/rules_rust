@@ -25,11 +25,16 @@ use_repo(
 )
 
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+
+# `-Zbindeps` is unstable, so the resolution needs a nightly Cargo.
+crate.host_tools(
+    cargo = "@rust_host_tools_nightly//:bin/cargo",
+    rustc = "@rust_host_tools_nightly//:bin/rustc",
+)
 crate.from_cargo(
     name = "crate_index_cargo_bindeps",
     cargo_lockfile = "//:Cargo.lock",
     generate_binaries = True,
-    host_tools = "@rust_host_tools_nightly",
     manifests = ["//:Cargo.toml"],
 )
 use_repo(

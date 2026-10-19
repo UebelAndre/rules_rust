@@ -32,9 +32,11 @@ pub struct VendorOptions {
     #[clap(long, env = "CARGO")]
     pub cargo: PathBuf,
 
-    /// The path to a rustc binary for use with Cargo
+    /// The path to a rustc binary for use with Cargo. Without one, cargo-bazel
+    /// stands in for rustc, which is all resolving needs; a real rustc is only
+    /// consulted for platforms with no recorded `rustc --print=cfg`.
     #[clap(long, env = "RUSTC")]
-    pub rustc: PathBuf,
+    pub rustc: Option<PathBuf>,
 
     /// The path to a buildifier binary for formatting generated BUILD files
     #[clap(long)]
@@ -338,7 +340,7 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
     }
 
     if matches!(config.rendering.vendor_mode, Some(VendorMode::Local)) {
-        VendorGenerator::new(cargo.clone(), opt.rustc.clone())
+        VendorGenerator::new(cargo.clone())
             .generate(manifest_path.as_path_buf(), &vendor_dir)
             .context("Failed to vendor dependencies")?;
     }
