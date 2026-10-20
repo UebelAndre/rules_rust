@@ -16,6 +16,7 @@
 
 load("@bazel_skylib//lib:structs.bzl", "structs")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "use_cc_toolchain")
+load("//rust/private:clippy_toolchain.bzl", "find_clippy")
 load("//rust/private:common.bzl", "rust_common")
 load(
     "//rust/private:lint_test.bzl",
@@ -109,7 +110,7 @@ def get_clippy_ready_crate_info(target, aspect_ctx = None):
     else:
         return None
 
-def rust_clippy_action(ctx, clippy_executable, process_wrapper, crate_info, config, output = None, success_marker = None, cap_at_warnings = False, extra_clippy_flags = [], error_format = None, clippy_diagnostics_file = None):
+def rust_clippy_action(ctx, clippy_executable, process_wrapper, crate_info, config, output = None, success_marker = None, cap_at_warnings = False, extra_clippy_flags = [], error_format = None, clippy_diagnostics_file = None, clippy_files = None):
     """Run clippy with the specified parameters.
 
     Args:
@@ -124,6 +125,8 @@ def rust_clippy_action(ctx, clippy_executable, process_wrapper, crate_info, conf
         extra_clippy_flags (List[str]): A list of extra options to pass to clippy. If not set, every warnings will be turned into errors
         error_format (str): Which error format to use. Must be acceptable by rustc: https://doc.rust-lang.org/beta/rustc/command-line-arguments.html#--error-format-control-how-errors-are-produced
         clippy_diagnostics_file (File): File to output diagnostics to. If None, no diagnostics will be written
+        clippy_files (depset): The files `clippy_executable` needs at run time, such as the `files` of
+            `find_clippy`. Required when the executable comes from a `clippy_toolchain`.
 
     Returns:
         None
@@ -237,7 +240,7 @@ def rust_clippy_action(ctx, clippy_executable, process_wrapper, crate_info, conf
         inputs = compile_inputs,
         outputs = outputs + [x for x in [clippy_diagnostics_file] if x],
         env = env,
-        tools = [clippy_executable],
+        tools = [clippy_executable] + ([clippy_files] if clippy_files else []),
         arguments = args.all,
         mnemonic = "Clippy",
         progress_message = "Clippy %{label}",
@@ -257,6 +260,9 @@ def _clippy_aspect_impl(target, ctx):
         return [ClippyInfo(output = depset([]))]
 
     toolchain = find_toolchain(ctx)
+    clippy = find_clippy(ctx, toolchain)
+    if not clippy.clippy_driver:
+        fail("{}: no `clippy_toolchain` is registered for the current platform and the `rust_toolchain` has no `clippy_driver`".format(ctx.label))
 
     # For remote execution purposes, the clippy_out file must be a sibling of crate_info.output
     # or rustc may fail to create intermediate output files because the directory does not exist.
@@ -287,7 +293,8 @@ def _clippy_aspect_impl(target, ctx):
     # Run clippy using the extracted function
     rust_clippy_action(
         ctx = ctx,
-        clippy_executable = toolchain.clippy_driver,
+        clippy_executable = clippy.clippy_driver,
+        clippy_files = clippy.files,
         process_wrapper = ctx.executable._process_wrapper,
         crate_info = crate_info,
         config = ctx.file._config,
@@ -370,6 +377,7 @@ rust_clippy_aspect = aspect(
     ],
     toolchains = [
         str(Label("//rust:toolchain_type")),
+        config_common.toolchain_type(rust_common.clippy_toolchain_type, mandatory = False),
     ] + use_cc_toolchain(mandatory = False),
     implementation = _clippy_aspect_impl,
     doc = """\

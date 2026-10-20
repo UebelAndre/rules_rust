@@ -1,0 +1,5 @@
+load(":companion_toolchains_test.bzl", "companion_toolchains_test_suite")
+
+companion_toolchains_test_suite(
+    name = "companion_toolchains_test_suite",
+)
