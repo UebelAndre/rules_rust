@@ -1,14 +1,26 @@
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_python//python:defs.bzl", "py_binary")
+load("//rust/platform:triple_mappings.bzl", "ALL_PLATFORM_TRIPLES")
+
+# The platforms `rules_rust` can describe with constraints. Only their
+# archives are recorded in `//rust/private:known_shas.bzl`; pass a different
+# `--targets` file to record another set.
+write_file(
+    name = "platform_triples",
+    out = "fetch_shas_PLATFORM_TRIPLES.txt",
+    content = sorted(ALL_PLATFORM_TRIPLES),
+)
 
 py_binary(
     name = "fetch_shas",
     srcs = ["fetch_shas.py"],
+    args = ["--targets=$(location :platform_triples)"],
     data = [
         "fetch_shas_HOST_TOOLS.txt",
         "fetch_shas_NIGHTLY_ISO_DATES.txt",
-        "fetch_shas_TARGETS.txt",
         "fetch_shas_TOOLS.txt",
         "fetch_shas_VERSIONS.txt",
+        ":platform_triples",
     ],
     tags = ["manual"],
 )
