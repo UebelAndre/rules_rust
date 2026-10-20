@@ -29,7 +29,7 @@ To use a particular version of the Rust compiler, pass that version to the `tool
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2024",
-    versions = [ "1.85.0" ],
+    versions = [ "1.94.0" ],
 )
 ```
 
@@ -38,9 +38,20 @@ As well as an exact version, `versions` can accept `nightly/{iso_date}` and `bet
 ```python
 rust.toolchain(
     edition = "2021",
-    versions = [ "nightly/1.85.0" ],
+    versions = [ "nightly/2026-08-20" ],
 )
 ```
+
+`rules_rust` ships the checksums of the `.tar.gz` archives for its last five
+minor releases of Rust and for the minimum version it supports, 1.85.0, for
+every target those releases publish. Any other version, or the `.tar.xz`
+archives chosen with `urls = ["https://static.rust-lang.org/dist/{}.tar.xz"]`
+(smaller to download, but more than twice as slow for Bazel to extract), is
+resolved from the release's channel manifest when the extension runs; the checksums it finds are recorded as facts in your
+`MODULE.bazel.lock` (Bazel 8.5 and newer) so they are fetched once and every
+download stays verified. On older Bazel versions such archives are hashed as
+they are downloaded. Checksums passed through `sha256s` always take
+precedence.
 
 By default, a `stable` and `nightly` toolchain will be registered if no `toolchain` method is called (and thus no specific versions are registered). However, if only 1 version is passed and it is from the `nightly` or `beta` release channels (i.e. __not__ `stable`), then the following build setting flag must be present, either on the command line or set in the project's `.bazelrc` file:
 

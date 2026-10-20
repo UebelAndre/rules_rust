@@ -1,4 +1,33 @@
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+load("//rust/platform:triple_mappings.bzl", "ALL_PLATFORM_TRIPLES")
+
+# `fetch_shas_TARGETS.txt` lists every target the recorded releases publish a
+# standard library for, so `//rust/private:known_shas.bzl` has the hashes
+# ready the day `rules_rust` can describe a target, plus every platform
+# `rules_rust` describes today, a few of which no release publishes. It is
+# checked in so the script also runs as plain Python, and extended with
+# `bazel run //util/fetch_shas -- --update-targets`. The test below makes
+# sure it never loses a platform `rules_rust` can describe.
+write_file(
+    name = "platform_triples",
+    out = "platform_triples.txt",
+    content = sorted(ALL_PLATFORM_TRIPLES),
+)
+
+py_test(
+    name = "fetch_shas_TARGETS_test",
+    srcs = ["fetch_shas_targets_test.py"],
+    args = [
+        "$(rootpath fetch_shas_TARGETS.txt)",
+        "$(rootpath :platform_triples)",
+    ],
+    data = [
+        "fetch_shas_TARGETS.txt",
+        ":platform_triples",
+    ],
+    main = "fetch_shas_targets_test.py",
+)
 
 py_binary(
     name = "fetch_shas",

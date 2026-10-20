@@ -18,7 +18,15 @@ load(":common.bzl", "DEFAULT_NIGHTLY_ISO_DATE")
 load(":semver.bzl", "semver")
 
 DEFAULT_TOOLCHAIN_NAME_PREFIX = "toolchain_for"
-DEFAULT_STATIC_RUST_URL_TEMPLATES = ["https://static.rust-lang.org/dist/{}.tar.xz"]
+
+# The archives of a release are published as `.tar.gz` and `.tar.xz`. The gzip
+# archives are about two thirds larger, but Bazel decompresses xz in pure Java
+# and extracting a toolchain from xz takes more than twice as long, so from an
+# empty cache a toolchain is ready in about half the time with gzip, and the
+# extraction, repeated for every output base, is what remains once the
+# download is cached. `urls` names the other format, or a mirror:
+# `["https://static.rust-lang.org/dist/{}.tar.xz"]`.
+DEFAULT_STATIC_RUST_URL_TEMPLATES = ["https://static.rust-lang.org/dist/{}.tar.gz"]
 DEFAULT_NIGHTLY_VERSION = "nightly/{}".format(DEFAULT_NIGHTLY_ISO_DATE)
 
 # Toolchains are cheap to declare so we can add common target platforms here
