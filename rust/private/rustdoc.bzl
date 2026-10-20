@@ -19,6 +19,7 @@ load("//rust/private:common.bzl", "rust_common")
 load("//rust/private:pic_utils.bzl", "should_use_pic")
 load("//rust/private:providers.bzl", "LintsInfo")
 load("//rust/private:rustc.bzl", "collect_deps", "collect_inputs", "construct_arguments")
+load("//rust/private:rustdoc_toolchain.bzl", "find_rustdoc")
 load(
     "//rust/private:utils.bzl",
     "dedent",
@@ -117,6 +118,10 @@ def rustdoc_compile_action(
 
     cc_toolchain, feature_configuration = find_cc_toolchain(ctx)
 
+    rustdoc = find_rustdoc(ctx, toolchain)
+    if not rustdoc.rustdoc:
+        fail("{}: no `rustdoc_toolchain` is registered for the current platform and the `rust_toolchain` has no `rust_doc`".format(ctx.label))
+
     dep_info, build_info, _ = collect_deps(
         deps = crate_info.deps.to_list(),
         proc_macro_deps = crate_info.proc_macro_deps.to_list(),
@@ -208,7 +213,7 @@ def rustdoc_compile_action(
         attr = ctx.attr,
         file = ctx.file,
         toolchain = toolchain,
-        tool_path = toolchain.rust_doc.short_path if is_test else toolchain.rust_doc.path,
+        tool_path = rustdoc.rustdoc.short_path if is_test else rustdoc.rustdoc.path,
         cc_toolchain = cc_toolchain,
         feature_configuration = feature_configuration,
         crate_info = rustdoc_crate_info,
@@ -237,8 +242,9 @@ def rustdoc_compile_action(
         if "OUT_DIR" in env:
             env.update({"OUT_DIR": "${{pwd}}/{}".format(build_info.out_dir.short_path)})
 
-    # Create the combined inputs including HTML customization files
-    all_inputs = depset([crate_info.output], transitive = [compile_inputs, depset(html_input_files)])
+    # Create the combined inputs including HTML customization files and the
+    # libraries rustdoc loads at run time.
+    all_inputs = depset([crate_info.output], transitive = [compile_inputs, depset(html_input_files), rustdoc.files])
 
     return struct(
         executable = ctx.executable._process_wrapper,
@@ -246,7 +252,7 @@ def rustdoc_compile_action(
         env = env,
         arguments = args.all,
         supports_path_mapping = args.supports_path_mapping,
-        tools = [toolchain.rust_doc],
+        tools = [rustdoc.rustdoc],
         static_runtime_libs = static_runtime_libs,
     )
 
@@ -465,5 +471,6 @@ rust_doc = rule(
     },
     toolchains = [
         str(Label("//rust:toolchain_type")),
+        config_common.toolchain_type(rust_common.rustdoc_toolchain_type, mandatory = False),
     ] + use_cc_toolchain(mandatory = False),
 )

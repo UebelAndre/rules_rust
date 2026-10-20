@@ -380,6 +380,7 @@ rust_doc_test = rule(
     fragments = ["cpp"],
     toolchains = [
         str(Label("//rust:toolchain_type")),
+        config_common.toolchain_type(rust_common.rustdoc_toolchain_type, mandatory = False),
     ] + use_cc_toolchain(mandatory = False),
     doc = dedent("""\
         Runs Rust documentation tests.
