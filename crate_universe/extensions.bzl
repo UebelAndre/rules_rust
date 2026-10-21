@@ -199,6 +199,16 @@ rust_binary(
 Notice, direct dependencies do not need repining.
 Only a cargo workspace needs updating whenever the underlying Cargo.toml file changed.
 
+### License metadata
+
+Every generated crate declares its identity and license as Bazel `package_metadata` through
+[rules_license](https://github.com/bazelbuild/rules_license): a `package_info` with the crate's
+name, version, URL and `purl`, and a `license` with the SPDX kinds of its license expression and
+its license text when it ships one. Tools which gather metadata over a dependency graph, such as
+SBOM generators, see them without configuration. Each hub subpackage aliases both next to the
+crate, so `@crates//serde:license` and `@crates//serde:package_info` name serde's.
+`render_config(generate_rules_license_metadata = False)` turns this off.
+
 ### Binary Dependencies
 
 A crate which ships only binaries, `bindgen-cli` or `cargo-machete` for example, is declared
@@ -489,6 +499,23 @@ def _annotations_for_repo(global_annotations, module_annotations, repo_specific_
             _get_or_insert(annotations, crate, []).extend(values)
     return annotations
 
+# Defaults the extension sets differently from `render_config()`. Generated BUILD
+# files resolve `@rules_license` through rules_rust's own repository mapping, so
+# license metadata costs the module nothing. `crates_vendor` output lives in the
+# module's workspace, which would need `rules_license` as a dependency, so it
+# keeps opting in.
+_EXTENSION_RENDER_DEFAULTS = {
+    "generate_rules_license_metadata": True,
+}
+
+def _render_defaults():
+    """The render settings of an extension hub before any `render_config` tag.
+
+    Returns:
+        dict: `render_config()`'s values with `_EXTENSION_RENDER_DEFAULTS` applied.
+    """
+    return json.decode(generate_render_config()) | _EXTENSION_RENDER_DEFAULTS
+
 def _collect_render_config(module, repository):
     """Collect the render_config for the given crate_universe module.
 
@@ -538,7 +565,7 @@ def _collect_render_config(module, repository):
         config = json.decode(generate_render_config(**config_kwargs))
 
     if not config:
-        config = json.decode(generate_render_config())
+        config = _render_defaults()
 
     if not config["regen_command"]:
         config["regen_command"] = "bazel mod show_repo '{}'".format(module.name)
@@ -1936,8 +1963,13 @@ can be found below where the supported keys for each template can be found in th
             default = True,
         ),
         "generate_rules_license_metadata": attr.bool(
-            doc = "Whether to generate rules license metadata.",
-            default = False,
+            doc = (
+                "Whether every crate's BUILD file declares its identity and license as `package_metadata`: " +
+                "a rules_license `package_info` (name, version, URL, purl) and, when the crate declares a " +
+                "license, a `license` with the SPDX kinds rules_license knows and the license text. Each hub " +
+                "subpackage aliases them as `@<hub>//<crate>:package_info` and `@<hub>//<crate>:license`."
+            ),
+            default = True,
         ),
         "generate_target_compatible_with": attr.bool(
             doc = "Whether to generate `target_compatible_with` annotations on the generated BUILD files.  This catches a `target_triple` being targeted that isn't declared in `supported_platform_triples`.",
