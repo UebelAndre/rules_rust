@@ -61,7 +61,7 @@ flowchart LR
 | `BUILD.bazel` | `exports_files` for the module files and a `:srcs` filegroup. No targets of its own: `@hub//:name` does not exist, `@hub//name` does. |
 | `crates.bzl` | The dependency macros, `aliases()`, `all_crate_deps()`, `crate_deps()` and `crate_edition()`, keyed by the workspace member calling them, and `crate_repositories()`, which declares the crate repositories for `crates_repository` and `crates_vendor`. The extension declares them itself. |
 | `defs.bzl` | Deprecated. Re-exports the macros of `crates.bzl`. |
-| `<crate>/BUILD.bazel` | One subpackage per crate a workspace member depends on, holding an `alias` to the crate's library target in its pooled repository. `aliases()` renames resolve through these. |
+| `<crate>/BUILD.bazel` | One subpackage per crate a workspace member depends on, holding an `alias` to the crate's library target in its pooled repository, plus aliases to its `package_info` and `license` targets. `aliases()` renames resolve through these. |
 | `<crate>__<bin>/BUILD.bazel` | One subpackage per binary of a crate with `gen_binaries`, aliasing the `rust_binary`. |
 
 ## A pooled crate repository
@@ -78,7 +78,9 @@ hubs disagree, which means the closure hash is missing an input. It holds:
 - `cargo_build_script` and the `build_script_build` target when the crate has a
   build script, plus the `links` dependencies it needs;
 - `rust_binary` targets when binaries are requested;
-- `cargo_toml_env_vars` when enabled, so `CARGO_PKG_*` match the manifest.
+- `cargo_toml_env_vars` when enabled, so `CARGO_PKG_*` match the manifest;
+- `package_info` and, when the crate declares one, `license`, set as the
+  `package_metadata` of every target.
 
 The repository rule follows the crate's source. Registry crates and git
 dependencies hosted on GitHub are `http_archive`s, the latter of the pinned
