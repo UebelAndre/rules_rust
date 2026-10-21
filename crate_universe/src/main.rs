@@ -51,5 +51,9 @@ fn main() -> cli::Result<()> {
             cli::init_logging("RustcCfgs", level);
             cli::rustc_cfgs(opt)
         }
+        cli::Options::SpdxLicenseKinds(opt) => {
+            cli::init_logging("SpdxLicenseKinds", level);
+            cli::spdx_license_kinds(opt)
+        }
     }
 }

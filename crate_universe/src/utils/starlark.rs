@@ -62,6 +62,8 @@ pub(crate) struct PackageInfo {
     pub(crate) package_name: String,
     pub(crate) package_url: String,
     pub(crate) package_version: String,
+    /// The package URL (`pkg:cargo/<name>@<version>`), as SBOM tools identify it.
+    pub(crate) purl: String,
 }
 
 pub(crate) struct License {
