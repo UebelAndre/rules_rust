@@ -82,6 +82,31 @@ source_installer(
     input = ":rustc_cfgs_generated",
 )
 
+# The SPDX `license_kind`s rules_license declares, recorded so rendered crate
+# licenses only name kinds that exist. The diff test fails when a rules_license
+# update changes the set; run the installer to update.
+genrule(
+    name = "spdx_license_kinds_generated",
+    srcs = ["@rules_license//licenses/spdx:BUILD"],
+    outs = ["spdx_license_kinds.generated.json"],
+    cmd = "$(execpath :cargo_bazel_bin) spdx-license-kinds --build-file $(execpath @rules_license//licenses/spdx:BUILD) --output $@",
+    cmd_bat = "$(execpath :cargo_bazel_bin) spdx-license-kinds --build-file $(execpath @rules_license//licenses/spdx:BUILD) --output $@",
+    tools = [":cargo_bazel_bin"],
+)
+
+diff_test(
+    name = "spdx_license_kinds_diff_test",
+    failure_message = "The recorded SPDX license kinds are out of date. Run `bazel run //crate_universe:spdx_license_kinds.install`.",
+    file1 = "src/rendering/spdx_license_kinds.json",
+    file2 = ":spdx_license_kinds_generated",
+)
+
+source_installer(
+    name = "spdx_license_kinds.install",
+    dest = "src/rendering/spdx_license_kinds.json",
+    input = ":spdx_license_kinds_generated",
+)
+
 filegroup(
     name = "rust_srcs",
     srcs = glob([

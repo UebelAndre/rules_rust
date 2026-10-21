@@ -188,7 +188,7 @@ fn default_generate_target_compatible_with() -> bool {
 }
 
 fn default_generate_rules_license_metadata() -> bool {
-    false
+    true
 }
 
 /// A representation of some Git identifier used to represent the "revision" or "pin" of a checkout.

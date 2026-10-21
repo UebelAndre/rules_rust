@@ -5,6 +5,7 @@ mod pool;
 mod query;
 mod render;
 mod rustc_cfgs;
+mod spdx_license_kinds;
 mod splice;
 mod vendor;
 
@@ -31,6 +32,7 @@ pub use pool::pool;
 pub use query::query;
 pub use render::render;
 pub use rustc_cfgs::{rustc_cfgs, RustcCfgsOptions};
+pub use spdx_license_kinds::{spdx_license_kinds, SpdxLicenseKindsOptions};
 
 /// Answers as `rustc` when Cargo, run by cargo-bazel, asks; see
 /// [crate::metadata::rustc_shim].
@@ -66,6 +68,10 @@ pub enum Options {
     /// Record `rustc --print=cfg` for the supported platforms (maintenance of `rules_rust` itself).
     #[clap(hide = true)]
     RustcCfgs(RustcCfgsOptions),
+
+    /// Record the SPDX `license_kind`s rules_license declares (maintenance of `rules_rust` itself).
+    #[clap(hide = true)]
+    SpdxLicenseKinds(SpdxLicenseKindsOptions),
 }
 
 // Convenience wrappers to avoid dependencies in the binary
@@ -75,7 +81,7 @@ pub fn parse_args() -> Options {
     Options::parse()
 }
 
-const EXPECTED_LOGGER_NAMES: [&str; 7] = [
+const EXPECTED_LOGGER_NAMES: [&str; 8] = [
     "Generate",
     "Splice",
     "Query",
@@ -83,6 +89,7 @@ const EXPECTED_LOGGER_NAMES: [&str; 7] = [
     "Render",
     "Pool",
     "RustcCfgs",
+    "SpdxLicenseKinds",
 ];
 
 /// A wrapper for the tracing-subscriber default [FormatEvent]
