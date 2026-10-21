@@ -147,7 +147,11 @@ def render_config(
             keys are [`{triple}`].
         regen_command (str, optional): An optional command to demonstrate how generated files should be regenerated.
         vendor_mode (str, optional): An optional configuration for rendirng content to be rendered into repositories.
-        generate_rules_license_metadata (bool, optional): Whether to generate rules license metadata
+        generate_rules_license_metadata (bool, optional): Whether every crate's BUILD file declares its
+            identity and license as `package_metadata` (rules_license `package_info` and `license`
+            targets). Off here because vendored BUILD files live in the vendoring module, which must then
+            depend on `rules_license`; the `crate` module extension turns it on, since the repositories it
+            generates resolve `@rules_license` through rules_rust.
 
     Returns:
         string: A json encoded struct to match the Rust `config::RenderConfig` struct

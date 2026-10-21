@@ -30,10 +30,45 @@ use crate::utils::{self, sanitize_repository_name};
 // to platform labels like "@rules_rust//rust/platform:x86_64-unknown-linux-gnu".
 pub(crate) type Platforms = BTreeMap<String, BTreeSet<String>>;
 
+/// The `license_kind` targets `@rules_license//licenses/spdx` declares, by
+/// SPDX identifier. Recorded in `spdx_license_kinds.json` for the rules_license
+/// `rules_rust` depends on; `//crate_universe:spdx_license_kinds_diff_test`
+/// fails when a rules_license update changes the set. A crate license outside
+/// this set is still recorded by its `license` target, just without a kind.
+fn known_license_kinds() -> &'static BTreeSet<String> {
+    static KINDS: std::sync::OnceLock<BTreeSet<String>> = std::sync::OnceLock::new();
+    KINDS.get_or_init(|| {
+        serde_json::from_str(include_str!("rendering/spdx_license_kinds.json"))
+            .expect("the recorded SPDX license kinds are valid")
+    })
+}
+
+/// The label of a crate's license text within its own package, when the file
+/// Cargo names (or the `LICENSE*` file found next to the manifest) lies inside
+/// the package. Anything else cannot be a label there and is left out.
+fn license_text_label(license_file: Option<&str>) -> Option<String> {
+    let file = license_file?;
+    let path = std::path::Path::new(file);
+    let inside = !path.is_absolute()
+        && path
+            .components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)));
+    inside.then(|| file.to_owned())
+}
+
+/// Whether a crate gets a `license` target: it declared a license expression
+/// or a license file.
+fn has_license_target(krate: &CrateContext) -> bool {
+    krate.license.is_some() || !krate.license_ids.is_empty() || krate.license_file.is_some()
+}
+
 /// A single hub alias — the `alias()` target and the `alias_rule` it uses.
 struct HubAlias {
     alias_rule: AliasRule,
     alias: Alias,
+    /// Aliases for the crate's `package_info` and `license` targets, rendered
+    /// next to `alias` so `@<hub>//<name>:license` names the crate's license.
+    metadata: Vec<Alias>,
 }
 
 /// Every top-level alias the hub repository would emit, split by source so
@@ -263,6 +298,9 @@ impl Renderer {
                 BTreeSet::new(),
             )));
             starlark.push(Starlark::Alias(entry.alias.clone()));
+            for alias in &entry.metadata {
+                starlark.push(Starlark::Alias(alias.clone()));
+            }
 
             let subpackage_label = render_module_label(
                 &self.config.crates_module_template,
@@ -366,6 +404,29 @@ impl Renderer {
     /// Collect every alias the hub repository would emit (workspace member
     /// deps, version-disambiguated, renames, `extra_aliased_targets`, and
     /// binary aliases).
+    /// The `package_info` and `license` aliases of a crate's hub subpackage,
+    /// when license metadata is rendered. `alias_name` is the subpackage's own
+    /// alias; a crate named like a metadata target keeps its own alias.
+    fn metadata_aliases(&self, krate: &CrateContext, alias_name: &str) -> Vec<Alias> {
+        if !self.config.generate_rules_license_metadata || self.root_aliases() {
+            return Vec::new();
+        }
+        let mut targets = vec!["package_info"];
+        if has_license_target(krate) {
+            targets.push("license");
+        }
+        targets
+            .into_iter()
+            .filter(|target| *target != alias_name)
+            .map(|target| Alias {
+                rule: AliasRule::default().rule(),
+                name: target.to_owned(),
+                actual: self.crate_label(&krate.name, &krate.version.to_string(), target),
+                tags: BTreeSet::from(["manual".to_owned()]),
+            })
+            .collect()
+    }
+
     fn collect_hub_aliases(&self, context: &Context) -> Result<HubAliases> {
         let mut workspace_member = Vec::new();
 
@@ -392,11 +453,13 @@ impl Renderer {
                     || !context.has_duplicate_workspace_member_dep_by_version(&dep);
 
                 if add_primary_alias {
+                    let name = format!("{}-{}", krate.name, krate.version);
                     workspace_member.push(HubAlias {
                         alias_rule: alias_rule.clone(),
+                        metadata: self.metadata_aliases(krate, &name),
                         alias: Alias {
                             rule: alias_rule.rule(),
-                            name: format!("{}-{}", krate.name, krate.version),
+                            name,
                             actual: self.crate_label(
                                 &krate.name,
                                 &krate.version.to_string(),
@@ -410,11 +473,13 @@ impl Renderer {
                 let shorthand = if let Some(rename) = dep.alias.as_ref() {
                     // when the alias is the same as the crate name, don't create the alias
                     if krate.name != *rename {
+                        let name = format!("{}-{}", rename, krate.version);
                         workspace_member.push(HubAlias {
                             alias_rule: alias_rule.clone(),
+                            metadata: self.metadata_aliases(krate, &name),
                             alias: Alias {
                                 rule: alias_rule.rule(),
-                                name: format!("{}-{}", rename, krate.version),
+                                name,
                                 actual: self.crate_label(
                                     &krate.name,
                                     &krate.version.to_string(),
@@ -435,6 +500,7 @@ impl Renderer {
                 if !context.has_duplicate_workspace_member_dep_by_alias(&dep) {
                     workspace_member.push(HubAlias {
                         alias_rule: alias_rule.clone(),
+                        metadata: self.metadata_aliases(krate, shorthand),
                         alias: Alias {
                             rule: alias_rule.rule(),
                             name: shorthand.clone(),
@@ -452,6 +518,7 @@ impl Renderer {
             for (alias, target) in &krate.extra_aliased_targets {
                 workspace_member.push(HubAlias {
                     alias_rule: alias_rule.clone(),
+                    metadata: self.metadata_aliases(krate, alias),
                     alias: Alias {
                         rule: alias_rule.rule(),
                         name: alias.clone(),
@@ -467,16 +534,18 @@ impl Renderer {
             let krate = &context.crates[crate_id];
             for rule in &krate.targets {
                 if let Rule::Binary(bin) = rule {
+                    // If duplicates exist, include version to disambiguate them.
+                    let name = if context.has_duplicate_binary_crate(crate_id) {
+                        format!("{}-{}__{}", krate.name, krate.version, bin.crate_name)
+                    } else {
+                        format!("{}__{}", krate.name, bin.crate_name)
+                    };
                     binaries.push(HubAlias {
                         alias_rule: AliasRule::default(),
+                        metadata: self.metadata_aliases(krate, &name),
                         alias: Alias {
                             rule: AliasRule::default().rule(),
-                            // If duplicates exist, include version to disambiguate them.
-                            name: if context.has_duplicate_binary_crate(crate_id) {
-                                format!("{}-{}__{}", krate.name, krate.version, bin.crate_name)
-                            } else {
-                                format!("{}__{}", krate.name, bin.crate_name)
-                            },
+                            name,
                             actual: self.crate_label(
                                 &krate.name,
                                 &krate.version.to_string(),
@@ -590,7 +659,9 @@ impl Renderer {
         }));
 
         if self.config.generate_rules_license_metadata {
-            let has_license_ids = !krate.license_ids.is_empty();
+            // Every target of the package carries the crate's identity, and its
+            // license when it declares one, as `package_metadata`.
+            let has_license = has_license_target(&krate);
             let mut package_metadata = BTreeSet::from([Label::Relative {
                 target: "package_info".to_owned(),
             }]);
@@ -600,7 +671,7 @@ impl Renderer {
                 items: BTreeSet::from(["package_info".to_owned()]),
             }));
 
-            if has_license_ids {
+            if has_license {
                 starlark.push(Starlark::Load(Load {
                     bzl: "@rules_license//rules:license.bzl".to_owned(),
                     items: BTreeSet::from(["license".to_owned()]),
@@ -618,19 +689,24 @@ impl Renderer {
                 package_name: krate.name.clone(),
                 package_url: krate.package_url.clone().unwrap_or_default(),
                 package_version: krate.version.to_string(),
+                purl: format!("pkg:cargo/{}@{}", krate.name, krate.version),
             }));
 
-            if has_license_ids {
-                let mut license_kinds = BTreeSet::new();
-
-                krate.license_ids.clone().into_iter().for_each(|lic| {
-                    license_kinds.insert("@rules_license//licenses/spdx:".to_owned() + &lic);
-                });
+            if has_license {
+                // Kinds for the SPDX identifiers rules_license knows; an
+                // identifier it lacks would be a dangling label.
+                let license_kinds = krate
+                    .license_ids
+                    .iter()
+                    .filter(|id| known_license_kinds().contains(id.as_str()))
+                    .map(|id| format!("@rules_license//licenses/spdx:{id}"))
+                    .collect();
 
                 starlark.push(Starlark::License(starlark::License {
                     name: "license".to_owned(),
                     license_kinds,
-                    license_text: krate.license_file.clone().unwrap_or_default(),
+                    license_text: license_text_label(krate.license_file.as_deref())
+                        .unwrap_or_default(),
                 }));
             }
         } else {
@@ -1271,6 +1347,9 @@ mod test {
             repository_name: "test_rendering".to_owned(),
             regen_command: "cargo_bazel_regen_command".to_owned(),
             vendor_mode,
+            // Off here so the many tests about other content stay focused; the
+            // `crate_package_metadata*` tests turn it on.
+            generate_rules_license_metadata: false,
             ..RenderConfig::default()
         })
     }
@@ -2213,6 +2292,7 @@ mod test {
                 package_name = "mock_crate",
                 package_version = "0.1.0",
                 package_url = "http://www.mock_crate.com/",
+                purl = "pkg:cargo/mock_crate@0.1.0",
             )
         "#};
         assert!(build_file_content
@@ -2272,6 +2352,7 @@ mod test {
                 package_name = "mock_crate",
                 package_version = "0.1.0",
                 package_url = "http://www.mock_crate.com/",
+                purl = "pkg:cargo/mock_crate@0.1.0",
             )
 
             license(
@@ -2339,6 +2420,7 @@ mod test {
                 package_name = "mock_crate",
                 package_version = "0.1.0",
                 package_url = "http://www.mock_crate.com/",
+                purl = "pkg:cargo/mock_crate@0.1.0",
             )
 
             license(
@@ -2353,6 +2435,178 @@ mod test {
         assert!(build_file_content
             .replace(' ', "")
             .contains(&expected.replace(' ', "")));
+    }
+
+    /// A crate context with only what the metadata tests vary.
+    fn metadata_crate(
+        license: Option<&str>,
+        license_ids: &[&str],
+        license_file: Option<&str>,
+    ) -> Context {
+        let mut context = Context::default();
+        let crate_id = CrateId::new("mock_crate".to_owned(), VERSION_ZERO_ONE_ZERO);
+        context.crates.insert(
+            crate_id.clone(),
+            CrateContext {
+                name: crate_id.name,
+                version: crate_id.version,
+                package_url: Some("http://www.mock_crate.com/".to_owned()),
+                license: license.map(str::to_owned),
+                license_ids: license_ids.iter().map(|id| id.to_string()).collect(),
+                license_file: license_file.map(str::to_owned),
+                additive_build_file_content: None,
+                disable_pipelining: false,
+                extra_aliased_targets: BTreeMap::default(),
+                targets: BTreeSet::from([Rule::Library(mock_target_attributes())]),
+                library_target_name: None,
+                common_attrs: CommonAttributes::default(),
+                build_script_attrs: None,
+                repository: None,
+                alias_rule: None,
+                override_targets: BTreeMap::default(),
+                package_metadata: None,
+            },
+        );
+        context
+    }
+
+    fn render_metadata_build_file(context: &Context) -> String {
+        let mut render_config = mock_render_config(None);
+        Arc::get_mut(&mut render_config)
+            .unwrap()
+            .generate_rules_license_metadata = true;
+        let renderer = Renderer::new(render_config, mock_supported_platform_triples());
+        let output = renderer.render(context, None).unwrap();
+        output
+            .get(&PathBuf::from("BUILD.mock_crate-0.1.0.bazel"))
+            .unwrap()
+            .clone()
+    }
+
+    #[test]
+    fn license_metadata_is_the_default() {
+        assert!(RenderConfig::default().generate_rules_license_metadata);
+    }
+
+    #[test]
+    fn crate_package_metadata_skips_unknown_license_kinds() {
+        // `MIPS` is an SPDX identifier rules_license declares no kind for; the
+        // license target still exists, with the kinds that do.
+        let context = metadata_crate(Some("MIT OR MIPS"), &["MIT", "MIPS"], None);
+        let build_file_content = render_metadata_build_file(&context);
+
+        let expected = indoc! {r#"
+            license(
+                name = "license",
+                license_kinds = ["@rules_license//licenses/spdx:MIT"],
+            )
+        "#};
+        assert!(
+            build_file_content
+                .replace(' ', "")
+                .contains(&expected.replace(' ', "")),
+            "{build_file_content}"
+        );
+        assert!(!build_file_content.contains("spdx:MIPS"));
+    }
+
+    #[test]
+    fn crate_package_metadata_without_parsable_license_still_has_a_license_target() {
+        let context = metadata_crate(Some("NonSPDXLicenseID"), &[], Some("LICENSE"));
+        let build_file_content = render_metadata_build_file(&context);
+
+        let expected = indoc! {r#"
+            package(
+                default_package_metadata = [
+                    ":license",
+                    ":package_info",
+                ],
+                default_visibility = ["//visibility:public"],
+            )
+        "#};
+        assert!(
+            build_file_content
+                .replace(' ', "")
+                .contains(&expected.replace(' ', "")),
+            "{build_file_content}"
+        );
+        let expected = indoc! {r#"
+            license(
+                name = "license",
+                license_kinds = [],
+                license_text = "LICENSE",
+            )
+        "#};
+        assert!(
+            build_file_content
+                .replace(' ', "")
+                .contains(&expected.replace(' ', "")),
+            "{build_file_content}"
+        );
+    }
+
+    #[test]
+    fn crate_package_metadata_without_any_license_has_no_license_target() {
+        let context = metadata_crate(None, &[], None);
+        let build_file_content = render_metadata_build_file(&context);
+        assert!(
+            !build_file_content.contains("license("),
+            "{build_file_content}"
+        );
+        assert!(build_file_content.contains(r#"default_package_metadata = [":package_info"]"#));
+    }
+
+    #[test]
+    fn crate_package_metadata_ignores_license_files_outside_the_package() {
+        for outside in ["../LICENSE", "/usr/share/LICENSE"] {
+            let context = metadata_crate(Some("MIT"), &["MIT"], Some(outside));
+            let build_file_content = render_metadata_build_file(&context);
+            assert!(
+                !build_file_content.contains("license_text"),
+                "{outside}: {build_file_content}"
+            );
+            assert!(build_file_content.contains(r#"name = "license""#));
+        }
+    }
+
+    #[test]
+    fn hub_subpackages_alias_the_package_metadata() {
+        let config = Config {
+            generate_binaries: true,
+            ..Config::default()
+        };
+        let annotations = Annotations::new(
+            test::metadata::alias(),
+            &None,
+            test::lockfile::alias(),
+            Utf8Path::new("/tmp/bazelworkspace"),
+        )
+        .unwrap();
+        let context = Context::new(annotations, &BTreeSet::new())
+            .unwrap()
+            .for_rendering(&config)
+            .unwrap();
+
+        let mut render_config = mock_render_config(None);
+        Arc::get_mut(&mut render_config)
+            .unwrap()
+            .generate_rules_license_metadata = true;
+        let renderer = Renderer::new(render_config, mock_supported_platform_triples());
+        let output = renderer.render(&context, None).unwrap();
+
+        let subpackage = output
+            .get(&PathBuf::from("names-0.13.0__names/BUILD.bazel"))
+            .unwrap();
+        for target in ["package_info", "license"] {
+            assert!(
+                subpackage.contains(&format!(r#"name = "{target}","#)),
+                "{subpackage}"
+            );
+        }
+        assert!(
+            subpackage.contains(r#"actual = "@test_rendering__names-0.13.0//:license","#),
+            "{subpackage}"
+        );
     }
 
     #[test]

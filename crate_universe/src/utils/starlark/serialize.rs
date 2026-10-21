@@ -98,6 +98,9 @@ impl Serialize for PackageInfo {
         call.serialize_field("package_name", &self.package_name)?;
         call.serialize_field("package_version", &self.package_version)?;
         call.serialize_field("package_url", &self.package_url)?;
+        if !self.purl.is_empty() {
+            call.serialize_field("purl", &self.purl)?;
+        }
         call.end()
     }
 }
