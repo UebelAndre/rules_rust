@@ -45,5 +45,6 @@ deps = use_extension("//:extensions.bzl", "rust_example")
 use_repo(
     deps,
     "ios_build",
+    "ios_build__cc-1.0.73",
     "ios_build__zstd-0.13.2",
 )

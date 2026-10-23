@@ -318,7 +318,7 @@ _CRATE_EDITIONS = {
 
 _NORMAL_DEPENDENCIES = {
     "": {
-        _COMMON_CONDITION: {
+        "": {
             "serde": Label("@rtra//serde-1.0.229"),
             "serde_json": Label("@rtra//serde_json-1.0.154"),
         },
@@ -326,60 +326,47 @@ _NORMAL_DEPENDENCIES = {
 }
 
 _NORMAL_ALIASES = {
-    "": {
-        _COMMON_CONDITION: {
-        },
-    },
+    "": {},
 }
 
 _NORMAL_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _NORMAL_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _CONDITIONS = {
@@ -452,10 +439,9 @@ def crate_repositories():
     maybe(
         crates_vendor_remote_repository,
         name = "rtra",
-        # Lean interface: just point at `crates.bzl`; the repo rule
-        # derives the sibling `BUILD.bazel` and `defs.bzl`.
         crates_module = Label("//test/rust_analyzer/3rdparty/crates:crates.bzl"),
     )
+
     maybe(
         http_archive,
         name = "rtra__itoa-1.0.18",
