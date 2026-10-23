@@ -1,6 +1,6 @@
 //! Tools for rendering and writing BUILD and other Starlark files
 
-mod template_engine;
+mod crates_module;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -15,7 +15,7 @@ use crate::config::{AliasRule, CrateId, RenderConfig, VendorMode};
 use crate::context::crate_context::{CrateContext, CrateDependency, Rule};
 use crate::context::{Context, TargetAttributes};
 use crate::metadata::SourceAnnotation;
-use crate::rendering::template_engine::TemplateEngine;
+use crate::rendering::crates_module::{render_defs_bzl_shim, render_header, CratesModule};
 use crate::select::Select;
 use crate::splicing::default_splicing_package_crate_id;
 use crate::utils::starlark::{
@@ -154,16 +154,17 @@ impl Renderer {
         include_build_files: bool,
     ) -> Result<RenderedHub> {
         let conditions = Arc::new(context.conditions.clone());
-        let engine = self.create_engine(Arc::clone(&conditions));
 
         let aliases = self.collect_hub_aliases(context)?;
 
         let mut files = BTreeMap::new();
-        let platforms = self.render_platform_labels(conditions);
+        let platforms = self.render_platform_labels(Arc::clone(&conditions));
         if include_build_files {
-            files.extend(self.render_build_files(&engine, context, &platforms)?);
+            files.extend(self.render_build_files(context, &platforms)?);
         }
-        files.extend(self.render_crates_module(&engine, context, &platforms, generator, &aliases)?);
+        files.extend(
+            self.render_crates_module(context, conditions, &platforms, generator, &aliases)?,
+        );
 
         let hub_packages = aliases
             .workspace_member
@@ -176,18 +177,6 @@ impl Renderer {
             files,
             hub_packages,
         })
-    }
-
-    pub(crate) fn create_engine(
-        &self,
-        conditions: Arc<BTreeMap<String, BTreeSet<TargetTriple>>>,
-    ) -> TemplateEngine {
-        TemplateEngine::new(
-            Arc::clone(&self.config),
-            Arc::clone(&self.supported_platform_triples),
-            Arc::clone(&conditions),
-            Arc::clone(&self.pool_repositories),
-        )
     }
 
     pub(crate) fn render_platform_labels(
@@ -215,8 +204,8 @@ impl Renderer {
 
     fn render_crates_module(
         &self,
-        engine: &TemplateEngine,
         context: &Context,
+        conditions: Arc<BTreeMap<String, BTreeSet<TargetTriple>>>,
         platforms: &Platforms,
         generator: Option<Label>,
         aliases: &HubAliases,
@@ -227,15 +216,25 @@ impl Renderer {
             Ok(Renderer::label_to_path(&label))
         };
 
+        let crates_module = CratesModule::new(
+            &self.config,
+            &self.supported_platform_triples,
+            conditions,
+            &self.pool_repositories,
+        );
+
         let mut map = BTreeMap::from([
             (
                 path("crates.bzl")?,
-                engine.render_crates_bzl(context, platforms, generator)?,
+                crates_module.render(context, platforms, generator)?,
             ),
-            (path("defs.bzl")?, engine.render_defs_bzl_shim()?),
+            (
+                path("defs.bzl")?,
+                render_defs_bzl_shim(&self.config.regen_command),
+            ),
             (
                 path("BUILD.bazel")?,
-                self.render_module_build_file(engine, aliases)?,
+                self.render_module_build_file(aliases)?,
             ),
             (
                 path("alias_rules.bzl")?,
@@ -252,7 +251,7 @@ impl Renderer {
         // `<output_pkg>/<name>-<version>/BUILD.bazel` is the vendored crate's own
         // BUILD file.
         if !self.root_aliases() {
-            map.extend(self.render_alias_subpackages(engine, aliases)?);
+            map.extend(self.render_alias_subpackages(aliases)?);
         }
 
         Ok(map)
@@ -269,12 +268,8 @@ impl Renderer {
     /// a single `alias()` (plus any `load()` its `alias_rule` requires) so
     /// that `@<repo>//<alias>` resolves to that alias as the package's
     /// default target.
-    fn render_alias_subpackages(
-        &self,
-        engine: &TemplateEngine,
-        aliases: &HubAliases,
-    ) -> Result<BTreeMap<PathBuf, String>> {
-        let header = engine.render_header()?;
+    fn render_alias_subpackages(&self, aliases: &HubAliases) -> Result<BTreeMap<PathBuf, String>> {
+        let header = render_header(&self.config.regen_command);
 
         let mut map = BTreeMap::new();
         for entry in aliases
@@ -312,15 +307,11 @@ impl Renderer {
         Ok(map)
     }
 
-    fn render_module_build_file(
-        &self,
-        engine: &TemplateEngine,
-        aliases: &HubAliases,
-    ) -> Result<String> {
+    fn render_module_build_file(&self, aliases: &HubAliases) -> Result<String> {
         let mut starlark = Vec::new();
 
         // Banner comment for top of the file.
-        let header = engine.render_header()?;
+        let header = render_header(&self.config.regen_command);
         starlark.push(Starlark::Verbatim(header));
 
         // Load any `alias_rule`s referenced by the hub aliases. Per-alias
@@ -577,7 +568,6 @@ impl Renderer {
 
     fn render_build_files(
         &self,
-        engine: &TemplateEngine,
         context: &Context,
         platforms: &Platforms,
     ) -> Result<BTreeMap<PathBuf, String>> {
@@ -603,7 +593,7 @@ impl Renderer {
                     Some(SourceAnnotation::Path { path }) => path.join("BUILD.bazel").into(),
                     _ => Renderer::label_to_path(&label),
                 };
-                let content = self.render_one_build_file(engine, platforms, &context.crates[id])?;
+                let content = self.render_one_build_file(platforms, &context.crates[id])?;
                 Ok((filename, content))
             })
             .collect()
@@ -611,7 +601,6 @@ impl Renderer {
 
     pub(crate) fn render_one_build_file(
         &self,
-        engine: &TemplateEngine,
         platforms: &Platforms,
         krate: &CrateContext,
     ) -> Result<String> {
@@ -635,7 +624,7 @@ impl Renderer {
         let mut starlark = Vec::new();
 
         // Banner comment for top of the file.
-        let header = engine.render_header()?;
+        let header = render_header(&self.config.regen_command);
         starlark.push(Starlark::Verbatim(header));
 
         // Loads: map of bzl file to set of items imported from that file. These

@@ -23,7 +23,9 @@ use_repo(
     deps,
     "basic_sys",
     "basic_sys__bzip2-0.3.3",
+    "basic_sys__cc-1.0.77",
     "complex_sys",
+    "complex_sys__cc-1.0.77",
     "complex_sys__git2-0.14.4",
     "libgit2",
 )
