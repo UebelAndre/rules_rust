@@ -318,67 +318,54 @@ _CRATE_EDITIONS = {
 
 _NORMAL_DEPENDENCIES = {
     "": {
-        _COMMON_CONDITION: {
+        "": {
             "zstd": Label("@ios_build//zstd-0.13.2"),
         },
     },
 }
 
 _NORMAL_ALIASES = {
-    "": {
-        _COMMON_CONDITION: {
-        },
-    },
+    "": {},
 }
 
 _NORMAL_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _NORMAL_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _CONDITIONS = {
@@ -398,7 +385,43 @@ _CONDITIONS = {
     "arm-unknown-linux-musleabi": ["@rules_rust//rust/platform:arm-unknown-linux-musleabi"],
     "armv7-linux-androideabi": ["@rules_rust//rust/platform:armv7-linux-androideabi"],
     "armv7-unknown-linux-gnueabi": ["@rules_rust//rust/platform:armv7-unknown-linux-gnueabi"],
-    "cfg(unix)": ["@rules_rust//rust/platform:aarch64-apple-darwin", "@rules_rust//rust/platform:aarch64-apple-ios", "@rules_rust//rust/platform:aarch64-apple-ios-macabi", "@rules_rust//rust/platform:aarch64-apple-ios-sim", "@rules_rust//rust/platform:aarch64-linux-android", "@rules_rust//rust/platform:aarch64-unknown-fuchsia", "@rules_rust//rust/platform:aarch64-unknown-linux-gnu", "@rules_rust//rust/platform:aarch64-unknown-nixos-gnu", "@rules_rust//rust/platform:aarch64-unknown-nto-qnx710", "@rules_rust//rust/platform:arm-unknown-linux-gnueabi", "@rules_rust//rust/platform:arm-unknown-linux-musleabi", "@rules_rust//rust/platform:armv7-linux-androideabi", "@rules_rust//rust/platform:armv7-unknown-linux-gnueabi", "@rules_rust//rust/platform:i686-apple-darwin", "@rules_rust//rust/platform:i686-linux-android", "@rules_rust//rust/platform:i686-unknown-freebsd", "@rules_rust//rust/platform:i686-unknown-linux-gnu", "@rules_rust//rust/platform:loongarch64-unknown-linux-gnu", "@rules_rust//rust/platform:mips-unknown-linux-gnu", "@rules_rust//rust/platform:powerpc-unknown-linux-gnu", "@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu", "@rules_rust//rust/platform:s390x-unknown-linux-gnu", "@rules_rust//rust/platform:sparc64-unknown-linux-gnu", "@rules_rust//rust/platform:sparc64-unknown-netbsd", "@rules_rust//rust/platform:sparc64-unknown-openbsd", "@rules_rust//rust/platform:wasm32-unknown-emscripten", "@rules_rust//rust/platform:x86_64-apple-darwin", "@rules_rust//rust/platform:x86_64-apple-ios", "@rules_rust//rust/platform:x86_64-apple-ios-macabi", "@rules_rust//rust/platform:x86_64-linux-android", "@rules_rust//rust/platform:x86_64-unknown-freebsd", "@rules_rust//rust/platform:x86_64-unknown-fuchsia", "@rules_rust//rust/platform:x86_64-unknown-linux-gnu", "@rules_rust//rust/platform:x86_64-unknown-nixos-gnu"],
+    "cfg(unix)": [
+        "@rules_rust//rust/platform:aarch64-apple-darwin",
+        "@rules_rust//rust/platform:aarch64-apple-ios",
+        "@rules_rust//rust/platform:aarch64-apple-ios-macabi",
+        "@rules_rust//rust/platform:aarch64-apple-ios-sim",
+        "@rules_rust//rust/platform:aarch64-linux-android",
+        "@rules_rust//rust/platform:aarch64-unknown-fuchsia",
+        "@rules_rust//rust/platform:aarch64-unknown-linux-gnu",
+        "@rules_rust//rust/platform:aarch64-unknown-nixos-gnu",
+        "@rules_rust//rust/platform:aarch64-unknown-nto-qnx710",
+        "@rules_rust//rust/platform:arm-unknown-linux-gnueabi",
+        "@rules_rust//rust/platform:arm-unknown-linux-musleabi",
+        "@rules_rust//rust/platform:armv7-linux-androideabi",
+        "@rules_rust//rust/platform:armv7-unknown-linux-gnueabi",
+        "@rules_rust//rust/platform:i686-apple-darwin",
+        "@rules_rust//rust/platform:i686-linux-android",
+        "@rules_rust//rust/platform:i686-unknown-freebsd",
+        "@rules_rust//rust/platform:i686-unknown-linux-gnu",
+        "@rules_rust//rust/platform:loongarch64-unknown-linux-gnu",
+        "@rules_rust//rust/platform:mips-unknown-linux-gnu",
+        "@rules_rust//rust/platform:powerpc-unknown-linux-gnu",
+        "@rules_rust//rust/platform:riscv64gc-unknown-fuchsia",
+        "@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu",
+        "@rules_rust//rust/platform:s390x-unknown-linux-gnu",
+        "@rules_rust//rust/platform:sparc64-unknown-linux-gnu",
+        "@rules_rust//rust/platform:sparc64-unknown-netbsd",
+        "@rules_rust//rust/platform:sparc64-unknown-openbsd",
+        "@rules_rust//rust/platform:wasm32-unknown-emscripten",
+        "@rules_rust//rust/platform:x86_64-apple-darwin",
+        "@rules_rust//rust/platform:x86_64-apple-ios",
+        "@rules_rust//rust/platform:x86_64-apple-ios-macabi",
+        "@rules_rust//rust/platform:x86_64-linux-android",
+        "@rules_rust//rust/platform:x86_64-unknown-freebsd",
+        "@rules_rust//rust/platform:x86_64-unknown-fuchsia",
+        "@rules_rust//rust/platform:x86_64-unknown-linux-gnu",
+        "@rules_rust//rust/platform:x86_64-unknown-nixos-gnu",
+    ],
     "i686-apple-darwin": ["@rules_rust//rust/platform:i686-apple-darwin"],
     "i686-linux-android": ["@rules_rust//rust/platform:i686-linux-android"],
     "i686-pc-windows-msvc": ["@rules_rust//rust/platform:i686-pc-windows-msvc"],
@@ -409,6 +432,7 @@ _CONDITIONS = {
     "powerpc-unknown-linux-gnu": ["@rules_rust//rust/platform:powerpc-unknown-linux-gnu"],
     "riscv32imac-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imac-unknown-none-elf"],
     "riscv32imc-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imc-unknown-none-elf"],
+    "riscv64gc-unknown-fuchsia": ["@rules_rust//rust/platform:riscv64gc-unknown-fuchsia"],
     "riscv64gc-unknown-linux-gnu": ["@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu"],
     "riscv64gc-unknown-none-elf": ["@rules_rust//rust/platform:riscv64gc-unknown-none-elf"],
     "s390x-unknown-linux-gnu": ["@rules_rust//rust/platform:s390x-unknown-linux-gnu"],
@@ -450,10 +474,9 @@ def crate_repositories():
     maybe(
         crates_vendor_remote_repository,
         name = "ios_build",
-        # Lean interface: just point at `crates.bzl`; the repo rule
-        # derives the sibling `BUILD.bazel` and `defs.bzl`.
         crates_module = Label("//3rdparty/crates:crates.bzl"),
     )
+
     maybe(
         http_archive,
         name = "ios_build__cc-1.0.73",
@@ -526,5 +549,6 @@ def crate_repositories():
 
     return [
         struct(repo = "ios_build", is_dev_dep = False),
+        struct(repo = "ios_build__cc-1.0.73", is_dev_dep = False),
         struct(repo = "ios_build__zstd-0.13.2", is_dev_dep = False),
     ]

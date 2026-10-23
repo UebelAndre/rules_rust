@@ -318,7 +318,7 @@ _CRATE_EDITIONS = {
 
 _NORMAL_DEPENDENCIES = {
     "tools/rust_analyzer/3rdparty": {
-        _COMMON_CONDITION: {
+        "": {
             "anyhow": Label("@rrra//anyhow-1.0.102"),
             "camino": Label("@rrra//camino-1.2.2"),
             "clap": Label("@rrra//clap-4.6.0"),
@@ -333,60 +333,47 @@ _NORMAL_DEPENDENCIES = {
 }
 
 _NORMAL_ALIASES = {
-    "tools/rust_analyzer/3rdparty": {
-        _COMMON_CONDITION: {
-        },
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _NORMAL_DEV_DEPENDENCIES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _NORMAL_DEV_ALIASES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _PROC_MACRO_DEPENDENCIES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _PROC_MACRO_ALIASES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _PROC_MACRO_DEV_DEPENDENCIES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _PROC_MACRO_DEV_ALIASES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _BUILD_DEPENDENCIES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _BUILD_ALIASES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _BUILD_PROC_MACRO_DEPENDENCIES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _BUILD_PROC_MACRO_ALIASES = {
-    "tools/rust_analyzer/3rdparty": {
-    },
+    "tools/rust_analyzer/3rdparty": {},
 }
 
 _CONDITIONS = {
@@ -407,8 +394,15 @@ _CONDITIONS = {
     "armv7-linux-androideabi": ["@rules_rust//rust/platform:armv7-linux-androideabi"],
     "armv7-unknown-linux-gnueabi": ["@rules_rust//rust/platform:armv7-unknown-linux-gnueabi"],
     "cfg(any())": [],
-    "cfg(not(target_has_atomic = \"ptr\"))": ["@rules_rust//rust/platform:riscv32imc-unknown-none-elf", "@rules_rust//rust/platform:thumbv6m-none-eabi"],
-    "cfg(windows)": ["@rules_rust//rust/platform:aarch64-pc-windows-msvc", "@rules_rust//rust/platform:i686-pc-windows-msvc", "@rules_rust//rust/platform:x86_64-pc-windows-msvc"],
+    "cfg(not(target_has_atomic = \"ptr\"))": [
+        "@rules_rust//rust/platform:riscv32imc-unknown-none-elf",
+        "@rules_rust//rust/platform:thumbv6m-none-eabi",
+    ],
+    "cfg(windows)": [
+        "@rules_rust//rust/platform:aarch64-pc-windows-msvc",
+        "@rules_rust//rust/platform:i686-pc-windows-msvc",
+        "@rules_rust//rust/platform:x86_64-pc-windows-msvc",
+    ],
     "i686-apple-darwin": ["@rules_rust//rust/platform:i686-apple-darwin"],
     "i686-linux-android": ["@rules_rust//rust/platform:i686-linux-android"],
     "i686-pc-windows-msvc": ["@rules_rust//rust/platform:i686-pc-windows-msvc"],
@@ -419,6 +413,7 @@ _CONDITIONS = {
     "powerpc-unknown-linux-gnu": ["@rules_rust//rust/platform:powerpc-unknown-linux-gnu"],
     "riscv32imac-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imac-unknown-none-elf"],
     "riscv32imc-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imc-unknown-none-elf"],
+    "riscv64gc-unknown-fuchsia": ["@rules_rust//rust/platform:riscv64gc-unknown-fuchsia"],
     "riscv64gc-unknown-linux-gnu": ["@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu"],
     "riscv64gc-unknown-none-elf": ["@rules_rust//rust/platform:riscv64gc-unknown-none-elf"],
     "s390x-unknown-linux-gnu": ["@rules_rust//rust/platform:s390x-unknown-linux-gnu"],
@@ -460,10 +455,9 @@ def crate_repositories():
     maybe(
         crates_vendor_remote_repository,
         name = "rrra",
-        # Lean interface: just point at `crates.bzl`; the repo rule
-        # derives the sibling `BUILD.bazel` and `defs.bzl`.
         crates_module = Label("//tools/rust_analyzer/3rdparty/crates:crates.bzl"),
     )
+
     maybe(
         http_archive,
         name = "rrra__aho-corasick-1.1.4",

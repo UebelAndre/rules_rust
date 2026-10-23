@@ -936,7 +936,7 @@ def _generate_pool(module_ctx, cargo_bazel_fn, hubs):
         build_file_content = module_ctx.read(pool_dir.get_child(repo["build_file"]))
         source = repo["repository"]
         if "Http" in source:
-            # Replicates functionality in repo_http.j2.
+            # Replicates the `http_archive` `crate_repositories()` renders.
             source = source["Http"]
             http_archive(
                 name = repo_name,
@@ -951,7 +951,7 @@ def _generate_pool(module_ctx, cargo_bazel_fn, hubs):
                 build_file_content = build_file_content,
             )
         elif "Git" in source:
-            # Replicates functionality in repo_git.j2
+            # Replicates the `git_repository` `crate_repositories()` renders.
             source = source["Git"]
             kwargs = {}
             for k, v in source["commitish"].items():

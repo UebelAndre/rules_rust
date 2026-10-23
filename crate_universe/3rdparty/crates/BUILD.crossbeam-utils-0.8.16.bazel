@@ -39,7 +39,6 @@ rust_library(
         ],
     ),
     crate_features = [
-        "default",
         "std",
     ],
     crate_root = "src/lib.rs",
@@ -84,6 +83,7 @@ rust_library(
         "@rules_rust//rust/platform:powerpc-unknown-linux-gnu": [],
         "@rules_rust//rust/platform:riscv32imac-unknown-none-elf": [],
         "@rules_rust//rust/platform:riscv32imc-unknown-none-elf": [],
+        "@rules_rust//rust/platform:riscv64gc-unknown-fuchsia": [],
         "@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu": [],
         "@rules_rust//rust/platform:riscv64gc-unknown-none-elf": [],
         "@rules_rust//rust/platform:s390x-unknown-linux-gnu": [],
@@ -144,7 +144,6 @@ cargo_build_script(
         ],
     ),
     crate_features = [
-        "default",
         "std",
     ],
     crate_name = "build_script_build",

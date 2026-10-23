@@ -113,7 +113,6 @@ pub fn pool(opt: PoolOptions) -> Result<()> {
             Arc::clone(&pool_repositories),
         );
         let platforms = pool_renderer.render_platform_labels(Arc::clone(&conditions));
-        let engine = pool_renderer.create_engine(Arc::clone(&conditions));
         for (id, krate) in &context.crates {
             let Some(repository) = &krate.repository else {
                 continue;
@@ -123,7 +122,7 @@ pub fn pool(opt: PoolOptions) -> Result<()> {
                 .join(repository_name)
                 .join("BUILD.bazel");
             let content = pool_renderer
-                .render_one_build_file(&engine, &platforms, krate)
+                .render_one_build_file(&platforms, krate)
                 .with_context(|| format!("Failed to render the BUILD file of `{id}`"))?;
 
             match outputs.get(&build_file) {

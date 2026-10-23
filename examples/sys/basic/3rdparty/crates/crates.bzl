@@ -318,67 +318,54 @@ _CRATE_EDITIONS = {
 
 _NORMAL_DEPENDENCIES = {
     "": {
-        _COMMON_CONDITION: {
+        "": {
             "bzip2": Label("@basic_sys//bzip2-0.3.3"),
         },
     },
 }
 
 _NORMAL_ALIASES = {
-    "": {
-        _COMMON_CONDITION: {
-        },
-    },
+    "": {},
 }
 
 _NORMAL_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _NORMAL_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _CONDITIONS = {
@@ -408,6 +395,7 @@ _CONDITIONS = {
     "powerpc-unknown-linux-gnu": ["@rules_rust//rust/platform:powerpc-unknown-linux-gnu"],
     "riscv32imac-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imac-unknown-none-elf"],
     "riscv32imc-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imc-unknown-none-elf"],
+    "riscv64gc-unknown-fuchsia": ["@rules_rust//rust/platform:riscv64gc-unknown-fuchsia"],
     "riscv64gc-unknown-linux-gnu": ["@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu"],
     "riscv64gc-unknown-none-elf": ["@rules_rust//rust/platform:riscv64gc-unknown-none-elf"],
     "s390x-unknown-linux-gnu": ["@rules_rust//rust/platform:s390x-unknown-linux-gnu"],
@@ -449,10 +437,9 @@ def crate_repositories():
     maybe(
         crates_vendor_remote_repository,
         name = "basic_sys",
-        # Lean interface: just point at `crates.bzl`; the repo rule
-        # derives the sibling `BUILD.bazel` and `defs.bzl`.
         crates_module = Label("//basic/3rdparty/crates:crates.bzl"),
     )
+
     maybe(
         http_archive,
         name = "basic_sys__bzip2-0.3.3",
@@ -506,4 +493,5 @@ def crate_repositories():
     return [
         struct(repo = "basic_sys", is_dev_dep = False),
         struct(repo = "basic_sys__bzip2-0.3.3", is_dev_dep = False),
+        struct(repo = "basic_sys__cc-1.0.77", is_dev_dep = False),
     ]
