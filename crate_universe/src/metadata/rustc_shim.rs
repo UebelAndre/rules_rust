@@ -12,7 +12,6 @@
 //! being run and the `cfg` values from [rustc_cfgs](super::rustc_cfgs). An
 //! unknown `--print` is an error, so a change to Cargo's probe fails loudly.
 
-use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -320,6 +319,8 @@ pub fn run() -> Option<Result<()>> {
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeMap;
+
     use super::*;
 
     fn shim() -> RustcShim {

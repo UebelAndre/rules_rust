@@ -318,67 +318,54 @@ _CRATE_EDITIONS = {
 
 _NORMAL_DEPENDENCIES = {
     "third-party-in-workspace": {
-        _COMMON_CONDITION: {
+        "": {
             "anyhow": Label("@vendor//anyhow-1.0.77"),
         },
     },
 }
 
 _NORMAL_ALIASES = {
-    "third-party-in-workspace": {
-        _COMMON_CONDITION: {
-        },
-    },
+    "third-party-in-workspace": {},
 }
 
 _NORMAL_DEV_DEPENDENCIES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _NORMAL_DEV_ALIASES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _PROC_MACRO_DEPENDENCIES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _PROC_MACRO_ALIASES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _PROC_MACRO_DEV_DEPENDENCIES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _PROC_MACRO_DEV_ALIASES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _BUILD_DEPENDENCIES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _BUILD_ALIASES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _BUILD_PROC_MACRO_DEPENDENCIES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _BUILD_PROC_MACRO_ALIASES = {
-    "third-party-in-workspace": {
-    },
+    "third-party-in-workspace": {},
 }
 
 _CONDITIONS = {
@@ -408,6 +395,7 @@ _CONDITIONS = {
     "powerpc-unknown-linux-gnu": ["@rules_rust//rust/platform:powerpc-unknown-linux-gnu"],
     "riscv32imac-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imac-unknown-none-elf"],
     "riscv32imc-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imc-unknown-none-elf"],
+    "riscv64gc-unknown-fuchsia": ["@rules_rust//rust/platform:riscv64gc-unknown-fuchsia"],
     "riscv64gc-unknown-linux-gnu": ["@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu"],
     "riscv64gc-unknown-none-elf": ["@rules_rust//rust/platform:riscv64gc-unknown-none-elf"],
     "s390x-unknown-linux-gnu": ["@rules_rust//rust/platform:s390x-unknown-linux-gnu"],
@@ -449,10 +437,9 @@ def crate_repositories():
     maybe(
         crates_vendor_remote_repository,
         name = "vendor",
-        # Lean interface: just point at `crates.bzl`; the repo rule
-        # derives the sibling `BUILD.bazel` and `defs.bzl`.
         crates_module = Label("//third-party-in-workspace/crates:crates.bzl"),
     )
+
     maybe(
         http_archive,
         name = "vendor__anyhow-1.0.77",

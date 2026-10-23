@@ -5,7 +5,6 @@ use anyhow::{Context, Result};
 use clap::Parser;
 
 use std::path::PathBuf;
-use std::sync::Arc;
 
 #[derive(Parser, Debug)]
 #[clap(about = "Command line options for the `render` subcommand", version)]
@@ -36,10 +35,9 @@ pub fn render(opt: RenderOptions) -> Result<()> {
 
     let renderer =
         Renderer::with_pool_repositories(config, supported_platform_triples, pool_repositories);
-    let platforms = renderer.render_platform_labels(Arc::clone(&platform_conditions));
-    let engine = renderer.create_engine(platform_conditions);
+    let platforms = renderer.render_platform_labels(platform_conditions);
     let output = renderer
-        .render_one_build_file(&engine, &platforms, &crate_context)
+        .render_one_build_file(&platforms, &crate_context)
         .with_context(|| {
             format!(
                 "Failed to render BUILD.bazel file for crate {}",

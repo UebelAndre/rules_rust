@@ -14,7 +14,6 @@ load(
 exports_files(
     glob([
         "src/**/*.bzl",
-        "src/**/*.j2",
         "src/**/*.rs",
     ]) + [
         "Cargo.toml",
@@ -49,7 +48,6 @@ filegroup(
     name = "rust_data",
     srcs = glob([
         "src/**/*.bzl",
-        "src/**/*.j2",
         "src/**/*.json",
     ]),
 )
