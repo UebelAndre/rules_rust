@@ -43,4 +43,5 @@ use_repo(
     deps,
     "basic",
     "basic__bzip2-0.3.3",
+    "basic__cc-1.0.77",
 )

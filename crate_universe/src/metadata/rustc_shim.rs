@@ -17,7 +17,6 @@
 //! in the order Cargo asks, and an unknown `--print` is an error rather than
 //! a guess, so a change to Cargo's probe fails loudly.
 
-use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -325,6 +324,8 @@ pub fn run() -> Option<Result<()>> {
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeMap;
+
     use super::*;
 
     fn shim() -> RustcShim {

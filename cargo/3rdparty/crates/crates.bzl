@@ -319,12 +319,12 @@ _CRATE_EDITIONS = {
 
 _NORMAL_DEPENDENCIES = {
     "cargo/private/cargo_toml_info": {
-        _COMMON_CONDITION: {
+        "": {
             "cargo_toml": Label("@rrc//cargo_toml-0.22.3"),
         },
     },
     "cargo/private/cargo_toml_variable_extractor": {
-        _COMMON_CONDITION: {
+        "": {
             "cargo-util-schemas": Label("@rrc//cargo-util-schemas-0.3.1"),
             "pathdiff": Label("@rrc//pathdiff-0.1.0"),
             "semver": Label("@rrc//semver-1.0.25"),
@@ -334,84 +334,58 @@ _NORMAL_DEPENDENCIES = {
 }
 
 _NORMAL_ALIASES = {
-    "cargo/private/cargo_toml_info": {
-        _COMMON_CONDITION: {
-        },
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-        _COMMON_CONDITION: {
-        },
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _NORMAL_DEV_DEPENDENCIES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _NORMAL_DEV_ALIASES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _PROC_MACRO_DEPENDENCIES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _PROC_MACRO_ALIASES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _PROC_MACRO_DEV_DEPENDENCIES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _PROC_MACRO_DEV_ALIASES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _BUILD_DEPENDENCIES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _BUILD_ALIASES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _BUILD_PROC_MACRO_DEPENDENCIES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _BUILD_PROC_MACRO_ALIASES = {
-    "cargo/private/cargo_toml_info": {
-    },
-    "cargo/private/cargo_toml_variable_extractor": {
-    },
+    "cargo/private/cargo_toml_info": {},
+    "cargo/private/cargo_toml_variable_extractor": {},
 }
 
 _CONDITIONS = {
@@ -484,10 +458,9 @@ def crate_repositories():
     maybe(
         crates_vendor_remote_repository,
         name = "rrc",
-        # Lean interface: just point at `crates.bzl`; the repo rule
-        # derives the sibling `BUILD.bazel` and `defs.bzl`.
         crates_module = Label("//cargo/3rdparty/crates:crates.bzl"),
     )
+
     maybe(
         http_archive,
         name = "rrc__autocfg-1.5.0",

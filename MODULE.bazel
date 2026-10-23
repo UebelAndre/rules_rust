@@ -150,7 +150,6 @@ use_repo(
     "cui__spdx-0.10.8",
     "cui__target-spec-3.7.0",
     "cui__tempfile-3.19.1",
-    "cui__tera-1.20.0",
     "cui__textwrap-0.16.2",
     "cui__toml-0.9.5",
     "cui__tracing-0.1.41",

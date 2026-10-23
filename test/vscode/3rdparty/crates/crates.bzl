@@ -318,7 +318,7 @@ _CRATE_EDITIONS = {
 
 _NORMAL_DEPENDENCIES = {
     "": {
-        _COMMON_CONDITION: {
+        "": {
             "serde": Label("@rtvsc//serde-1.0.229"),
             "serde_json": Label("@rtvsc//serde_json-1.0.154"),
         },
@@ -326,60 +326,47 @@ _NORMAL_DEPENDENCIES = {
 }
 
 _NORMAL_ALIASES = {
-    "": {
-        _COMMON_CONDITION: {
-        },
-    },
+    "": {},
 }
 
 _NORMAL_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _NORMAL_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _PROC_MACRO_DEV_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_DEPENDENCIES = {
-    "": {
-    },
+    "": {},
 }
 
 _BUILD_PROC_MACRO_ALIASES = {
-    "": {
-    },
+    "": {},
 }
 
 _CONDITIONS = {
@@ -410,6 +397,7 @@ _CONDITIONS = {
     "powerpc-unknown-linux-gnu": ["@rules_rust//rust/platform:powerpc-unknown-linux-gnu"],
     "riscv32imac-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imac-unknown-none-elf"],
     "riscv32imc-unknown-none-elf": ["@rules_rust//rust/platform:riscv32imc-unknown-none-elf"],
+    "riscv64gc-unknown-fuchsia": ["@rules_rust//rust/platform:riscv64gc-unknown-fuchsia"],
     "riscv64gc-unknown-linux-gnu": ["@rules_rust//rust/platform:riscv64gc-unknown-linux-gnu"],
     "riscv64gc-unknown-none-elf": ["@rules_rust//rust/platform:riscv64gc-unknown-none-elf"],
     "s390x-unknown-linux-gnu": ["@rules_rust//rust/platform:s390x-unknown-linux-gnu"],
@@ -451,10 +439,9 @@ def crate_repositories():
     maybe(
         crates_vendor_remote_repository,
         name = "rtvsc",
-        # Lean interface: just point at `crates.bzl`; the repo rule
-        # derives the sibling `BUILD.bazel` and `defs.bzl`.
         crates_module = Label("//test/vscode/3rdparty/crates:crates.bzl"),
     )
+
     maybe(
         http_archive,
         name = "rtvsc__itoa-1.0.18",
