@@ -3714,6 +3714,7 @@ def crate_repositories():
     return [
         struct(repo = "cui", is_dev_dep = False),
         struct(repo = "cui__anyhow-1.0.104", is_dev_dep = False),
+        struct(repo = "cui__borsh-1.5.3", is_dev_dep = False),
         struct(repo = "cui__camino-1.2.6", is_dev_dep = False),
         struct(repo = "cui__cargo-ext-resolver-0.101.0", is_dev_dep = False),
         struct(repo = "cui__cargo-lock-11.1.0", is_dev_dep = False),

@@ -527,5 +527,6 @@ def crate_repositories():
 
     return [
         struct(repo = "ios_build", is_dev_dep = False),
+        struct(repo = "ios_build__cc-1.0.73", is_dev_dep = False),
         struct(repo = "ios_build__zstd-0.13.2", is_dev_dep = False),
     ]
