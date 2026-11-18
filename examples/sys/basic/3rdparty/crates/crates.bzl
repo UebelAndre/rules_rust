@@ -507,4 +507,5 @@ def crate_repositories():
     return [
         struct(repo = "basic_sys", is_dev_dep = False),
         struct(repo = "basic_sys__bzip2-0.3.3", is_dev_dep = False),
+        struct(repo = "basic_sys__cc-1.0.77", is_dev_dep = False),
     ]

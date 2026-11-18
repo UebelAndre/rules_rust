@@ -422,6 +422,8 @@ _PROC_MACRO_DEPENDENCIES = {
 
 _PROC_MACRO_ALIASES = {
     "crate_universe": {
+        _COMMON_CONDITION: {
+        },
     },
     "crate_universe/tools/cross_installer": {
     },
@@ -440,8 +442,6 @@ _PROC_MACRO_DEV_DEPENDENCIES = {
 
 _PROC_MACRO_DEV_ALIASES = {
     "crate_universe": {
-        _COMMON_CONDITION: {
-        },
     },
     "crate_universe/tools/cross_installer": {
     },
@@ -3714,6 +3714,7 @@ def crate_repositories():
     return [
         struct(repo = "cui", is_dev_dep = False),
         struct(repo = "cui__anyhow-1.0.104", is_dev_dep = False),
+        struct(repo = "cui__borsh-1.5.3", is_dev_dep = False),
         struct(repo = "cui__camino-1.2.6", is_dev_dep = False),
         struct(repo = "cui__cargo-ext-resolver-0.101.0", is_dev_dep = False),
         struct(repo = "cui__cargo-lock-11.1.0", is_dev_dep = False),
