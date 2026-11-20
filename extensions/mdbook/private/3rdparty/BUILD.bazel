@@ -9,8 +9,10 @@ crates_vendor(
     },
     mode = "remote",
     packages = {
+        # `mdbook` ships only a binary since 0.5; `cargo metadata` drops such a
+        # package, and crate_universe puts it back from its source.
         "mdbook": crate.spec(
-            version = "=0.4.44",
+            version = "=0.5.4",
         ),
     },
     # Use a short name to avoid MAX_PATH issues on windows.
