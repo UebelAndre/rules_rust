@@ -326,6 +326,10 @@ pub fn vendor(opt: VendorOptions) -> anyhow::Result<()> {
         .clone()
         .for_rendering(&config)?
         .apply_label_injection_mapping(&config.label_injection_mapping)?;
+    let unused_annotations = render_context.unused_annotations(&config);
+    if !unused_annotations.is_empty() {
+        bail!("Unused annotations were provided. Please remove them: {unused_annotations:?}");
+    }
 
     // Render build files
     let outputs = Renderer::new(

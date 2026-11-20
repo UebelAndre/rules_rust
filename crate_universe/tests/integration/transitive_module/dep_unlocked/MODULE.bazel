@@ -2,7 +2,9 @@
 
 Its consumers resolve both repositories: `dep_unlocked_specs` from its
 requirements alone, `dep_unlocked_cargo` from the `Cargo.lock` next to its
-manifest, which pins `cfg-if` to `1.0.0` behind a `1` requirement.
+manifest, which pins `cfg-if` to `1.0.0` behind a `1` requirement. Its
+`lazy_static` annotation applies to both repositories and matches a crate in
+one, which is enough for it not to be dead.
 """
 
 module(
@@ -23,6 +25,10 @@ use_repo(rust, "rust_toolchains")
 register_toolchains("@rust_toolchains//:all")
 
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.annotation(
+    crate = "lazy_static",
+    rustc_env = {"DEP_UNLOCKED_ANNOTATION": "1"},
+)
 crate.from_specs(
     name = "dep_unlocked_specs",
 )

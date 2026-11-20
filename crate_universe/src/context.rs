@@ -8,11 +8,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::config::label_injection;
-use crate::config::{Config, CrateAnnotations, CrateId, LabelInjectionMapping, RenderConfig};
+use crate::config::{
+    merge_annotations, Config, CrateId, CrateNameAndVersionReq, LabelInjectionMapping,
+    RenderConfig, ScopedAnnotations,
+};
 use crate::context::platforms::resolve_cfg_platforms;
 use crate::lockfile::{Digest, Provenance};
 use crate::metadata::{Annotations, Dependency};
@@ -256,48 +259,52 @@ impl Context {
             .map(|provenance| provenance.supported_platform_triples.clone())
             .unwrap_or_else(|| config.supported_platform_triples.clone());
 
-        let mut unused_annotations: BTreeSet<_> = config.annotations.keys().cloned().collect();
-
         let sources_are_present = config.rendering.are_sources_present();
-        self.crates = self
-            .crates
-            .into_iter()
-            .map(|(id, krate)| {
-                let mut annotations: CrateAnnotations = config
-                    .annotations
-                    .iter()
-                    .filter(|(req, _)| req.matches_crate(&krate.name, &krate.version))
-                    .map(|(req, annotations)| {
-                        unused_annotations.remove(req);
-                        annotations
-                    })
-                    .cloned()
-                    .sum();
-                if let Some(package_metadata) = &krate.package_metadata {
-                    annotations.apply_defaults_from_package_metadata(package_metadata);
-                }
+        let mut crates = BTreeMap::new();
+        for (id, krate) in self.crates {
+            let matching: Vec<&ScopedAnnotations> = config
+                .annotations
+                .iter()
+                .filter(|annotation| annotation.id.matches_crate(&krate.name, &krate.version))
+                .collect();
+            let mut annotations = merge_annotations(&matching);
+            if let Some(package_metadata) = &krate.package_metadata {
+                annotations.apply_defaults_from_package_metadata(package_metadata);
+            }
 
-                let krate = krate.for_rendering(
-                    &annotations,
-                    config.generate_binaries,
-                    config.generate_build_scripts,
-                    sources_are_present,
-                );
-                (id, krate)
-            })
-            .collect();
-
-        if !unused_annotations.is_empty() {
-            bail!(
-                "Unused annotations were provided. Please remove them: {:?}",
-                unused_annotations
+            let krate = krate.for_rendering(
+                &annotations,
+                config.generate_binaries,
+                config.generate_build_scripts,
+                sources_are_present,
             );
+            crates.insert(id, krate);
         }
+        self.crates = crates;
 
         self.conditions = resolve_cfg_platforms(self.crates.values().collect(), &platforms)?;
         self.binary_crates = Self::binary_crates(&self.crates);
 
         Ok(self)
+    }
+
+    /// The annotations which match no crate of this repository. An annotation
+    /// applies to every repository of its scope without knowing what each
+    /// resolves, so this is dead code only when it holds for all of them: the
+    /// extension fails for an annotation matching no crate of any repository
+    /// it applies to, `crates_vendor` and `crates_repository` for their one.
+    pub(crate) fn unused_annotations(&self, config: &Config) -> BTreeSet<CrateNameAndVersionReq> {
+        config
+            .annotations
+            .iter()
+            .filter(|annotation| {
+                !self
+                    .crates
+                    .values()
+                    .any(|krate| annotation.id.matches_crate(&krate.name, &krate.version))
+            })
+            .map(|annotation| annotation.id.clone())
+            .collect()
     }
 
     // A helper function for locating the unique path in a workspace to a workspace member
@@ -434,7 +441,10 @@ mod test {
     use camino::Utf8Path;
     use semver::Version;
 
-    use crate::config::{Config, CrateAnnotations, CrateNameAndVersionReq};
+    use crate::config::{
+        AliasRule, AnnotationScope, Config, CrateAnnotations, CrateNameAndVersionReq,
+    };
+    use crate::context::crate_context::CrateContext;
 
     fn mock_context_common() -> Context {
         let annotations = Annotations::new(
@@ -546,17 +556,116 @@ mod test {
 
         // Create a config with some random annotation
         let mut config = Config::default();
-        config.annotations.insert(
-            CrateNameAndVersionReq::new("mock-crate".to_owned(), "0.1.0".parse().unwrap()),
+        let mock_crate =
+            CrateNameAndVersionReq::new("mock-crate".to_owned(), "0.1.0".parse().unwrap());
+        config.annotations.push(ScopedAnnotations::module(
+            mock_crate.clone(),
             CrateAnnotations::default(),
+        ));
+
+        // Rendering reports it; whether that is an error is the caller's to decide.
+        let context = context.for_rendering(&config).unwrap();
+        assert_eq!(
+            context.unused_annotations(&config),
+            BTreeSet::from([mock_crate])
+        );
+    }
+
+    fn bitflags_annotation(
+        scope: AnnotationScope,
+        annotations: CrateAnnotations,
+    ) -> ScopedAnnotations {
+        ScopedAnnotations {
+            id: CrateNameAndVersionReq::new("bitflags".to_owned(), "*".parse().unwrap()),
+            scope,
+            annotations,
+        }
+    }
+
+    fn alias_rule(rule: AliasRule) -> CrateAnnotations {
+        CrateAnnotations {
+            alias_rule: Some(rule),
+            ..CrateAnnotations::default()
+        }
+    }
+
+    fn rustc_env(key: &str, value: &str) -> CrateAnnotations {
+        CrateAnnotations {
+            rustc_env: Some(Select::from_value(BTreeMap::from([(
+                key.to_owned(),
+                value.to_owned(),
+            )]))),
+            ..CrateAnnotations::default()
+        }
+    }
+
+    fn rendered_bitflags(annotations: Vec<ScopedAnnotations>) -> Result<CrateContext> {
+        let config = Config {
+            annotations,
+            ..Config::default()
+        };
+        let context = mock_context_common().for_rendering(&config)?;
+        Ok(context.crates[&CrateId::new("bitflags".to_owned(), Version::new(1, 3, 2))].clone())
+    }
+
+    /// In a dependency's repository the root's annotation wins a field over
+    /// the dependency's own, whose annotation naming the repository wins over
+    /// its unscoped one; in the root's own repository the annotation naming it
+    /// wins over the root's unscoped one. Order of arrival does not matter and
+    /// lists union across scopes.
+    #[test]
+    fn scopes_rank_by_precedence() {
+        let bitflags = rendered_bitflags(vec![
+            bitflags_annotation(AnnotationScope::Module, alias_rule(AliasRule::Fastbuild)),
+            bitflags_annotation(AnnotationScope::Override, alias_rule(AliasRule::Dbg)),
+            bitflags_annotation(AnnotationScope::Repository, alias_rule(AliasRule::Opt)),
+            bitflags_annotation(AnnotationScope::Module, rustc_env("KEY", "module")),
+            bitflags_annotation(AnnotationScope::Override, rustc_env("KEY", "root")),
+            bitflags_annotation(AnnotationScope::Module, rustc_env("MODULE", "module")),
+        ])
+        .unwrap();
+        assert_eq!(bitflags.alias_rule, Some(AliasRule::Dbg));
+        assert_eq!(
+            bitflags.common_attrs.rustc_env,
+            Select::from_value(BTreeMap::from([
+                ("KEY".to_owned(), "root".to_owned()),
+                ("MODULE".to_owned(), "module".to_owned()),
+            ]))
         );
 
-        let result = context.for_rendering(&config);
-        assert!(result.is_err());
+        let bitflags = rendered_bitflags(vec![
+            bitflags_annotation(AnnotationScope::Root, alias_rule(AliasRule::Fastbuild)),
+            bitflags_annotation(AnnotationScope::Repository, alias_rule(AliasRule::Opt)),
+        ])
+        .unwrap();
+        assert_eq!(bitflags.alias_rule, Some(AliasRule::Opt));
+    }
 
-        let result_str = format!("{result:?}");
-        assert!(result_str.contains("Unused annotations were provided. Please remove them"));
-        assert!(result_str.contains("mock-crate"));
+    /// An annotation matching nothing in one repository is reported for every
+    /// scope, since any scope may span repositories, and never fails rendering.
+    #[test]
+    fn unused_annotations_are_reported_not_fatal() {
+        let unmatched = |scope| ScopedAnnotations {
+            id: CrateNameAndVersionReq::new("mock-crate".to_owned(), "*".parse().unwrap()),
+            scope,
+            annotations: alias_rule(AliasRule::Opt),
+        };
+        let config = Config {
+            annotations: vec![
+                unmatched(AnnotationScope::Override),
+                unmatched(AnnotationScope::Module),
+                bitflags_annotation(AnnotationScope::Root, alias_rule(AliasRule::Opt)),
+            ],
+            ..Config::default()
+        };
+        let context = mock_context_common().for_rendering(&config).unwrap();
+        assert_eq!(
+            context.unused_annotations(&config),
+            BTreeSet::from([CrateNameAndVersionReq::new(
+                "mock-crate".to_owned(),
+                "*".parse().unwrap()
+            )])
+        );
     }
 
     /// The crate author's `[package.metadata.bazel]` fills in what the workspace's
@@ -573,7 +682,7 @@ mod test {
         )]));
 
         let mut config = Config::default();
-        config.annotations.insert(
+        config.annotations.push(ScopedAnnotations::module(
             CrateNameAndVersionReq::new(
                 "has_package_metadata".to_owned(),
                 "0.0.0".parse().unwrap(),
@@ -582,7 +691,7 @@ mod test {
                 rustc_env: Some(rustc_env.clone()),
                 ..CrateAnnotations::default()
             },
-        );
+        ));
 
         let annotations = Annotations::new(
             crate::test::metadata::has_package_metadata(),

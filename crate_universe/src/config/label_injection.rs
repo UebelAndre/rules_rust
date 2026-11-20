@@ -61,8 +61,15 @@ use crate::utils::starlark::is_repo_name_byte;
 /// same apparent name. There's no sound way to substitute one string into
 /// both forms; the user must split the offending crates into separate hubs.
 pub(super) fn extract_global_mapping(config: &mut Value) -> Result<BTreeMap<String, String>> {
-    let Some(annotations) = config.get_mut("annotations").and_then(Value::as_object_mut) else {
-        return Ok(BTreeMap::new());
+    // `annotations` is a map keyed by crate, or a list of scoped entries each
+    // holding its annotation under `annotations`.
+    let annotations: Vec<&mut Value> = match config.get_mut("annotations") {
+        Some(Value::Object(annotations)) => annotations.values_mut().collect(),
+        Some(Value::Array(annotations)) => annotations
+            .iter_mut()
+            .filter_map(|entry| entry.get_mut("annotations"))
+            .collect(),
+        _ => return Ok(BTreeMap::new()),
     };
 
     // Inverse map (apparent -> canonical) used for conflict detection; the
@@ -71,7 +78,7 @@ pub(super) fn extract_global_mapping(config: &mut Value) -> Result<BTreeMap<Stri
     let mut by_apparent: BTreeMap<String, String> = BTreeMap::new();
     let mut by_canonical: BTreeMap<String, String> = BTreeMap::new();
 
-    for annotation in annotations.values_mut() {
+    for annotation in annotations {
         let Some(obj) = annotation.as_object_mut() else {
             continue;
         };

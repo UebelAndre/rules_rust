@@ -10,7 +10,7 @@ use camino::Utf8PathBuf;
 use cargo_lock::Lockfile;
 use clap::Parser;
 
-use crate::config::Config;
+use crate::config::{Config, CrateNameAndVersionReq};
 use crate::context::Context;
 use crate::lockfile::{lock_context, write_lockfile};
 use crate::metadata::{load_metadata, Annotations, SourceAnnotation};
@@ -105,6 +105,12 @@ pub struct GenerateOptions {
     #[clap(long)]
     pub rendered_context_output_path: Option<PathBuf>,
 
+    /// Path to write a JSON list of the annotations reaching every repository
+    /// which match no crate of this one. The bzlmod extension reports those
+    /// matching no crate of any repository.
+    #[clap(long)]
+    pub unused_annotations_output_path: Option<PathBuf>,
+
     /// Whether to skip writing the cargo lockfile back after resolving.
     /// You may want to set this if your dependency versions are maintained externally through a non-trivial set-up.
     /// But you probably don't want to set this.
@@ -130,6 +136,10 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
             let context = Context::try_from_path(lockfile)?
                 .for_rendering(&config)?
                 .apply_label_injection_mapping(&config.label_injection_mapping)?;
+            write_unused_annotations(
+                opt.unused_annotations_output_path.as_deref(),
+                &context.unused_annotations(&config),
+            )?;
 
             // Render build files
             let renderer = Renderer::new(
@@ -212,6 +222,10 @@ pub fn generate(opt: GenerateOptions) -> Result<()> {
     // The context of the resolution, which the lockfile records, and the one
     // rendered from it with this workspace's configuration applied.
     let context = Context::new(annotations, &config.supported_platform_triples)?;
+    write_unused_annotations(
+        opt.unused_annotations_output_path.as_deref(),
+        &context.unused_annotations(&config),
+    )?;
     let render_context = context
         .clone()
         .for_rendering(&config)?
@@ -306,6 +320,27 @@ fn render_and_write_outputs(
         fs::write(path, serde_json::to_string(context)?)
             .with_context(|| format!("Failed to write rendered context to {}", path.display()))?;
     }
+    Ok(())
+}
+
+/// Writes the annotations matching no crate of this repository for the caller
+/// to judge across repositories, or fails on them when no file is asked for,
+/// as `crates_repository` has the one repository.
+fn write_unused_annotations(
+    output_file: Option<&Path>,
+    unused: &BTreeSet<CrateNameAndVersionReq>,
+) -> Result<()> {
+    let Some(output_file) = output_file else {
+        if !unused.is_empty() {
+            bail!("Unused annotations were provided. Please remove them: {unused:?}");
+        }
+        return Ok(());
+    };
+    std::fs::write(
+        output_file,
+        serde_json::to_string(unused).context("Failed to serialize unused annotations")?,
+    )
+    .context("Failed to write unused annotations file")?;
     Ok(())
 }
 
