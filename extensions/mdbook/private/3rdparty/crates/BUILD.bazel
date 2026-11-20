@@ -30,25 +30,10 @@ filegroup(
     ),
 )
 
-# Workspace Member Dependencies
-alias(
-    name = "mdbook-0.4.44",
-    actual = "@rmdbi__mdbook-0.4.44//:mdbook",
-    deprecation = "root aliases are deprecated, use `@rmdbi//mdbook-0.4.44` instead.",
-    tags = ["manual"],
-)
-
-alias(
-    name = "mdbook",
-    actual = "@rmdbi__mdbook-0.4.44//:mdbook",
-    deprecation = "root aliases are deprecated, use `@rmdbi//mdbook` instead.",
-    tags = ["manual"],
-)
-
 # Binaries
 alias(
     name = "mdbook__mdbook",
-    actual = "@rmdbi__mdbook-0.4.44//:mdbook__bin",
+    actual = "@rmdbi__mdbook-0.5.4//:mdbook__bin",
     deprecation = "root aliases are deprecated, use `@rmdbi//mdbook__mdbook` instead.",
     tags = ["manual"],
 )

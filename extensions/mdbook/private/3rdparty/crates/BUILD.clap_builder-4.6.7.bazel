@@ -121,7 +121,7 @@ rust_library(
     deps = [
         "@rmdbi__anstream-1.0.0//:anstream",
         "@rmdbi__anstyle-1.0.14//:anstyle",
-        "@rmdbi__clap_lex-1.1.1//:clap_lex",
+        "@rmdbi__clap_lex-1.1.2//:clap_lex",
         "@rmdbi__strsim-0.11.1//:strsim",
         "@rmdbi__terminal_size-0.4.4//:terminal_size",
     ],
