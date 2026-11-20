@@ -101,39 +101,39 @@ def cargo_bootstrap(
     if "win" in repository_ctx.os.name:
         extension = ".exe"
 
-    binary_path = "{}/{}{}".format(
-        build_mode,
-        binary,
-        extension,
-    )
+    binary_path = repository_ctx.path(target_dir).get_child(build_mode).get_child(binary + extension)
 
-    if not repository_ctx.path(binary_path).exists:
+    if not binary_path.exists:
         fail("Failed to produce binary at {}".format(binary_path))
 
     return binary_path
+
+_BOOTSTRAP_NOTICE = """\
+WARN: `@{name}` builds `{binary}` from source with Cargo because this rules_rust has no prebuilt \
+binary for it. Releases ship one (https://github.com/bazelbuild/rules_rust/releases); a build from \
+source takes minutes. `CARGO_BAZEL_GENERATOR_URL` names a binary to use instead, see \
+https://bazelbuild.github.io/rules_rust/crate_universe_bzlmod.html\
+"""
 
 _BUILD_FILE_CONTENT = """\
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files([
-    "{binary_name}",
-    "{binary}"
-])
+exports_files(["{binary_name}"])
 
 alias(
     name = "binary",
-    actual = "{binary}",
+    actual = "{binary_name}",
 )
 
 rust_binary(
     name = "install",
     rustc_env = {{
-        "RULES_RUST_CARGO_BOOTSTRAP_BINARY": "$(rootpath {binary})"
+        "RULES_RUST_CARGO_BOOTSTRAP_BINARY": "$(rootpath {binary_name})"
     }},
     data = [
-        "{binary}",
+        "{binary_name}",
     ],
     srcs = [
         "@rules_rust//cargo/private/bootstrap:bootstrap_installer.rs"
@@ -217,6 +217,15 @@ def _cargo_bootstrap_repository_impl(repository_ctx):
     if repository_ctx.attr.cargo_config:
         cargo_config = repository_ctx.path(repository_ctx.attr.cargo_config)
 
+    # Build in the cache repository when one is given, so a rebuild after a
+    # source change recompiles what changed instead of every dependency.
+    target_dir = None
+    if repository_ctx.attr.cache:
+        target_dir = repository_ctx.path(repository_ctx.attr.cache).dirname.get_child(repository_ctx.name)
+
+    # buildifier: disable=print
+    print(_BOOTSTRAP_NOTICE.format(name = repository_ctx.name, binary = binary_name))
+
     built_binary = cargo_bootstrap(
         repository_ctx = repository_ctx,
         cargo_bin = repository_ctx.path(tools.cargo),
@@ -226,6 +235,7 @@ def _cargo_bootstrap_repository_impl(repository_ctx):
         cargo_manifest = repository_ctx.path(repository_ctx.attr.cargo_toml),
         build_mode = repository_ctx.attr.build_mode,
         environment = environment,
+        target_dir = target_dir,
         timeout = repository_ctx.attr.timeout,
     )
 
@@ -234,7 +244,6 @@ def _cargo_bootstrap_repository_impl(repository_ctx):
 
     repository_ctx.file("BUILD.bazel", _BUILD_FILE_CONTENT.format(
         binary_name = binary_name,
-        binary = built_binary,
     ))
     if hasattr(repository_ctx, "repo_metadata"):
         return repository_ctx.repo_metadata(reproducible = True)
@@ -254,6 +263,13 @@ cargo_bootstrap_repository = repository_rule(
                 "release",
             ],
             default = "release",
+        ),
+        "cache": attr.label(
+            doc = (
+                "A file in a repository to keep Cargo's target directory in, so a rebuild after a " +
+                "source change is incremental. Used by `crate_universe` for its own bootstrap."
+            ),
+            allow_single_file = True,
         ),
         "cargo_config": attr.label(
             doc = "The path of the Cargo configuration (`Config.toml`) file.",
