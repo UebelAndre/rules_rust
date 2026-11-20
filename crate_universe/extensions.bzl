@@ -477,27 +477,36 @@ _OPT_BOOL_VALUES = {
     "on": True,
 }
 
-def _get_or_insert(d, key, value):
-    if key not in d:
-        d[key] = value
-    return d[key]
+def _annotations_for_repo(global_annotations, module_annotations, repo_specific_annotations, is_root):
+    """The annotations which apply to a repository, each with the scope it was declared in.
 
-def _annotations_for_repo(global_annotations, module_annotations, repo_specific_annotations):
-    """Merges the annotations which apply to a repository, broadest scope first.
+    The generator merges them by scope: lists union, and for a field set in
+    several the root module's annotation wins in another module's repository,
+    then the one naming the repository, then the module's own without
+    `repositories`.
 
     Args:
         global_annotations (dict): The root module's annotations without `repositories`, keyed by crate.
         module_annotations (dict): The annotations of the repository's own module, keyed by crate.
         repo_specific_annotations (dict): The annotations naming this repository, keyed by crate.
+        is_root (bool): Whether the root module declares the repository, in which case
+            `global_annotations` are its own.
 
     Returns:
-        dict: The merged annotations, keyed by crate.
+        list: `struct(crate, scope, annotation)` entries, see `compile_config`.
     """
-    annotations = {}
-    for scoped in [global_annotations, module_annotations, repo_specific_annotations]:
-        for crate, values in (scoped or {}).items():
-            _get_or_insert(annotations, crate, []).extend(values)
-    return annotations
+    scoped = [
+        ("repository", repo_specific_annotations),
+        ("root" if is_root else "override", global_annotations),
+    ]
+    if not is_root:
+        scoped.append(("module", module_annotations))
+    entries = []
+    for scope, annotations in scoped:
+        for crate, values in (annotations or {}).items():
+            for annotation in values:
+                entries.append(struct(crate = crate, scope = scope, annotation = annotation))
+    return entries
 
 # Defaults the extension sets differently from `render_config()`. Generated BUILD
 # files resolve `@rules_license` through rules_rust's own repository mapping, so
@@ -803,6 +812,7 @@ def _generate_hub_and_spokes(
     paths_to_track_file = tag_path.get_child("paths_to_track.json")
     warnings_output_file = tag_path.get_child("warnings_output.json")
     hub_packages_output_file = tag_path.get_child("hub_packages.json")
+    unused_annotations_output_file = tag_path.get_child("unused_annotations.json")
 
     # Run the generator
     module_ctx.report_progress("Generating crate BUILD files for `{}`".format(cfg.name))
@@ -817,6 +827,7 @@ def _generate_hub_and_spokes(
         paths_to_track_file = paths_to_track_file,
         warnings_output_file = warnings_output_file,
         hub_packages_output_file = hub_packages_output_file,
+        unused_annotations_output_file = unused_annotations_output_file,
         skip_cargo_lockfile_overwrite = skip_cargo_lockfile_overwrite,
         strip_internal_dependencies_from_cargo_lockfile = strip_internal_dependencies_from_cargo_lockfile,
         **kwargs
@@ -930,6 +941,7 @@ def _generate_hub_and_spokes(
 
     return struct(
         fact = module_ctx.read(lockfile) if record_fact else None,
+        unused_annotations = json.decode(module_ctx.read(unused_annotations_output_file)),
     )
 
 def _package_to_json(p):
@@ -1359,7 +1371,16 @@ def _crate_impl(module_ctx):
     # The Cargo the root module resolves with, if not the downloaded one.
     host_tools = _collect_host_tools(module_ctx)
 
+    # How many repositories each annotation applies to and how many of them it
+    # matched no crate of, keyed by declaring module and `{name} {version}`. An
+    # annotation is dead only when it matched nothing anywhere it applies.
+    applied_annotations = {}
+    unused_annotations = {}
+    root_name = None
+
     for mod in module_ctx.modules:
+        if mod.is_root:
+            root_name = mod.name
         if not mod.tags.from_cargo and not mod.tags.from_specs:
             fail("`.from_cargo` or `.from_specs` are required. Please update {}".format(mod.name))
 
@@ -1460,6 +1481,7 @@ def _crate_impl(module_ctx):
                 collapsed_global_annotations,
                 module_annotations,
                 repo_specific_annotations.get(cfg.name),
+                mod.is_root,
             )
 
             lockfile_path = None
@@ -1505,12 +1527,28 @@ def _crate_impl(module_ctx):
             )
             if generated.fact != None:
                 facts[cfg.name] = generated.fact
+            for entry in annotations:
+                origin = root_name if entry.scope == "override" else mod.name
+                key = (origin, "{} {}".format(entry.crate, json.decode(entry.annotation)[0]))
+                applied_annotations[key] = applied_annotations.get(key, 0) + 1
+                if key[1] in generated.unused_annotations:
+                    unused_annotations[key] = unused_annotations.get(key, 0) + 1
 
             # Watch cfg.lockfile AFTER generation. The generator may modify it during
             # repin, and in Bazel 9 module_ctx.read verifies digests for files already
             # read, which would crash if the lockfile changed between watch and read.
             if cfg.lockfile:
                 module_ctx.watch(cfg.lockfile)
+
+    dead_annotations = [
+        "`{}` of `{}`".format(id, origin)
+        for (origin, id), count in applied_annotations.items()
+        if unused_annotations.get((origin, id)) == count
+    ]
+    if dead_annotations:
+        fail("Annotations match no crate of any repository they apply to. Please remove them: {}".format(
+            ", ".join(dead_annotations),
+        ))
 
     metadata_kwargs = {}
     if bazel_features.external_deps.extension_metadata_has_reproducible:

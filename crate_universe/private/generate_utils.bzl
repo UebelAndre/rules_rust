@@ -222,6 +222,32 @@ def collect_crate_annotations(annotations, repository_name):
             crate_annotations.update({id: data})
     return crate_annotations
 
+def collect_scoped_annotations(entries, repository_name):
+    """Deserialize annotations which carry the scope they were declared in.
+
+    Args:
+        entries (list): `struct(crate, scope, annotation)` entries, `annotation` a serialized
+            `crate.annotation`.
+        repository_name (str): The name of the repository that owns the annotations
+
+    Returns:
+        list: `cargo_bazel::config::ScopedAnnotations` dicts.
+    """
+    annotations = []
+    for entry in entries:
+        version, data = json.decode(entry.annotation)
+        if entry.crate == "*" and version != "*":
+            fail(
+                "Wildcard crate names must have wildcard crate versions. " +
+                "Please update the annotations of the {} repository".format(repository_name),
+            )
+        annotations.append({
+            "annotations": data,
+            "id": _crate_id(entry.crate, version),
+            "scope": entry.scope,
+        })
+    return annotations
+
 def _read_cargo_config(repository_ctx):
     if repository_ctx.attr.cargo_config:
         config = repository_ctx.path(repository_ctx.attr.cargo_config)
@@ -273,7 +299,8 @@ def compile_config(
 
     Args:
         crate_annotations (dict): Extra settings to apply to crates. See
-            `crates_repository.annotations` or `crates_vendor.annotations`.
+            `crates_repository.annotations` or `crates_vendor.annotations`, or a list of the
+            scoped entries of `collect_scoped_annotations`.
         generate_binaries (bool): Whether to generate `rust_binary` targets for all bins.
         generate_build_scripts (bool): Whether or not to globally disable build scripts.
         generate_target_compatible_with (bool): DEPRECATED: Moved to `render_config`.
@@ -287,11 +314,16 @@ def compile_config(
     Returns:
         struct: A struct matching a `cargo_bazel::config::Config`.
     """
-    annotations = collect_crate_annotations(crate_annotations, repository_name)
+    if type(crate_annotations) == "list":
+        annotations = collect_scoped_annotations(crate_annotations, repository_name)
+        annotated = [(entry["id"], entry["annotations"]) for entry in annotations]
+    else:
+        annotations = collect_crate_annotations(crate_annotations, repository_name)
+        annotated = annotations.items()
 
     # Load additive build files if any have been provided.
     unexpected = []
-    for name, data in annotations.items():
+    for name, data in annotated:
         f = data.pop("additive_build_file", None)
         if f and not repository_ctx:
             unexpected.append(name)
@@ -520,7 +552,8 @@ def execute_generator(
         skip_cargo_lockfile_overwrite,
         strip_internal_dependencies_from_cargo_lockfile,
         metadata = None,
-        generator_label = None):
+        generator_label = None,
+        unused_annotations_output_file = None):
     """Execute the `cargo-bazel` binary to produce `BUILD` and `.bzl` files.
 
     Args:
@@ -537,6 +570,8 @@ def execute_generator(
         hub_packages_output_file (path): Path to file where the generator should write the names of hub alias
             subpackages it produced. Always populated; the bzlmod extension reads it to learn which
             `<name>/BUILD.bazel` files to slurp into the hub repository.
+        unused_annotations_output_file (path, optional): Path to file where the generator should write the
+            annotations reaching every repository which match no crate of this one.
         skip_cargo_lockfile_overwrite (bool): Whether to skip writing the cargo lockfile back after resolving.
             You may want to set this if your dependency versions are maintained externally through a non-trivial set-up.
             But you probably don't want to set this.
@@ -575,6 +610,12 @@ def execute_generator(
         args.extend([
             "--generator",
             generator_label,
+        ])
+
+    if unused_annotations_output_file:
+        args.extend([
+            "--unused-annotations-output-path",
+            unused_annotations_output_file,
         ])
 
     if lockfile_path:

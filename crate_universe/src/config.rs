@@ -455,8 +455,8 @@ impl Add for CrateAnnotations {
 
         #[rustfmt::skip]
         let output = CrateAnnotations {
-            gen_binaries: self.gen_binaries.or(rhs.gen_binaries),
-            gen_build_script: self.gen_build_script.or(rhs.gen_build_script),
+            gen_binaries: rhs.gen_binaries.or(self.gen_binaries),
+            gen_build_script: rhs.gen_build_script.or(self.gen_build_script),
             deps: select_merge(self.deps, rhs.deps),
             proc_macro_deps: select_merge(self.proc_macro_deps, rhs.proc_macro_deps),
             link_deps: select_merge(self.link_deps, rhs.link_deps),
@@ -482,17 +482,17 @@ impl Add for CrateAnnotations {
             build_script_rustc_env: select_merge(self.build_script_rustc_env, rhs.build_script_rustc_env),
             build_script_exec_properties: select_merge(self.build_script_exec_properties, rhs.build_script_exec_properties),
             build_script_toolchains: joined_extra_member!(self.build_script_toolchains, rhs.build_script_toolchains, BTreeSet::new, BTreeSet::extend),
-            build_script_use_default_shell_env: self.build_script_use_default_shell_env.or(rhs.build_script_use_default_shell_env),
-            build_script_use_cc_toolchain: self.build_script_use_cc_toolchain.or(rhs.build_script_use_cc_toolchain),
-            build_script_rundir: self.build_script_rundir.or(rhs.build_script_rundir),
+            build_script_use_default_shell_env: rhs.build_script_use_default_shell_env.or(self.build_script_use_default_shell_env),
+            build_script_use_cc_toolchain: rhs.build_script_use_cc_toolchain.or(self.build_script_use_cc_toolchain),
+            build_script_rundir: rhs.build_script_rundir.or(self.build_script_rundir),
             additive_build_file_content: joined_extra_member!(self.additive_build_file_content, rhs.additive_build_file_content, String::new, concat_string),
-            shallow_since: self.shallow_since.or(rhs.shallow_since),
+            shallow_since: rhs.shallow_since.or(self.shallow_since),
             patch_args: joined_extra_member!(self.patch_args, rhs.patch_args, Vec::new, Vec::extend),
-            patch_tool: self.patch_tool.or(rhs.patch_tool),
+            patch_tool: rhs.patch_tool.or(self.patch_tool),
             patches: joined_extra_member!(self.patches, rhs.patches, BTreeSet::new, BTreeSet::extend),
             extra_aliased_targets: joined_extra_member!(self.extra_aliased_targets, rhs.extra_aliased_targets, BTreeMap::new, BTreeMap::extend),
-            alias_rule: self.alias_rule.or(rhs.alias_rule),
-            override_targets: self.override_targets.or(rhs.override_targets),
+            alias_rule: rhs.alias_rule.or(self.alias_rule),
+            override_targets: rhs.override_targets.or(self.override_targets),
         };
 
         output
@@ -742,6 +742,88 @@ impl<'de> Visitor<'de> for GenBinariesVisitor {
     }
 }
 
+/// Where an annotation was declared, in order of precedence: a field set in
+/// an earlier scope wins over the same field set in a later one, see
+/// [merge_annotations].
+#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AnnotationScope {
+    /// The root module's annotation without `repositories`, applied to a
+    /// repository of another module. The root decides how a crate is built
+    /// wherever a dependency resolved it.
+    Override,
+    /// Names the repository with `repositories = [...]`.
+    Repository,
+    /// The root module's annotation without `repositories`, applied to one of
+    /// its own repositories.
+    Root,
+    /// Declared without `repositories` by the repository's own module, or by
+    /// `crates_vendor` and `crates_repository`.
+    #[default]
+    Module,
+}
+
+/// An annotation and where it was declared.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub(crate) struct ScopedAnnotations {
+    /// The crate and the versions of it the annotation applies to.
+    pub(crate) id: CrateNameAndVersionReq,
+
+    #[serde(default)]
+    pub(crate) scope: AnnotationScope,
+
+    pub(crate) annotations: CrateAnnotations,
+}
+
+impl ScopedAnnotations {
+    /// A module scope annotation, as `crates_vendor` and `crates_repository` declare.
+    pub(crate) fn module(id: CrateNameAndVersionReq, annotations: CrateAnnotations) -> Self {
+        Self {
+            id,
+            scope: AnnotationScope::Module,
+            annotations,
+        }
+    }
+}
+
+fn deserialize_annotations<'de, D>(deserializer: D) -> Result<Vec<ScopedAnnotations>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Annotations {
+        Scoped(Vec<ScopedAnnotations>),
+        Module(BTreeMap<CrateNameAndVersionReq, CrateAnnotations>),
+    }
+
+    Ok(match Annotations::deserialize(deserializer)? {
+        Annotations::Scoped(annotations) => annotations,
+        Annotations::Module(annotations) => annotations
+            .into_iter()
+            .map(|(id, annotations)| ScopedAnnotations::module(id, annotations))
+            .collect(),
+    })
+}
+
+/// Merges the annotations which match one crate: lists union, and a field set
+/// in an earlier scope wins, so the last scope is applied first.
+pub(crate) fn merge_annotations(scoped: &[&ScopedAnnotations]) -> CrateAnnotations {
+    let mut by_scope: BTreeMap<AnnotationScope, Vec<&ScopedAnnotations>> = BTreeMap::new();
+    for annotation in scoped {
+        by_scope
+            .entry(annotation.scope)
+            .or_default()
+            .push(annotation);
+    }
+    by_scope
+        .into_iter()
+        .rev()
+        .flat_map(|(_, annotations)| annotations)
+        .map(|annotation| annotation.annotations.clone())
+        .sum()
+}
+
 /// Workspace specific settings to control how targets are generated
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -752,9 +834,15 @@ pub(crate) struct Config {
     /// Whether or not to generate Cargo build scripts by default
     pub(crate) generate_build_scripts: bool,
 
-    /// Additional settings to apply to generated crates
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub(crate) annotations: BTreeMap<CrateNameAndVersionReq, CrateAnnotations>,
+    /// Additional settings to apply to generated crates, each with the scope it
+    /// was declared in. A map keyed by `{name} {version}` is accepted as well,
+    /// as `crates_vendor` and `crates_repository` write, and means module scope.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        deserialize_with = "deserialize_annotations"
+    )]
+    pub(crate) annotations: Vec<ScopedAnnotations>,
 
     /// Settings used to determine various render info
     pub(crate) rendering: RenderConfig,
@@ -1090,16 +1178,16 @@ mod test {
 
         let config: Config = serde_json::from_str(&content).unwrap();
 
-        // Annotations
+        // Annotations: the map form means module scope.
+        let rand = CrateNameAndVersionReq::new("rand".to_owned(), "0.8.5".parse().unwrap());
         let annotation = config
             .annotations
-            .get(&CrateNameAndVersionReq::new(
-                "rand".to_owned(),
-                "0.8.5".parse().unwrap(),
-            ))
+            .iter()
+            .find(|annotation| annotation.id == rand)
             .unwrap();
+        assert_eq!(annotation.scope, AnnotationScope::Module);
         assert_eq!(
-            annotation.crate_features,
+            annotation.annotations.crate_features,
             Some(Select::from_value(BTreeSet::from(["small_rng".to_owned()])))
         );
 
