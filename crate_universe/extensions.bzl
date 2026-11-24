@@ -671,6 +671,10 @@ def _generate_hub_and_spokes(
         # redone when its inputs change.
         lockfile = tag_path.get_child("cargo-bazel-lock.json")
         cached = module_ctx.facts.get(cfg.name)
+        if type(cached) != "string":
+            # A fact another version of the rules wrote in another shape, or
+            # none; the repository is resolved again and the fact replaced.
+            cached = None
         module_ctx.file(lockfile, cached or "")
         record_fact = True
         repin = not cached or determine_repin(
@@ -797,7 +801,7 @@ def _generate_hub_and_spokes(
     contents = json.decode(module_ctx.read(rendered_context_output_file))
 
     for crate in contents["crates"].values():
-        repo = crate["repository"]
+        repo = crate.get("repository")
         if repo == None:
             continue
         name = crate["name"]
@@ -852,7 +856,6 @@ def _generate_hub_and_spokes(
             options = {
                 "config": render_config,
                 "crate_context": crate,
-                "platform_conditions": contents["conditions"],
                 "supported_platform_triples": cfg.supported_platform_triples,
             }
             kwargs = {}
@@ -868,7 +871,10 @@ def _generate_hub_and_spokes(
             fail("Invalid repo: expected Http or Git to exist for crate %s-%s, got %s" % (name, version, repo))
 
     return struct(
-        fact = module_ctx.read(lockfile) if record_fact else None,
+        # Bazel limits a fact's nesting to seven levels and drops its nulls, so
+        # the lockfile is kept as text, compacted: the whitespace of the file
+        # form is for reading a checked-in lockfile.
+        fact = json.encode(json.decode(module_ctx.read(lockfile))) if record_fact else None,
     )
 
 def _package_to_json(p):

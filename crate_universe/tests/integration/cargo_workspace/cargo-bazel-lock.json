@@ -1,109 +1,5 @@
 {
-  "checksum": "3c4f79eaf037dd02778f77a964feb9f367a1b5bb3851870c65a13c470047e09d",
-  "conditions": {
-    "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
-    "cfg(not(target_os = \"emscripten\"))": [
-      "aarch64-apple-darwin",
-      "aarch64-apple-ios",
-      "aarch64-apple-ios-macabi",
-      "aarch64-apple-ios-sim",
-      "aarch64-linux-android",
-      "aarch64-pc-windows-msvc",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-none",
-      "aarch64-unknown-nto-qnx710",
-      "aarch64-unknown-uefi",
-      "arm-unknown-linux-gnueabi",
-      "arm-unknown-linux-musleabi",
-      "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
-      "i686-linux-android",
-      "i686-pc-windows-msvc",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "loongarch64-unknown-linux-gnu",
-      "mips-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "riscv32imac-unknown-none-elf",
-      "riscv32imc-unknown-none-elf",
-      "riscv64gc-unknown-fuchsia",
-      "riscv64gc-unknown-linux-gnu",
-      "riscv64gc-unknown-none-elf",
-      "s390x-unknown-linux-gnu",
-      "sparc64-unknown-linux-gnu",
-      "sparc64-unknown-netbsd",
-      "sparc64-unknown-openbsd",
-      "thumbv6m-none-eabi",
-      "thumbv7em-none-eabi",
-      "thumbv7em-none-eabihf",
-      "thumbv7m-none-eabi",
-      "thumbv8m.main-none-eabi",
-      "thumbv8m.main-none-eabihf",
-      "wasm32-unknown-unknown",
-      "wasm32-wasip1",
-      "wasm32-wasip1-threads",
-      "wasm32-wasip2",
-      "x86_64-apple-darwin",
-      "x86_64-apple-ios",
-      "x86_64-apple-ios-macabi",
-      "x86_64-linux-android",
-      "x86_64-pc-windows-msvc",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu",
-      "x86_64-unknown-none",
-      "x86_64-unknown-uefi"
-    ],
-    "cfg(target_os = \"emscripten\")": ["wasm32-unknown-emscripten"],
-    "cfg(target_os = \"hermit\")": [],
-    "cfg(target_os = \"wasi\")": ["wasm32-wasip1", "wasm32-wasip1-threads", "wasm32-wasip2"],
-    "cfg(target_os = \"windows\")": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
-    "cfg(unix)": [
-      "aarch64-apple-darwin",
-      "aarch64-apple-ios",
-      "aarch64-apple-ios-macabi",
-      "aarch64-apple-ios-sim",
-      "aarch64-linux-android",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "arm-unknown-linux-gnueabi",
-      "arm-unknown-linux-musleabi",
-      "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
-      "i686-linux-android",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "loongarch64-unknown-linux-gnu",
-      "mips-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "riscv64gc-unknown-fuchsia",
-      "riscv64gc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
-      "sparc64-unknown-linux-gnu",
-      "sparc64-unknown-netbsd",
-      "sparc64-unknown-openbsd",
-      "wasm32-unknown-emscripten",
-      "x86_64-apple-darwin",
-      "x86_64-apple-ios",
-      "x86_64-apple-ios-macabi",
-      "x86_64-linux-android",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
-    "i686-pc-windows-gnu": [],
-    "x86_64-pc-windows-gnu": [],
-    "x86_64-unknown-linux-gnu": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"]
-  },
+  "checksum": "e735c80bbfa3fe8b197e1e952c70fbb3a0e92c51dec7bfc8c7515cf64f6bc610",
   "crates": {
     "ansi_term 0.12.1": {
       "common_attrs": {
@@ -117,9 +13,7 @@
         },
         "edition": "2015"
       },
-      "library_target_name": "ansi_term",
       "license": "MIT",
-      "license_ids": ["MIT"],
       "name": "ansi_term",
       "package_url": "https://github.com/ogham/rust-ansi-term",
       "repository": {
@@ -153,10 +47,8 @@
         },
         "edition": "2015"
       },
-      "library_target_name": "atty",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "atty",
       "package_url": "https://github.com/softprops/atty",
       "repository": {
@@ -177,10 +69,8 @@
         "crate_features": ["default"],
         "edition": "2018"
       },
-      "library_target_name": "bitflags",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "bitflags",
       "package_url": "https://github.com/bitflags/bitflags",
       "repository": {
@@ -198,10 +88,8 @@
     },
     "cfg-if 1.0.0": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "cfg_if",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cfg-if",
       "package_url": "https://github.com/alexcrichton/cfg-if",
       "repository": {
@@ -390,10 +278,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "clap",
       "license": "MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT"],
       "name": "clap",
       "package_url": "https://github.com/clap-rs/clap",
       "repository": {
@@ -418,10 +304,8 @@
         ],
         "edition": "2015"
       },
-      "library_target_name": "ferris_says",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "ferris-says",
       "package_url": "https://github.com/mgattozzi/ferris-says",
       "repository": {
@@ -457,10 +341,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "getrandom",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "getrandom",
       "package_url": "https://github.com/rust-random/getrandom",
       "repository": {
@@ -486,10 +368,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "hermit_abi",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "hermit-abi",
       "package_url": "https://github.com/hermitcore/libhermit-rs",
       "repository": {
@@ -511,10 +391,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "libc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "libc",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
@@ -554,10 +432,8 @@
         "crate_features": ["simd", "std"],
         "edition": "2018"
       },
-      "library_target_name": "ppv_lite86",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "ppv-lite86",
       "package_url": "https://github.com/cryptocorrosion/cryptocorrosion",
       "repository": {
@@ -580,7 +456,6 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "printer",
       "name": "printer",
       "repository": null,
       "targets": [
@@ -714,10 +589,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "rand",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rand",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
@@ -742,10 +615,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "rand_chacha",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rand_chacha",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
@@ -769,10 +640,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "rand_core",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rand_core",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
@@ -795,10 +664,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "rand_hc",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rand_hc",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
@@ -821,7 +688,6 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "rng",
       "name": "rng",
       "repository": null,
       "targets": [
@@ -836,9 +702,7 @@
         "crate_features": ["default", "std"],
         "edition": "2015"
       },
-      "library_target_name": "smallvec",
       "license": "MPL-2.0",
-      "license_ids": ["MPL-2.0"],
       "name": "smallvec",
       "package_url": "https://github.com/servo/rust-smallvec",
       "repository": {
@@ -856,10 +720,8 @@
     },
     "smawk 0.3.1": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "smawk",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "smawk",
       "package_url": "https://github.com/mgeisler/smawk",
       "repository": {
@@ -877,10 +739,8 @@
     },
     "strsim 0.8.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "strsim",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "strsim",
       "package_url": "https://github.com/dguo/strsim-rs",
       "repository": {
@@ -903,10 +763,8 @@
         ],
         "edition": "2015"
       },
-      "library_target_name": "textwrap",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "textwrap",
       "package_url": "https://github.com/mgeisler/textwrap",
       "repository": {
@@ -931,10 +789,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "textwrap",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "textwrap",
       "package_url": "https://github.com/mgeisler/textwrap",
       "repository": {
@@ -955,10 +811,8 @@
         "crate_features": ["default"],
         "edition": "2015"
       },
-      "library_target_name": "unicode_width",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "unicode-width",
       "package_url": "https://github.com/unicode-rs/unicode-width",
       "repository": {
@@ -976,10 +830,8 @@
     },
     "vec_map 0.8.2": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "vec_map",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "vec_map",
       "package_url": "https://github.com/contain-rs/vec-map",
       "repository": {
@@ -1000,10 +852,8 @@
         "crate_features": ["default", "std"],
         "edition": "2018"
       },
-      "library_target_name": "wasi",
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "wasi",
       "package_url": "https://github.com/bytecodealliance/wasi",
       "repository": {
@@ -1046,10 +896,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "winapi",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "winapi",
       "package_url": "https://github.com/retep998/winapi-rs",
       "repository": {
@@ -1074,9 +922,7 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "winapi_i686_pc_windows_gnu",
       "license": "MIT/Apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "winapi-i686-pc-windows-gnu",
       "package_url": "https://github.com/retep998/winapi-rs",
       "repository": {
@@ -1101,9 +947,7 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "winapi_x86_64_pc_windows_gnu",
       "license": "MIT/Apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "winapi-x86_64-pc-windows-gnu",
       "package_url": "https://github.com/retep998/winapi-rs",
       "repository": {

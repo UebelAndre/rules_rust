@@ -1,30 +1,10 @@
 {
-  "checksum": "81cc39e745aa2aa412dc7cbc0e981b05d98c03fc348c4e15841812bbf1e30e2d",
-  "conditions": {
-    "cfg(target_os = \"linux\")": [
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "arm-unknown-linux-gnueabi",
-      "arm-unknown-linux-musleabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-unknown-linux-gnu",
-      "loongarch64-unknown-linux-gnu",
-      "mips-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "riscv64gc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
-      "sparc64-unknown-linux-gnu",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ]
-  },
+  "checksum": "c25f36c01e1cdc57e401c7ce31ed8f56f1946f08fe85801bbc39263943be8ef3",
   "crates": {
     "autocfg 1.1.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "autocfg",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "autocfg",
       "package_url": "https://github.com/cuviper/autocfg",
       "repository": {
@@ -45,10 +25,8 @@
         "crate_features": ["default"],
         "edition": "2018"
       },
-      "library_target_name": "bitflags",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "bitflags",
       "package_url": "https://github.com/bitflags/bitflags",
       "repository": {
@@ -66,10 +44,8 @@
     },
     "cfg-if 1.0.0": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "cfg_if",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cfg-if",
       "package_url": "https://github.com/alexcrichton/cfg-if",
       "repository": {
@@ -97,7 +73,6 @@
         },
         "edition": "2021"
       },
-      "library_target_name": "conditional_deps",
       "name": "conditional-deps",
       "repository": null,
       "targets": [
@@ -117,10 +92,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "libc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "libc",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
@@ -150,10 +123,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "memoffset",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "memoffset",
       "package_url": "https://github.com/Gilnaa/memoffset",
       "repository": {
@@ -221,10 +192,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "nix",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "nix",
       "package_url": "https://github.com/nix-rust/nix",
       "repository": {
@@ -242,10 +211,8 @@
     },
     "pin-utils 0.1.0": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "pin_utils",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "pin-utils",
       "package_url": "https://github.com/rust-lang-nursery/pin-utils",
       "repository": {
@@ -263,10 +230,8 @@
     },
     "static_assertions 1.1.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "static_assertions",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "static_assertions",
       "package_url": "https://github.com/nvzqz/static-assertions-rs",
       "repository": {

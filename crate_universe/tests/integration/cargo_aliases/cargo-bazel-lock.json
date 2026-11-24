@@ -1,53 +1,5 @@
 {
-  "binary_crates": ["clap 3.2.23", "names 0.12.1-dev", "names 0.13.0", "unsafe-libyaml 0.2.11"],
-  "checksum": "e598dc5b2302a79927818966a3ecc9fa760d14d7a4bb3921ff6945ab850a46d7",
-  "conditions": {
-    "aarch64-unknown-linux-gnu": ["aarch64-unknown-linux-gnu", "aarch64-unknown-nixos-gnu"],
-    "cfg(any())": [],
-    "cfg(target_os = \"hermit\")": [],
-    "cfg(target_os = \"wasi\")": ["wasm32-wasip1", "wasm32-wasip1-threads", "wasm32-wasip2"],
-    "cfg(unix)": [
-      "aarch64-apple-darwin",
-      "aarch64-apple-ios",
-      "aarch64-apple-ios-macabi",
-      "aarch64-apple-ios-sim",
-      "aarch64-linux-android",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "arm-unknown-linux-gnueabi",
-      "arm-unknown-linux-musleabi",
-      "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
-      "i686-linux-android",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "loongarch64-unknown-linux-gnu",
-      "mips-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "riscv64gc-unknown-fuchsia",
-      "riscv64gc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
-      "sparc64-unknown-linux-gnu",
-      "sparc64-unknown-netbsd",
-      "sparc64-unknown-openbsd",
-      "wasm32-unknown-emscripten",
-      "x86_64-apple-darwin",
-      "x86_64-apple-ios",
-      "x86_64-apple-ios-macabi",
-      "x86_64-linux-android",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "cfg(windows)": ["aarch64-pc-windows-msvc", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"],
-    "i686-pc-windows-gnu": [],
-    "x86_64-pc-windows-gnu": [],
-    "x86_64-unknown-linux-gnu": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"]
-  },
+  "checksum": "c25f2f4c026bb9a64d25ffaf141f2727dcafbbf220194e0d989e9148a70fd28a",
   "crates": {
     "aho-corasick 0.7.20": {
       "common_attrs": {
@@ -57,10 +9,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "aho_corasick",
       "license": "Unlicense OR MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT", "Unlicense"],
       "name": "aho-corasick",
       "package_url": "https://github.com/BurntSushi/aho-corasick",
       "repository": {
@@ -91,7 +41,6 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "aliases",
       "name": "aliases",
       "repository": null,
       "targets": [
@@ -119,10 +68,8 @@
         },
         "edition": "2015"
       },
-      "library_target_name": "atty",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "atty",
       "package_url": "https://github.com/softprops/atty",
       "repository": {
@@ -140,10 +87,8 @@
     },
     "autocfg 1.1.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "autocfg",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "autocfg",
       "package_url": "https://github.com/cuviper/autocfg",
       "repository": {
@@ -164,10 +109,8 @@
         "crate_features": ["default"],
         "edition": "2018"
       },
-      "library_target_name": "bitflags",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "bitflags",
       "package_url": "https://github.com/bitflags/bitflags",
       "repository": {
@@ -185,10 +128,8 @@
     },
     "cfg-if 1.0.0": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "cfg_if",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cfg-if",
       "package_url": "https://github.com/alexcrichton/cfg-if",
       "repository": {
@@ -233,10 +174,8 @@
           {"id": "clap_derive 3.2.18", "target": "clap_derive"}
         ]
       },
-      "library_target_name": "clap",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "clap",
       "package_url": "https://github.com/clap-rs/clap",
       "repository": {
@@ -267,10 +206,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "clap_derive",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "clap_derive",
       "package_url": "https://github.com/clap-rs/clap/tree/master/clap_derive",
       "repository": {
@@ -293,10 +230,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "clap_lex",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "clap_lex",
       "package_url": "https://github.com/clap-rs/clap/tree/master/clap_lex",
       "repository": {
@@ -324,10 +259,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "env_logger",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "env_logger",
       "package_url": "https://github.com/env-logger-rs/env_logger/",
       "repository": {
@@ -345,10 +278,8 @@
     },
     "equivalent 1.0.2": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "equivalent",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "equivalent",
       "package_url": "https://github.com/indexmap-rs/equivalent",
       "repository": {
@@ -382,10 +313,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "getrandom",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "getrandom",
       "package_url": "https://github.com/rust-random/getrandom",
       "repository": {
@@ -406,10 +335,8 @@
         "crate_features": ["raw"],
         "edition": "2021"
       },
-      "library_target_name": "hashbrown",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "hashbrown",
       "package_url": "https://github.com/rust-lang/hashbrown",
       "repository": {
@@ -427,10 +354,8 @@
     },
     "hashbrown 0.15.2": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "hashbrown",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "hashbrown",
       "package_url": "https://github.com/rust-lang/hashbrown",
       "repository": {
@@ -451,10 +376,8 @@
         "crate_features": ["default"],
         "edition": "2018"
       },
-      "library_target_name": "heck",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "heck",
       "package_url": "https://github.com/withoutboats/heck",
       "repository": {
@@ -477,10 +400,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "hermit_abi",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "hermit-abi",
       "package_url": "https://github.com/hermitcore/libhermit-rs",
       "repository": {
@@ -498,10 +419,8 @@
     },
     "humantime 2.1.0": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "humantime",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "humantime",
       "package_url": "https://github.com/tailhook/humantime",
       "repository": {
@@ -531,10 +450,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "indexmap",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "indexmap",
       "package_url": "https://github.com/bluss/indexmap",
       "repository": {
@@ -562,10 +479,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "indexmap",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "indexmap",
       "package_url": "https://github.com/indexmap-rs/indexmap",
       "repository": {
@@ -583,10 +498,8 @@
     },
     "itoa 1.0.14": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "itoa",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "itoa",
       "package_url": "https://github.com/dtolnay/itoa",
       "repository": {
@@ -608,10 +521,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "libc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "libc",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
@@ -638,10 +549,8 @@
         ],
         "edition": "2015"
       },
-      "library_target_name": "log",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "log",
       "package_url": "https://github.com/rust-lang/log",
       "repository": {
@@ -667,10 +576,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "log",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "log",
       "package_url": "https://github.com/rust-lang/log",
       "repository": {
@@ -696,10 +603,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "memchr",
       "license": "Unlicense/MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT", "Unlicense"],
       "name": "memchr",
       "package_url": "https://github.com/BurntSushi/memchr",
       "repository": {
@@ -729,10 +634,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "names",
       "license": "MIT",
       "license_file": "LICENSE.txt",
-      "license_ids": ["MIT"],
       "name": "names",
       "package_url": "https://github.com/fnichol/names",
       "repository": {
@@ -765,10 +668,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "names",
       "license": "MIT",
       "license_file": "LICENSE.txt",
-      "license_ids": ["MIT"],
       "name": "names",
       "package_url": "https://github.com/fnichol/names",
       "repository": {
@@ -795,10 +696,8 @@
         "crate_features": ["alloc", "default", "race", "std"],
         "edition": "2021"
       },
-      "library_target_name": "once_cell",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "once_cell",
       "package_url": "https://github.com/matklad/once_cell",
       "repository": {
@@ -819,10 +718,8 @@
         "crate_features": ["raw_os_str"],
         "edition": "2021"
       },
-      "library_target_name": "os_str_bytes",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "os_str_bytes",
       "package_url": "https://github.com/dylni/os_str_bytes",
       "repository": {
@@ -843,10 +740,8 @@
         "crate_features": ["simd", "std"],
         "edition": "2018"
       },
-      "library_target_name": "ppv_lite86",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "ppv-lite86",
       "package_url": "https://github.com/cryptocorrosion/cryptocorrosion",
       "repository": {
@@ -881,10 +776,8 @@
           {"id": "proc-macro-error-attr 1.0.4", "target": "proc_macro_error_attr"}
         ]
       },
-      "library_target_name": "proc_macro_error",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "proc-macro-error",
       "package_url": "https://gitlab.com/CreepySkeleton/proc-macro-error",
       "repository": {
@@ -917,10 +810,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "proc_macro_error_attr",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "proc-macro-error-attr",
       "package_url": "https://gitlab.com/CreepySkeleton/proc-macro-error",
       "repository": {
@@ -949,10 +840,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "proc_macro2",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "proc-macro2",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
@@ -979,10 +868,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "quote",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "quote",
       "package_url": "https://github.com/dtolnay/quote",
       "repository": {
@@ -1116,10 +1003,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "rand",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rand",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
@@ -1144,10 +1029,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "rand_chacha",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rand_chacha",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
@@ -1171,10 +1054,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "rand_core",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rand_core",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
@@ -1200,10 +1081,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "regex",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "regex",
       "package_url": "https://github.com/rust-lang/regex",
       "repository": {
@@ -1221,10 +1100,8 @@
     },
     "regex-syntax 0.6.28": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "regex_syntax",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "regex-syntax",
       "package_url": "https://github.com/rust-lang/regex",
       "repository": {
@@ -1242,10 +1119,8 @@
     },
     "ryu 1.0.19": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "ryu",
       "license": "Apache-2.0 OR BSL-1.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "BSL-1.0"],
       "name": "ryu",
       "package_url": "https://github.com/dtolnay/ryu",
       "repository": {
@@ -1276,10 +1151,8 @@
           }
         }
       },
-      "library_target_name": "serde",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "serde",
       "package_url": "https://github.com/serde-rs/serde",
       "repository": {
@@ -1307,10 +1180,8 @@
         ],
         "edition": "2015"
       },
-      "library_target_name": "serde_derive",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "serde_derive",
       "package_url": "https://github.com/serde-rs/serde",
       "repository": {
@@ -1337,10 +1208,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "serde_yaml",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "serde_yaml",
       "package_url": "https://github.com/dtolnay/serde-yaml",
       "repository": {
@@ -1358,10 +1227,8 @@
     },
     "strsim 0.10.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "strsim",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "strsim",
       "package_url": "https://github.com/dguo/strsim-rs",
       "repository": {
@@ -1389,10 +1256,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "syn",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "syn",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
@@ -1419,10 +1284,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "syn",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "syn",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
@@ -1450,10 +1313,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "termcolor",
       "license": "Unlicense OR MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT", "Unlicense"],
       "name": "termcolor",
       "package_url": "https://github.com/BurntSushi/termcolor",
       "repository": {
@@ -1471,10 +1332,8 @@
     },
     "textwrap 0.16.0": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "textwrap",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "textwrap",
       "package_url": "https://github.com/mgeisler/textwrap",
       "repository": {
@@ -1492,10 +1351,8 @@
     },
     "unicode-ident 1.0.6": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "unicode_ident",
       "license": "(MIT OR Apache-2.0) AND Unicode-DFS-2016",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT", "Unicode-DFS-2016"],
       "name": "unicode-ident",
       "package_url": "https://github.com/dtolnay/unicode-ident",
       "repository": {
@@ -1513,10 +1370,8 @@
     },
     "unsafe-libyaml 0.2.11": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "unsafe_libyaml",
       "license": "MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT"],
       "name": "unsafe-libyaml",
       "package_url": "https://github.com/dtolnay/unsafe-libyaml",
       "repository": {
@@ -1540,10 +1395,8 @@
     },
     "value-bag 1.11.1": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "value_bag",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "value-bag",
       "package_url": "https://github.com/sval-rs/value-bag",
       "repository": {
@@ -1561,10 +1414,8 @@
     },
     "version_check 0.9.4": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "version_check",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "version_check",
       "package_url": "https://github.com/SergioBenitez/version_check",
       "repository": {
@@ -1585,10 +1436,8 @@
         "crate_features": ["default", "std"],
         "edition": "2018"
       },
-      "library_target_name": "wasi",
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "wasi",
       "package_url": "https://github.com/bytecodealliance/wasi",
       "repository": {
@@ -1634,10 +1483,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "winapi",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "winapi",
       "package_url": "https://github.com/retep998/winapi-rs",
       "repository": {
@@ -1662,9 +1509,7 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "winapi_i686_pc_windows_gnu",
       "license": "MIT/Apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "winapi-i686-pc-windows-gnu",
       "package_url": "https://github.com/retep998/winapi-rs",
       "repository": {
@@ -1695,10 +1540,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "winapi_util",
       "license": "Unlicense/MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT", "Unlicense"],
       "name": "winapi-util",
       "package_url": "https://github.com/BurntSushi/winapi-util",
       "repository": {
@@ -1720,9 +1563,7 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "winapi_x86_64_pc_windows_gnu",
       "license": "MIT/Apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "winapi-x86_64-pc-windows-gnu",
       "package_url": "https://github.com/retep998/winapi-rs",
       "repository": {

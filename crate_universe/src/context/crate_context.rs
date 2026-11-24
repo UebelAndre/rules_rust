@@ -361,7 +361,8 @@ pub(crate) struct CrateContext {
 
     /// The name of the crate's root library target. This is the target that a dependent
     /// would get if they were to depend on `{crate_name}`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Derived from `targets`, so never written to lockfiles.
+    #[serde(default, skip_serializing)]
     pub(crate) library_target_name: Option<String>,
 
     /// A set of attributes common to most [Rule] types or target types.
@@ -379,7 +380,8 @@ pub(crate) struct CrateContext {
     pub(crate) license: Option<String>,
 
     /// The SPDX licence IDs
-    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    /// Derived from `license`, so never written to lockfiles.
+    #[serde(default, skip_serializing)]
     pub(crate) license_ids: BTreeSet<String>,
 
     /// The license file
@@ -493,25 +495,7 @@ impl CrateContext {
         // Iterate over each target and produce a Bazel target for all supported "kinds"
         let targets = Self::collect_targets(&annotation.node, packages)?;
 
-        // Parse the library crate name from the set of included targets
-        let library_target_name = {
-            let lib_targets: Vec<&TargetAttributes> = targets
-                .iter()
-                .filter_map(|t| match t {
-                    Rule::ProcMacro(attrs) => Some(attrs),
-                    Rule::Library(attrs) => Some(attrs),
-                    _ => None,
-                })
-                .collect();
-
-            // TODO: There should only be at most 1 library target. This case
-            // should be handled in a more intelligent way.
-            assert!(lib_targets.len() <= 1);
-            lib_targets
-                .iter()
-                .last()
-                .map(|attr| attr.crate_name.clone())
-        };
+        let library_target_name = Self::library_target_name_of(&targets);
 
         // Gather any build-script related attributes
         let build_script_target = targets.iter().find_map(|r| match r {
@@ -548,17 +532,7 @@ impl CrateContext {
         // Save the repository information for the current crate
         let repository = source_annotations.get(&package.id).cloned();
 
-        // Identify the license type
-        let mut license_ids: BTreeSet<String> = BTreeSet::new();
-        if let Some(license) = &package.license {
-            if let Ok(parse_result) = spdx::Expression::parse_mode(license, spdx::ParseMode::LAX) {
-                parse_result.requirements().for_each(|er| {
-                    if let Some(license_id) = er.req.license.id() {
-                        license_ids.insert(license_id.name.to_string());
-                    }
-                });
-            }
-        }
+        let license_ids = Self::license_ids_of(package.license.as_deref());
 
         let license_file = Self::locate_license_file(package);
 
@@ -889,6 +863,49 @@ impl CrateContext {
         }
 
         self
+    }
+
+    /// The name of the library target among `targets`, if any.
+    pub(crate) fn library_target_name_of(targets: &BTreeSet<Rule>) -> Option<String> {
+        let lib_targets: Vec<&TargetAttributes> = targets
+            .iter()
+            .filter_map(|t| match t {
+                Rule::ProcMacro(attrs) => Some(attrs),
+                Rule::Library(attrs) => Some(attrs),
+                _ => None,
+            })
+            .collect();
+
+        // TODO: There should only be at most 1 library target. This case
+        // should be handled in a more intelligent way.
+        assert!(lib_targets.len() <= 1);
+        lib_targets
+            .iter()
+            .last()
+            .map(|attr| attr.crate_name.clone())
+    }
+
+    /// The SPDX identifiers a license expression names.
+    pub(crate) fn license_ids_of(license: Option<&str>) -> BTreeSet<String> {
+        let mut license_ids = BTreeSet::new();
+        if let Some(license) = license {
+            if let Ok(parse_result) = spdx::Expression::parse_mode(license, spdx::ParseMode::LAX) {
+                parse_result.requirements().for_each(|er| {
+                    if let Some(license_id) = er.req.license.id() {
+                        license_ids.insert(license_id.name.to_string());
+                    }
+                });
+            }
+        }
+        license_ids
+    }
+
+    /// Fills the fields a lockfile does not record, which follow from the rest
+    /// of the crate alone, so one entry renders on its own: see
+    /// [crate::context::Context::restore_derived].
+    pub(crate) fn restore_derived(&mut self) {
+        self.library_target_name = Self::library_target_name_of(&self.targets);
+        self.license_ids = Self::license_ids_of(self.license.as_deref());
     }
 
     fn locate_license_file(package: &Package) -> Option<String> {

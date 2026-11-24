@@ -1,13 +1,10 @@
 {
-  "checksum": "ea2fd6e4c44b179b5122fa69ad311fd390237fb5df96861e045073bf8321c2e6",
-  "conditions": {},
+  "checksum": "bf3a6e2f5e410401cdddfde7d006f2e92f3d825a115c046c160e52206670f82a",
   "crates": {
     "bitflags 2.11.1": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "bitflags",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "bitflags",
       "package_url": "https://github.com/bitflags/bitflags",
       "repository": {
@@ -31,10 +28,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "cc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cc",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
@@ -52,10 +47,8 @@
     },
     "cfg-if 1.0.4": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "cfg_if",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cfg-if",
       "package_url": "https://github.com/rust-lang/cfg-if",
       "repository": {
@@ -78,7 +71,6 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "direct_cargo_bazel_deps",
       "name": "direct-cargo-bazel-deps",
       "repository": null,
       "targets": [
@@ -90,10 +82,8 @@
     },
     "find-msvc-tools 0.1.9": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "find_msvc_tools",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "find-msvc-tools",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
@@ -116,10 +106,8 @@
         ],
         "edition": "2015"
       },
-      "library_target_name": "foreign_types",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "foreign-types",
       "package_url": "https://github.com/sfackler/foreign-types",
       "repository": {
@@ -137,10 +125,8 @@
     },
     "foreign-types-shared 0.1.1": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "foreign_types_shared",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "foreign-types-shared",
       "package_url": "https://github.com/sfackler/foreign-types",
       "repository": {
@@ -163,10 +149,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "libc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "libc",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
@@ -206,10 +190,8 @@
           {"id": "openssl-macros 0.1.1", "target": "openssl_macros"}
         ]
       },
-      "library_target_name": "openssl",
       "license": "Apache-2.0",
       "license_file": "LICENSE",
-      "license_ids": ["Apache-2.0"],
       "name": "openssl",
       "package_url": "https://github.com/rust-openssl/rust-openssl",
       "repository": {
@@ -237,10 +219,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "openssl_macros",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "openssl-macros",
       "repository": {
         "Http": {
@@ -271,10 +251,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_main"]
       },
-      "library_target_name": "openssl_sys",
       "license": "MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT"],
       "name": "openssl-sys",
       "package_url": "https://github.com/rust-openssl/rust-openssl",
       "repository": {
@@ -295,10 +273,8 @@
     },
     "pkg-config 0.3.33": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "pkg_config",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "pkg-config",
       "package_url": "https://github.com/rust-lang/pkg-config-rs",
       "repository": {
@@ -324,10 +300,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "proc_macro2",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "proc-macro2",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
@@ -356,10 +330,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "quote",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "quote",
       "package_url": "https://github.com/dtolnay/quote",
       "repository": {
@@ -383,10 +355,8 @@
         "crate_features": ["default", "std"],
         "edition": "2015"
       },
-      "library_target_name": "shlex",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "shlex",
       "package_url": "https://github.com/comex/rust-shlex",
       "repository": {
@@ -412,10 +382,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "syn",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "syn",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
@@ -433,10 +401,8 @@
     },
     "unicode-ident 1.0.24": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "unicode_ident",
       "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT", "Unicode-3.0"],
       "name": "unicode-ident",
       "package_url": "https://github.com/dtolnay/unicode-ident",
       "repository": {
@@ -454,10 +420,8 @@
     },
     "vcpkg 0.2.15": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "vcpkg",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "vcpkg",
       "package_url": "https://github.com/mcgoo/vcpkg-rs",
       "repository": {

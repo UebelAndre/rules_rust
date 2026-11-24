@@ -75,7 +75,8 @@ pub(crate) fn lock_context(
 }
 
 /// Write a [crate::context::Context] to disk
-pub(crate) fn write_lockfile(lockfile: Context, path: &Path, dry_run: bool) -> Result<()> {
+pub(crate) fn write_lockfile(mut lockfile: Context, path: &Path, dry_run: bool) -> Result<()> {
+    lockfile.strip_derived();
     let mut value = serde_json::to_value(&lockfile)?;
     compact_lockfile_value(&mut value);
     let content = format_lockfile(&value);
@@ -227,11 +228,14 @@ impl Digest {
         if let Some(cargo_lockfile) = cargo_lockfile {
             splicing_metadata.cargo_lock = Some(LockfileProjection::from(cargo_lockfile));
         }
-        let context = Context {
+        // The digest covers the written form of the context, so a lockfile
+        // checks the same however it was loaded.
+        let mut context = Context {
             checksum: None,
             provenance: None,
             ..context.clone()
         };
+        context.strip_derived();
         Ok(Self::compute(&context, provenance, &splicing_metadata))
     }
 
@@ -377,7 +381,7 @@ mod test {
         );
 
         assert_eq!(
-            Digest("a0151e01aa9344f798495fc6cc125b35e3eb3bfd35a35b5543257c0e985840c3".to_owned()),
+            Digest("8a22835a6d23fd038a25fe5e18c40aaff079577ef5eb1e1d623590288d084d90".to_owned()),
             digest,
         );
     }
@@ -437,7 +441,7 @@ mod test {
         let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("ea60764e1051f645e322033ff63f214f81fff7a8e51b8b513295e5015303e762".to_owned()),
+            Digest("5d6df71d3850b0d791784fc2835c667b4a592397a11068dd9bcc529b174b997f".to_owned()),
             digest,
         );
 
@@ -499,7 +503,7 @@ mod test {
         let digest = Digest::compute(&Context::default(), &provenance(), &splicing_metadata);
 
         assert_eq!(
-            Digest("399d8023e720073b10c726fa31c3547ec7e323a94634d45128bf7509bee25e0b".to_owned()),
+            Digest("132ca640980590ac0822dd33a702f158d7309e0730b0b14ed214ea4c6b939be5".to_owned()),
             digest,
         );
     }

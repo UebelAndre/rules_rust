@@ -1,3 +1,4 @@
+use crate::context::platforms::resolve_cfg_platforms;
 use crate::context::SingleBuildFileRenderContext;
 use crate::rendering::Renderer;
 
@@ -32,6 +33,18 @@ pub fn render(opt: RenderOptions) -> Result<()> {
         platform_conditions,
         crate_context,
     } = deserialized_options;
+
+    // The entry comes from a lockfile, which leaves out what follows from it.
+    let mut crate_context = (*crate_context).clone();
+    crate_context.restore_derived();
+    let platform_conditions = if platform_conditions.is_empty() {
+        Arc::new(resolve_cfg_platforms(
+            vec![&crate_context],
+            &supported_platform_triples,
+        )?)
+    } else {
+        platform_conditions
+    };
 
     let renderer = Renderer::new(config, supported_platform_triples);
     let platforms = renderer.render_platform_labels(Arc::clone(&platform_conditions));

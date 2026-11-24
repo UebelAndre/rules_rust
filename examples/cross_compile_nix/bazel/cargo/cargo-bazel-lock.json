@@ -1,52 +1,5 @@
 {
-  "binary_crates": ["cc 1.0.84"],
-  "checksum": "7e533336b847e4ea500302bcad5bedd4ad27948fd2bebaee7636022b9c505c9d",
-  "conditions": {
-    "aarch64-pc-windows-gnullvm": [],
-    "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
-    "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(windows_raw_dylib)))": [],
-    "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
-    "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"],
-    "cfg(all(target_arch = \"x86_64\", target_env = \"msvc\", not(windows_raw_dylib)))": ["x86_64-pc-windows-msvc"],
-    "cfg(not(all(windows, target_env = \"msvc\", not(target_vendor = \"uwp\"))))": [
-      "aarch64-apple-darwin",
-      "aarch64-apple-ios",
-      "aarch64-linux-android",
-      "aarch64-unknown-linux-gnu",
-      "wasm32-unknown-unknown",
-      "wasm32-wasip1",
-      "x86_64-apple-darwin",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "cfg(not(windows))": [
-      "aarch64-apple-darwin",
-      "aarch64-apple-ios",
-      "aarch64-linux-android",
-      "aarch64-unknown-linux-gnu",
-      "wasm32-unknown-unknown",
-      "wasm32-wasip1",
-      "x86_64-apple-darwin",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "cfg(target_os = \"hermit\")": [],
-    "cfg(target_os = \"redox\")": [],
-    "cfg(target_os = \"wasi\")": ["wasm32-wasip1"],
-    "cfg(tokio_taskdump)": [],
-    "cfg(unix)": [
-      "aarch64-apple-darwin",
-      "aarch64-apple-ios",
-      "aarch64-linux-android",
-      "aarch64-unknown-linux-gnu",
-      "x86_64-apple-darwin",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "cfg(windows)": ["x86_64-pc-windows-msvc"],
-    "x86_64-pc-windows-gnullvm": [],
-    "x86_64-unknown-linux-gnu": ["x86_64-unknown-linux-gnu", "x86_64-unknown-nixos-gnu"]
-  },
+  "checksum": "5684ea075a5aaffda24aaed90b81a6ef8add86580074eabbbb76acd27d5eb97a",
   "crates": {
     "addr2line 0.21.0": {
       "common_attrs": {
@@ -55,10 +8,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "addr2line",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "addr2line",
       "package_url": "https://github.com/gimli-rs/addr2line",
       "repository": {
@@ -76,10 +27,8 @@
     },
     "adler 1.0.2": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "adler",
       "license": "0BSD OR MIT OR Apache-2.0",
       "license_file": "LICENSE-0BSD",
-      "license_ids": ["0BSD", "Apache-2.0", "MIT"],
       "name": "adler",
       "package_url": "https://github.com/jonas-schievink/adler.git",
       "repository": {
@@ -102,10 +51,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "anyhow",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "anyhow",
       "package_url": "https://github.com/dtolnay/anyhow",
       "repository": {
@@ -126,10 +73,8 @@
     },
     "autocfg 1.1.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "autocfg",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "autocfg",
       "package_url": "https://github.com/cuviper/autocfg",
       "repository": {
@@ -169,10 +114,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "backtrace",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "backtrace",
       "package_url": "https://github.com/rust-lang/backtrace-rs",
       "repository": {
@@ -193,10 +136,8 @@
     },
     "bitflags 1.3.2": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "bitflags",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "bitflags",
       "package_url": "https://github.com/bitflags/bitflags",
       "repository": {
@@ -217,10 +158,8 @@
         "crate_features": ["default", "std"],
         "edition": "2018"
       },
-      "library_target_name": "bytes",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "bytes",
       "package_url": "https://github.com/tokio-rs/bytes",
       "repository": {
@@ -248,10 +187,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "cc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cc",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
@@ -272,10 +209,8 @@
     },
     "cfg-if 1.0.0": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "cfg_if",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "cfg-if",
       "package_url": "https://github.com/alexcrichton/cfg-if",
       "repository": {
@@ -299,7 +234,6 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "direct_cargo_bazel_deps",
       "name": "direct-cargo-bazel-deps",
       "repository": null,
       "targets": [
@@ -311,10 +245,8 @@
     },
     "gimli 0.28.0": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "gimli",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "gimli",
       "package_url": "https://github.com/gimli-rs/gimli",
       "repository": {
@@ -332,10 +264,8 @@
     },
     "hermit-abi 0.3.3": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "hermit_abi",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "hermit-abi",
       "package_url": "https://github.com/hermitcore/hermit-rs",
       "repository": {
@@ -358,10 +288,8 @@
         "edition": "2015",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "libc",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "libc",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
@@ -394,10 +322,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "lock_api",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "lock_api",
       "package_url": "https://github.com/Amanieu/parking_lot",
       "repository": {
@@ -418,10 +344,8 @@
     },
     "memchr 2.6.4": {
       "common_attrs": {"edition": "2021"},
-      "library_target_name": "memchr",
       "license": "Unlicense OR MIT",
       "license_file": "LICENSE-MIT",
-      "license_ids": ["MIT", "Unlicense"],
       "name": "memchr",
       "package_url": "https://github.com/BurntSushi/memchr",
       "repository": {
@@ -444,10 +368,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "miniz_oxide",
       "license": "MIT OR Zlib OR Apache-2.0",
       "license_file": "LICENSE",
-      "license_ids": ["Apache-2.0", "MIT", "Zlib"],
       "name": "miniz_oxide",
       "package_url": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
       "repository": {
@@ -483,10 +405,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "mio",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "mio",
       "package_url": "https://github.com/tokio-rs/mio",
       "repository": {
@@ -517,10 +437,8 @@
         },
         "edition": "2015"
       },
-      "library_target_name": "num_cpus",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "num_cpus",
       "package_url": "https://github.com/seanmonstar/num_cpus",
       "repository": {
@@ -543,10 +461,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "object",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "object",
       "package_url": "https://github.com/gimli-rs/object",
       "repository": {
@@ -571,10 +487,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "parking_lot",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "parking_lot",
       "package_url": "https://github.com/Amanieu/parking_lot",
       "repository": {
@@ -613,10 +527,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "parking_lot_core",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "parking_lot_core",
       "package_url": "https://github.com/Amanieu/parking_lot",
       "repository": {
@@ -637,10 +549,8 @@
     },
     "pin-project-lite 0.2.13": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "pin_project_lite",
       "license": "Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "pin-project-lite",
       "package_url": "https://github.com/taiki-e/pin-project-lite",
       "repository": {
@@ -666,10 +576,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "proc_macro2",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "proc-macro2",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
@@ -698,10 +606,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "quote",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "quote",
       "package_url": "https://github.com/dtolnay/quote",
       "repository": {
@@ -727,10 +633,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "syscall",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "redox_syscall",
       "package_url": "https://gitlab.redox-os.org/redox-os/syscall",
       "repository": {
@@ -748,10 +652,8 @@
     },
     "rustc-demangle 0.1.23": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "rustc_demangle",
       "license": "MIT/Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "rustc-demangle",
       "package_url": "https://github.com/alexcrichton/rustc-demangle",
       "repository": {
@@ -769,10 +671,8 @@
     },
     "scopeguard 1.2.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "scopeguard",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "scopeguard",
       "package_url": "https://github.com/bluss/scopeguard",
       "repository": {
@@ -795,10 +695,8 @@
         ],
         "edition": "2015"
       },
-      "library_target_name": "signal_hook_registry",
       "license": "Apache-2.0/MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "signal-hook-registry",
       "package_url": "https://github.com/vorner/signal-hook",
       "repository": {
@@ -816,10 +714,8 @@
     },
     "smallvec 1.11.2": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "smallvec",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "smallvec",
       "package_url": "https://github.com/servo/rust-smallvec",
       "repository": {
@@ -851,10 +747,8 @@
         },
         "edition": "2021"
       },
-      "library_target_name": "socket2",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "socket2",
       "package_url": "https://github.com/rust-lang/socket2",
       "repository": {
@@ -880,10 +774,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "syn",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "syn",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
@@ -987,10 +879,8 @@
           {"id": "tokio-macros 2.2.0", "target": "tokio_macros"}
         ]
       },
-      "library_target_name": "tokio",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "tokio",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
@@ -1015,10 +905,8 @@
         ],
         "edition": "2021"
       },
-      "library_target_name": "tokio_macros",
       "license": "MIT",
       "license_file": "LICENSE",
-      "license_ids": ["MIT"],
       "name": "tokio-macros",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
@@ -1036,10 +924,8 @@
     },
     "unicode-ident 1.0.8": {
       "common_attrs": {"edition": "2018"},
-      "library_target_name": "unicode_ident",
       "license": "(MIT OR Apache-2.0) AND Unicode-DFS-2016",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT", "Unicode-DFS-2016"],
       "name": "unicode-ident",
       "package_url": "https://github.com/dtolnay/unicode-ident",
       "repository": {
@@ -1060,10 +946,8 @@
         "crate_features": ["default", "std"],
         "edition": "2018"
       },
-      "library_target_name": "wasi",
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "wasi",
       "package_url": "https://github.com/bytecodealliance/wasi",
       "repository": {
@@ -1103,10 +987,8 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "windows_sys",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows-sys",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1152,10 +1034,8 @@
         },
         "edition": "2018"
       },
-      "library_target_name": "windows_targets",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows-targets",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1177,10 +1057,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "windows_aarch64_gnullvm",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_aarch64_gnullvm",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1205,10 +1083,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "windows_aarch64_msvc",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_aarch64_msvc",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1233,10 +1109,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "windows_i686_gnu",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_i686_gnu",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1261,10 +1135,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "windows_i686_msvc",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_i686_msvc",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1289,10 +1161,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "windows_x86_64_gnu",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_x86_64_gnu",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1317,10 +1187,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "windows_x86_64_gnullvm",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_x86_64_gnullvm",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {
@@ -1345,10 +1213,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "windows_x86_64_msvc",
       "license": "MIT OR Apache-2.0",
       "license_file": "license-apache-2.0",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "windows_x86_64_msvc",
       "package_url": "https://github.com/microsoft/windows-rs",
       "repository": {

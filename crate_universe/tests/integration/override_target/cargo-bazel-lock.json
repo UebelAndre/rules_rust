@@ -1,6 +1,5 @@
 {
-  "checksum": "33d6f227d8754e18170d27baf4f9433e673158e857ba981796ddf22f5496433c",
-  "conditions": {},
+  "checksum": "7c800347276b689639217e63b0b46867574cfb0eb26e91e33022fd1d243484b3",
   "crates": {
     "anyhow 1.0.104": {
       "build_script_attrs": {},
@@ -9,10 +8,8 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "anyhow",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "anyhow",
       "package_url": "https://github.com/dtolnay/anyhow",
       "repository": {
@@ -42,7 +39,6 @@
           {"id": "paste 1.0.15", "target": "paste"}
         ]
       },
-      "library_target_name": "direct_cargo_bazel_deps",
       "name": "direct-cargo-bazel-deps",
       "repository": null,
       "targets": [
@@ -54,9 +50,7 @@
     },
     "foo 0.0.0": {
       "common_attrs": {"edition": "2015"},
-      "library_target_name": "foo",
       "license": "CC0-1.0",
-      "license_ids": ["CC0-1.0"],
       "name": "foo",
       "repository": {
         "Http": {
@@ -77,10 +71,8 @@
         "edition": "2018",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "paste",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-APACHE",
-      "license_ids": ["Apache-2.0", "MIT"],
       "name": "paste",
       "package_url": "https://github.com/dtolnay/paste",
       "repository": {

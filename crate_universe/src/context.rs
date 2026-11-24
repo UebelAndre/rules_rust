@@ -1,7 +1,7 @@
 //! Convert annotated metadata into a renderable context
 
 pub(crate) mod crate_context;
-mod platforms;
+pub(crate) mod platforms;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{bail, Result};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::config::label_injection;
 use crate::config::{Config, CrateAnnotations, CrateId, LabelInjectionMapping, RenderConfig};
@@ -40,7 +40,8 @@ pub(crate) struct Context {
     pub(crate) crates: BTreeMap<CrateId, CrateContext>,
 
     /// A subset of only crates with binary targets
-    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    /// Derived from `crates` by [Self::for_rendering], so never written.
+    #[serde(default, skip_serializing)]
     pub(crate) binary_crates: BTreeSet<CrateId>,
 
     /// A subset of workspace members mapping to their workspace
@@ -53,7 +54,9 @@ pub(crate) struct Context {
     ///
     /// A triple which maps only to itself is implied by the platform set and is
     /// not written to the lockfile; [Self::for_rendering] restores those entries.
-    #[serde(default, serialize_with = "serialize_conditions")]
+    /// Resolved from the crates' conditions and the platform set by
+    /// [Self::for_rendering], so never written.
+    #[serde(default, skip_serializing)]
     pub(crate) conditions: BTreeMap<String, BTreeSet<TargetTriple>>,
 
     /// A list of crates visible to any bazel module.
@@ -76,7 +79,27 @@ pub(crate) struct Context {
 impl Context {
     pub(crate) fn try_from_path<T: AsRef<Path>>(path: T) -> Result<Self> {
         let data = fs::read_to_string(path.as_ref())?;
-        Ok(serde_json::from_str(&data)?)
+        let mut context: Self = serde_json::from_str(&data)?;
+        context.restore_derived();
+        Ok(context)
+    }
+
+    /// Drops what [Self::restore_derived] rebuilds, so a lockfile records only
+    /// what cannot be recomputed from it: a crate's library target name
+    /// follows from its targets and its SPDX identifiers from its license.
+    /// `conditions` and `binary_crates` are never written at all.
+    pub(crate) fn strip_derived(&mut self) {
+        for krate in self.crates.values_mut() {
+            krate.library_target_name = None;
+            krate.license_ids.clear();
+        }
+    }
+
+    /// Rebuilds what [Self::strip_derived] dropped.
+    pub(crate) fn restore_derived(&mut self) {
+        for krate in self.crates.values_mut() {
+            krate.restore_derived();
+        }
     }
 
     /// Builds the context Cargo's resolution implies, independent of how it will
@@ -198,9 +221,17 @@ impl Context {
         if mapping.is_empty() {
             return Ok(self);
         }
+        // The round trip through JSON is the written form, which leaves out
+        // what the lockfile derives; put it back, nothing in it is a label.
+        let conditions = self.conditions.clone();
+        let binary_crates = self.binary_crates.clone();
         let mut value = serde_json::to_value(&self)?;
         label_injection::apply_mapping_to_value(&mut value, mapping);
-        Ok(serde_json::from_value(value)?)
+        let mut context: Self = serde_json::from_value(value)?;
+        context.restore_derived();
+        context.conditions = conditions;
+        context.binary_crates = binary_crates;
+        Ok(context)
     }
 
     /// The crates with a binary target, excluding workspace members.
@@ -224,7 +255,6 @@ impl Context {
             .as_ref()
             .map(|provenance| provenance.supported_platform_triples.clone())
             .unwrap_or_else(|| config.supported_platform_triples.clone());
-        restore_identity_conditions(&mut self.conditions, &platforms);
 
         let mut unused_annotations: BTreeSet<_> = config.annotations.keys().cloned().collect();
 
@@ -264,6 +294,7 @@ impl Context {
             );
         }
 
+        self.conditions = resolve_cfg_platforms(self.crates.values().collect(), &platforms)?;
         self.binary_crates = Self::binary_crates(&self.crates);
 
         Ok(self)
@@ -388,86 +419,18 @@ pub struct SingleBuildFileRenderContext {
     /// See crate::config::Config.supported_platform_triples.
     pub(crate) supported_platform_triples: Arc<BTreeSet<TargetTriple>>,
 
-    /// See Context::conditions.
+    /// See Context::conditions. Resolved from the crate when left out.
+    #[serde(default)]
     pub(crate) platform_conditions: Arc<BTreeMap<String, BTreeSet<TargetTriple>>>,
 
     /// The CrateContext for the crate being rendered.
     pub(crate) crate_context: Arc<CrateContext>,
 }
 
-/// Whether a condition is a platform triple mapping only to itself.
-fn is_identity_condition(cfg: &str, triples: &BTreeSet<TargetTriple>) -> bool {
-    triples.len() == 1 && triples.iter().all(|triple| triple.to_bazel() == cfg)
-}
-
-/// Serializes `conditions` without the entries the platform set implies.
-fn serialize_conditions<S: Serializer>(
-    conditions: &BTreeMap<String, BTreeSet<TargetTriple>>,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    let explicit: BTreeMap<&String, &BTreeSet<TargetTriple>> = conditions
-        .iter()
-        .filter(|(cfg, triples)| !is_identity_condition(cfg, triples))
-        .collect();
-    explicit.serialize(serializer)
-}
-
-/// Adds the entries [serialize_conditions] leaves out for `platforms`.
-pub(crate) fn restore_identity_conditions(
-    conditions: &mut BTreeMap<String, BTreeSet<TargetTriple>>,
-    platforms: &BTreeSet<TargetTriple>,
-) {
-    for triple in platforms {
-        conditions
-            .entry(triple.to_bazel())
-            .or_default()
-            .insert(triple.clone());
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
 
-    #[test]
-    fn identity_conditions_are_implied_by_the_platform_set() {
-        let linux = TargetTriple::from_bazel("x86_64-unknown-linux-gnu".to_owned());
-        let nixos = TargetTriple::from_bazel("x86_64-unknown-nixos-gnu".to_owned());
-        let context = Context {
-            conditions: BTreeMap::from([
-                (
-                    linux.to_bazel(),
-                    BTreeSet::from([linux.clone(), nixos.clone()]),
-                ),
-                (nixos.to_bazel(), BTreeSet::from([nixos.clone()])),
-                (
-                    "cfg(unix)".to_owned(),
-                    BTreeSet::from([linux.clone(), nixos.clone()]),
-                ),
-            ]),
-            ..Context::default()
-        };
-
-        let written = serde_json::to_value(&context).unwrap();
-        let written = written["conditions"].as_object().unwrap();
-        assert!(
-            written.contains_key("x86_64-unknown-linux-gnu"),
-            "not an identity: {written:?}"
-        );
-        assert!(
-            !written.contains_key("x86_64-unknown-nixos-gnu"),
-            "implied: {written:?}"
-        );
-        assert!(written.contains_key("cfg(unix)"));
-
-        let mut reloaded: Context =
-            serde_json::from_value(serde_json::to_value(&context).unwrap()).unwrap();
-        restore_identity_conditions(
-            &mut reloaded.conditions,
-            &BTreeSet::from([linux.clone(), nixos.clone()]),
-        );
-        assert_eq!(reloaded.conditions, context.conditions);
-    }
     use camino::Utf8Path;
     use semver::Version;
 
@@ -654,12 +617,47 @@ mod test {
     fn serialization() {
         let context = mock_context_aliases();
 
-        // Serialize and deserialize the context object
-        let json_text = serde_json::to_string(&context).unwrap();
-        let deserialized_context: Context = serde_json::from_str(&json_text).unwrap();
+        // A lockfile holds the context without what follows from it; loading
+        // it rebuilds that, and `for_rendering` the conditions and binary crates.
+        let mut written = context.clone();
+        written.strip_derived();
+        let json_text = serde_json::to_string(&written).unwrap();
+        let mut reloaded: Context = serde_json::from_str(&json_text).unwrap();
+        reloaded.restore_derived();
+        let expected = Context {
+            conditions: BTreeMap::new(),
+            binary_crates: BTreeSet::new(),
+            ..context
+        };
+        assert_eq!(expected, reloaded);
+    }
 
-        // The data should be identical
-        assert_eq!(context, deserialized_context);
+    #[test]
+    fn lockfiles_omit_derived_data() {
+        let mut context = mock_context_aliases();
+        context.strip_derived();
+        let written = serde_json::to_value(&context).unwrap();
+        assert!(!written.as_object().unwrap().contains_key("conditions"));
+        assert!(!written.as_object().unwrap().contains_key("binary_crates"));
+        for krate in written["crates"].as_object().unwrap().values() {
+            let krate = krate.as_object().unwrap();
+            assert!(!krate.contains_key("library_target_name"));
+            assert!(!krate.contains_key("license_ids"));
+        }
+    }
+
+    #[test]
+    fn label_injection_keeps_derived_data() {
+        let context = mock_context_aliases();
+        let mapping = LabelInjectionMapping::from([(
+            "@@does_not_matter+".to_owned(),
+            "@does_not_matter".to_owned(),
+        )]);
+        let rewritten = context
+            .clone()
+            .apply_label_injection_mapping(&mapping)
+            .unwrap();
+        assert_eq!(rewritten, context);
     }
 
     // Older cargo-bazel versions wrote every crate with the fully expanded

@@ -1,6 +1,5 @@
 {
-  "checksum": "1afbe3ec9ec14d22f89eed4e34c34698ab62524d931dbd4f06a751a2fbc86a3c",
-  "conditions": {},
+  "checksum": "6697b0eff0350cd171b28f6a9d89b5d6b5294a06b2cbb1b41419f0ded6bdf288",
   "crates": {
     "direct-cargo-bazel-deps 0.0.1": {
       "common_attrs": {
@@ -9,7 +8,6 @@
         ],
         "edition": "2018"
       },
-      "library_target_name": "direct_cargo_bazel_deps",
       "name": "direct-cargo-bazel-deps",
       "repository": null,
       "targets": [
@@ -25,9 +23,7 @@
         "edition": "2021",
         "extra_deps": [":build_script_build"]
       },
-      "library_target_name": "test_data_passing_crate",
       "license": "Apache-2.0",
-      "license_ids": ["Apache-2.0"],
       "name": "test_data_passing_crate",
       "package_url": "https://github.com/bazelbuild/rules_rust",
       "repository": {
