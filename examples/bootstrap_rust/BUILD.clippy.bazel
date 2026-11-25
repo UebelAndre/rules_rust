@@ -1,0 +1,133 @@
+# Clippy: its lints, their configuration and utilities, and the two binaries,
+# `clippy-driver`, a rustc driver, and `cargo-clippy`, the Cargo subcommand.
+# The driver links the compiler's crates through `#![feature(rustc_private)]`,
+# which `RUSTC_BOOTSTRAP` allows on a stable compiler.
+load("@bootstrap_rust_example//:tools.bzl", "DRIVER_LINK_FLAGS", "libraries_beside")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+
+RUSTC_PRIVATE = {"RUSTC_BOOTSTRAP": "1"}
+
+rust_library(
+    name = "rustc_tools_util",
+    srcs = glob(["rustc_tools_util/src/**/*.rs"]),
+    crate_root = "rustc_tools_util/src/lib.rs",
+    edition = "2021",
+)
+
+rust_library(
+    name = "declare_clippy_lint",
+    srcs = glob(["declare_clippy_lint/src/**/*.rs"]),
+    crate_root = "declare_clippy_lint/src/lib.rs",
+    edition = "2024",
+    rustc_env = RUSTC_PRIVATE,
+)
+
+rust_library(
+    name = "clippy_utils",
+    srcs = glob(["clippy_utils/src/**/*.rs"]),
+    crate_root = "clippy_utils/src/lib.rs",
+    edition = "2024",
+    rustc_env = RUSTC_PRIVATE,
+    deps = [
+        "@tool_crates//:arrayvec",
+        "@tool_crates//:itertools",
+        "@tool_crates//:rustc_apfloat",
+    ],
+)
+
+rust_library(
+    name = "clippy_config",
+    srcs = glob(["clippy_config/src/**/*.rs"]),
+    crate_root = "clippy_config/src/lib.rs",
+    edition = "2024",
+    rustc_env = RUSTC_PRIVATE,
+    deps = [
+        ":clippy_utils",
+        "@tool_crates//:arrayvec",
+        "@tool_crates//:itertools",
+        "@tool_crates//:toml",
+    ],
+)
+
+rust_library(
+    name = "clippy_lints",
+    srcs = glob(["clippy_lints/src/**/*.rs"]),
+    crate_root = "clippy_lints/src/lib.rs",
+    edition = "2024",
+    rustc_env = RUSTC_PRIVATE,
+    deps = [
+        ":clippy_config",
+        ":clippy_utils",
+        ":declare_clippy_lint",
+        "@tool_crates//:arrayvec",
+        "@tool_crates//:cargo_metadata",
+        "@tool_crates//:itertools",
+        "@tool_crates//:memchr",
+        "@tool_crates//:quine-mc_cluskey",
+        "@tool_crates//:regex-syntax",
+        "@tool_crates//:semver",
+        "@tool_crates//:serde",
+        "@tool_crates//:toml",
+        "@tool_crates//:unicode-normalization",
+        "@tool_crates//:unicode-script",
+        "@tool_crates//:url",
+    ],
+)
+
+# Records the version Clippy reports, through `rustc_tools_util`.
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    crate_name = "build_script_build",
+    edition = "2024",
+    version = "0.1.99",
+    deps = [":rustc_tools_util"],
+)
+
+libraries_beside(name = "lib")
+
+rust_binary(
+    name = "bin/clippy-driver",
+    srcs = ["src/driver.rs"],
+    crate_name = "clippy_driver",
+    crate_root = "src/driver.rs",
+    data = [":lib"],
+    edition = "2024",
+    rustc_env = RUSTC_PRIVATE,
+    rustc_flags = DRIVER_LINK_FLAGS,
+    version = "0.1.99",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":build_script",
+        ":clippy_config",
+        ":clippy_lints",
+        ":clippy_utils",
+        ":declare_clippy_lint",
+        ":rustc_tools_util",
+        "@tool_crates//:anstream",
+        "@tool_crates//:color-print",
+    ],
+)
+
+rust_binary(
+    name = "bin/cargo-clippy",
+    srcs = ["src/main.rs"],
+    crate_name = "cargo_clippy",
+    crate_root = "src/main.rs",
+    data = [":lib"],
+    edition = "2024",
+    rustc_env = RUSTC_PRIVATE,
+    rustc_flags = DRIVER_LINK_FLAGS,
+    version = "0.1.99",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":build_script",
+        ":clippy_config",
+        ":clippy_lints",
+        ":clippy_utils",
+        ":rustc_tools_util",
+        "@tool_crates//:anstream",
+        "@tool_crates//:color-print",
+    ],
+)

@@ -15,34 +15,246 @@ bazel_dep(name = "bazel_skylib", version = "1.8.2")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 
+# OpenSSL for Cargo, built by Bazel from the `openssl` module rather than by
+# `openssl-sys`'s build script from a vendored copy, which would bake the
+# path of a sandbox into the script.
+bazel_dep(name = "openssl", version = "4.0.3.bcr.1")
+
 # The two inputs this example fetches, from the same Rust release: the host
 # toolchain, whose compiler the toolchains in `BUILD.bazel` are assembled
-# around, and the source of the standard library it compiles for them.
-# Everything else on those toolchains is built here.
+# around, and the source of the release, which the standard library and the
+# tools are compiled from. Everything else is built here.
 RUST_VERSION = "1.99.1"
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
+    # `rustc-dev`: the compiler's crates as a library, which rustdoc and
+    # Clippy link.
+    dev_components = True,
     edition = "2024",
     versions = [RUST_VERSION],
 )
 use_repo(rust, "rust_toolchains")
 
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+rust_src_repository = use_repo_rule("//:rust_src.bzl", "rust_src_repository")
 
-http_archive(
+rust_src_repository(
     name = "rust_src",
-    build_file = "//:BUILD.rust_src.bazel",
-    sha256 = "e485a88c45db546b73571df7bebfcb4454ba4fb552c492e25fc5b00eeb5bf22d",
-    strip_prefix = "rust-src-{}/rust-src/lib/rustlib/src/rust".format(RUST_VERSION),
-    urls = ["https://static.rust-lang.org/dist/rust-src-{}.tar.xz".format(RUST_VERSION)],
+    build_files = {
+        "//:BUILD.clippy.bazel": "src/tools/clippy",
+        "//:BUILD.librustdoc.bazel": "src/librustdoc",
+        "//:BUILD.rust_src.bazel": "",
+        "//:BUILD.rustdoc_json_types.bazel": "src/rustdoc-json-types",
+        "//:BUILD.rustdoc_tool.bazel": "src/tools/rustdoc",
+    },
+    sha256 = "6451598a99e77f07571960f6b21d577399d3a30f33e80cbd2e3a4aae6535d265",
+    version = RUST_VERSION,
 )
+
+# The third-party crates rustdoc and Clippy depend on, from crates.io at the
+# versions the release's `Cargo.lock` pins. The tools' own crates are built
+# from `@rust_src` by the BUILD files above.
+#
+# Each crate repository has a `Cargo.lock` seeded from the release's own, the
+# root's for rustdoc and Clippy, Cargo's and rust-analyzer's for theirs, so
+# the versions are the release's, and a crate_universe lockfile beside it so
+# they stay put. A git dependency is otherwise resolved afresh, and a newer
+# salsa, for one, no longer matched rust-analyzer's code. To update them:
+#
+#     CARGO_BAZEL_REPIN=1 bazel build //...
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+
+[
+    crate.spec(
+        default_features = default_features,
+        features = features,
+        package = package,
+        repositories = ["tool_crates"],
+        version = version,
+    )
+    for package, version, default_features, features in [
+        # rustdoc
+        ("arrayvec", "0.7.6", False, []),
+        (
+            "askama",
+            "0.16.0",
+            False,
+            [
+                "alloc",
+                "config",
+                "derive",
+            ],
+        ),
+        ("base64", "0.21.7", True, []),
+        ("expect-test", "1.5.1", True, []),
+        (
+            "indexmap",
+            "2.14.0",
+            True,
+            ["serde"],
+        ),
+        ("itertools", "0.15.0", True, []),
+        ("minifier", "0.4.0", False, []),
+        ("proc-macro2", "1.0.106", True, []),
+        (
+            "pulldown-cmark-escape",
+            "0.11.0",
+            True,
+            ["simd"],
+        ),
+        ("regex", "1.12.2", True, []),
+        ("rustc-hash", "2.1.1", True, []),
+        (
+            "serde",
+            "1.0.228",
+            True,
+            ["derive"],
+        ),
+        ("serde_derive", "1.0.228", True, []),
+        ("serde_json", "1.0.145", True, []),
+        ("sha2", "0.10.9", True, []),
+        ("smallvec", "1.15.1", True, []),
+        ("stringdex", "0.0.6", True, []),
+        ("tempfile", "3.23.0", True, []),
+        ("threadpool", "1.8.1", True, []),
+        ("tracing", "0.1.44", True, []),
+        (
+            "tracing-subscriber",
+            "0.3.23",
+            False,
+            [
+                "ansi",
+                "env-filter",
+                "fmt",
+                "parking_lot",
+                "smallvec",
+            ],
+        ),
+        ("tracing-tree", "0.4.1", True, []),
+        ("unicode-segmentation", "1.12.0", True, []),
+        # Clippy
+        ("anstream", "0.6.21", True, []),
+        ("cargo_metadata", "0.23.1", True, []),
+        ("color-print", "0.3.7", True, []),
+        ("memchr", "2.8.0", True, []),
+        ("quine-mc_cluskey", "0.2.4", True, []),
+        ("regex-syntax", "0.8.8", True, []),
+        ("rustc_apfloat", "0.2.3", True, []),
+        ("semver", "1.0.27", True, []),
+        (
+            "toml",
+            "1.1.0",
+            False,
+            [
+                "parse",
+                "preserve_order",
+            ],
+        ),
+        ("unicode-normalization", "0.1.25", True, []),
+        ("unicode-script", "0.5.7", False, []),
+        ("url", "2.5.7", True, []),
+    ]
+]
+
+crate.from_specs(
+    name = "tool_crates",
+    cargo_lockfile = "//:tool_crates.Cargo.lock",
+    lockfile = "//:tool_crates.cargo-bazel-lock.json",
+)
+use_repo(crate, "tool_crates")
+
+# Cargo and rust-analyzer are workspaces of their own, which crate_universe
+# generates whole from a git source, their own crates included. Cargo is
+# `src/tools/cargo` of the release, a submodule, at the commit the release
+# pins. rust-analyzer is a subtree synced weekly; the release carries the sync
+# of 2026-08-12, and the tag is the rust-analyzer release of that week.
+crate.spec(
+    git = "https://github.com/rust-lang/cargo",
+    package = "cargo",
+    repositories = ["cargo_crates"],
+    rev = "5f94df4789f005f9a352888e8355ffc645b7ed0e",
+)
+crate.annotation(
+    crate = "cargo",
+    gen_binaries = ["cargo"],
+    repositories = ["cargo_crates"],
+)
+
+# libgit2, curl, libssh2, nghttp2, zlib and sqlite are built from the C
+# sources their `-sys` crates carry, by their build scripts. OpenSSL comes
+# from the `openssl` module: its build script finds the headers and libraries
+# through `OPENSSL_DIR`, and the crates that link it get the libraries from
+# the module's targets. The labels go into the generated crate's BUILD file
+# as written, and that repository sees `openssl` only by its canonical name.
+# buildifier: disable=canonical-repository
+crate.annotation(
+    build_script_data = ["@@openssl+//:gen_dir"],
+    build_script_env = {
+        "OPENSSL_DIR": "$(execpath @@openssl+//:gen_dir)",
+        "OPENSSL_NO_VENDOR": "1",
+        "OPENSSL_STATIC": "1",
+    },
+    crate = "openssl-sys",
+    data = ["@@openssl+//:gen_dir"],
+    repositories = ["cargo_crates"],
+    deps = [
+        "@@openssl+//:crypto",
+        "@@openssl+//:ssl",
+    ],
+)
+
+# The crates that build C against OpenSSL's headers get the directory
+# `openssl-sys` reports as `DEP_OPENSSL_INCLUDE`, which is a path in it.
+# buildifier: disable=canonical-repository
+[
+    crate.annotation(
+        build_script_data = ["@@openssl+//:gen_dir"],
+        crate = package,
+        repositories = ["cargo_crates"],
+    )
+    for package in [
+        "curl-sys",
+        "libgit2-sys",
+        "libssh2-sys",
+    ]
+]
+
+crate.from_specs(
+    name = "cargo_crates",
+    cargo_lockfile = "//:cargo_crates.Cargo.lock",
+    lockfile = "//:cargo_crates.cargo-bazel-lock.json",
+)
+use_repo(crate, "cargo_crates")
+
+crate.spec(
+    git = "https://github.com/rust-lang/rust-analyzer",
+    package = "rust-analyzer",
+    repositories = ["rust_analyzer_crates"],
+    tag = "2026-08-17",
+)
+crate.annotation(
+    crate = "rust-analyzer",
+    gen_binaries = ["rust-analyzer"],
+    repositories = ["rust_analyzer_crates"],
+)
+crate.from_specs(
+    name = "rust_analyzer_crates",
+    cargo_lockfile = "//:rust_analyzer_crates.Cargo.lock",
+    lockfile = "//:rust_analyzer_crates.cargo-bazel-lock.json",
+)
+use_repo(crate, "rust_analyzer_crates")
 
 register_toolchains(
     # The toolchains whose standard libraries are built from `@rust_src`. Each
     # is picked for its platform alone.
     "//:std_toolchain",
     "//:no_std_toolchain",
+    # rustdoc, Clippy, Cargo and rust-analyzer built from source, ahead of the
+    # downloaded ones.
+    "//:rustdoc_toolchain",
+    "//:clippy_toolchain",
+    "//:cargo_toolchain",
+    "//:rust_analyzer_toolchain",
     # The host toolchains, which build everything that runs here, the process
     # wrapper and the build scripts included.
     "@rust_toolchains//:all",
@@ -56,4 +268,5 @@ register_execution_platforms(
     "@platforms//host",
     "//:with_std",
     "//:without_std",
+    "//:with_cargo",
 )

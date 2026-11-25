@@ -1,0 +1,19 @@
+# The `rustdoc` binary: `main.rs` over the library. It lands in `bin/` with
+# the compiler's libraries in `lib/` beside it, which its rpath names.
+load("@bootstrap_rust_example//:tools.bzl", "DRIVER_LINK_FLAGS", "libraries_beside")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+
+libraries_beside(name = "lib")
+
+rust_binary(
+    name = "bin/rustdoc",
+    srcs = ["main.rs"],
+    crate_name = "rustdoc_tool_binary",
+    crate_root = "main.rs",
+    data = [":lib"],
+    edition = "2024",
+    rustc_env = {"RUSTC_BOOTSTRAP": "1"},
+    rustc_flags = DRIVER_LINK_FLAGS,
+    visibility = ["//visibility:public"],
+    deps = ["//src/librustdoc:rustdoc"],
+)

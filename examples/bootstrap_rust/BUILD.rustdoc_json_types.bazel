@@ -1,0 +1,19 @@
+# `rustdoc-json-types`, which rustdoc's JSON output is defined by.
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "rustdoc_json_types",
+    srcs = glob(["**/*.rs"]),
+    crate_features = [
+        "default",
+        "rustc-hash",
+    ],
+    crate_root = "lib.rs",
+    edition = "2024",
+    proc_macro_deps = ["@tool_crates//:serde_derive"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@tool_crates//:rustc-hash",
+        "@tool_crates//:serde",
+    ],
+)

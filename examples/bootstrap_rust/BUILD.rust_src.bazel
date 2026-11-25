@@ -1,7 +1,10 @@
-# The `rust-src` component: the source of the standard library, laid out as
-# rust-lang's `library/` directory, with the crates it depends on vendored
-# under `library/vendor/`. The crate roots are picked out of these by path, so
-# nothing here names a vendored crate's version.
+load(":vendored.bzl", "LIBRARY_VENDORED")
+
+# The source of the release. The standard library is `library/`, and the
+# crates it depends on are vendored under `vendor/` with everything else the
+# tree depends on, in every version something in the tree pins. The standard
+# library's versions come from `library/Cargo.lock`, through the generated
+# `vendored.bzl`, so nothing here names one.
 _CRATES = [
     "alloc",
     "backtrace",
@@ -34,7 +37,7 @@ filegroup(
     name = "library_rs",
     srcs = glob(
         ["library/{}/**/*.rs".format(crate) for crate in _CRATES] +
-        ["library/vendor/{}-*/**/*.rs".format(crate) for crate in _VENDORED],
+        ["vendor/{}/**/*.rs".format(directory) for crate in _VENDORED for directory in LIBRARY_VENDORED[crate]],
     ),
     visibility = ["//visibility:public"],
 )
@@ -43,7 +46,7 @@ filegroup(
     name = "library",
     srcs = glob(
         ["library/{}/**".format(crate) for crate in _CRATES] +
-        ["library/vendor/{}-*/**".format(crate) for crate in _VENDORED],
+        ["vendor/{}/**".format(directory) for crate in _VENDORED for directory in LIBRARY_VENDORED[crate]],
     ),
     visibility = ["//visibility:public"],
 )

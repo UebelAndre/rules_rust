@@ -1,9 +1,15 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_setting")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_rust//cargo:cargo_toolchain.bzl", "cargo_toolchain")
+load("@rules_rust//rust:clippy_toolchain.bzl", "clippy_toolchain")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy_test", "rust_doc", "rust_library", "rust_test")
+load("@rules_rust//rust:rust_analyzer_toolchain.bzl", "rust_analyzer_toolchain")
+load("@rules_rust//rust:rustdoc_toolchain.bzl", "rustdoc_toolchain")
 load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(":std_from_source.bzl", "rust_std_from_source")
 load(":toolchains.bzl", "DYLIB_EXT", "HOST_TRIPLE", "NO_STD_FLAGS", "STDLIB_LINKFLAGS")
+load(":tools.bzl", "RUST_VERSION")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -192,4 +198,129 @@ sh_test(
     args = ["$(rootpath :freestanding)"],
     data = [":freestanding"],
     target_compatible_with = ["@platforms//os:linux"],
+)
+
+###############################################################################
+# rustdoc and Clippy, built from `@rust_src` against the compiler's crates
+# that `rustc-dev` provides, and registered as the companion toolchains of
+# whichever `rust_toolchain` resolves. The tests document and lint a crate
+# with them.
+###############################################################################
+
+rustdoc_toolchain(
+    name = "rustdoc_from_source",
+    rustdoc = "@rust_src//src/tools/rustdoc:bin/rustdoc",
+    version = RUST_VERSION,
+)
+
+toolchain(
+    name = "rustdoc_toolchain",
+    toolchain = ":rustdoc_from_source",
+    toolchain_type = "@rules_rust//rust/rustdoc:toolchain_type",
+)
+
+clippy_toolchain(
+    name = "clippy_from_source",
+    cargo_clippy = "@rust_src//src/tools/clippy:bin/cargo-clippy",
+    clippy_driver = "@rust_src//src/tools/clippy:bin/clippy-driver",
+    version = RUST_VERSION,
+)
+
+toolchain(
+    name = "clippy_toolchain",
+    toolchain = ":clippy_from_source",
+    toolchain_type = "@rules_rust//rust/clippy:toolchain_type",
+)
+
+rust_library(
+    name = "documented",
+    srcs = ["src/documented.rs"],
+    edition = "2024",
+)
+
+rust_doc(
+    name = "documented_doc",
+    crate = ":documented",
+)
+
+build_test(
+    name = "rustdoc_from_source_test",
+    targets = [":documented_doc"],
+)
+
+rust_clippy_test(
+    name = "clippy_from_source_test",
+    targets = [":documented"],
+)
+
+###############################################################################
+# Cargo and rust-analyzer, built from source by crate_universe (see
+# `MODULE.bazel`) and registered as toolchains. The tests run each for its
+# version.
+###############################################################################
+
+# Every build script consults the `cargo_toolchain` for its `CARGO`, the
+# build scripts of Cargo's own crates included, so a Cargo built here cannot
+# be the registered one everywhere: that is a cycle. Like the standard
+# libraries, it is the toolchain of a platform of the example's own, and the
+# build scripts, compiled for the host, keep the downloaded Cargo.
+constraint_setting(name = "cargo")
+
+constraint_value(
+    name = "cargo_from_source",
+    constraint_setting = ":cargo",
+)
+
+platform(
+    name = "with_cargo",
+    constraint_values = [":cargo_from_source"],
+    parents = ["@platforms//host"],
+)
+
+cargo_toolchain(
+    name = "cargo_from_source_toolchain_impl",
+    cargo = "@cargo_crates//cargo__cargo",
+    version = RUST_VERSION,
+)
+
+toolchain(
+    name = "cargo_toolchain",
+    target_compatible_with = [":cargo_from_source"],
+    toolchain = ":cargo_from_source_toolchain_impl",
+    toolchain_type = "@rules_rust//cargo:toolchain_type",
+)
+
+# Built for `//:with_cargo`, so the `cargo_toolchain` it resolves, and runs
+# through `CARGO`, is the one above.
+rust_test(
+    name = "cargo_from_source_test",
+    srcs = ["src/cargo_version.rs"],
+    data = ["@rules_rust//cargo:current_cargo_toolchain"],
+    edition = "2024",
+    env = {"CARGO": "$(rootpath @rules_rust//cargo:current_cargo_toolchain)"},
+    platform = ":with_cargo",
+)
+
+rust_analyzer_toolchain(
+    name = "rust_analyzer_from_source",
+    rust_analyzer = "@rust_analyzer_crates//rust-analyzer__rust-analyzer",
+    rustc = "@rules_rust//rust/toolchain:current_rustc_files",
+    rustc_srcs = "@rust_src//:library",
+    rustc_srcs_path = "library",
+)
+
+toolchain(
+    name = "rust_analyzer_toolchain",
+    toolchain = ":rust_analyzer_from_source",
+    toolchain_type = "@rules_rust//rust/rust_analyzer:toolchain_type",
+)
+
+sh_test(
+    name = "rust_analyzer_from_source_test",
+    srcs = ["version_test.sh"],
+    args = [
+        "$(rootpath @rust_analyzer_crates//rust-analyzer__rust-analyzer)",
+        "rust-analyzer",
+    ],
+    data = ["@rust_analyzer_crates//rust-analyzer__rust-analyzer"],
 )

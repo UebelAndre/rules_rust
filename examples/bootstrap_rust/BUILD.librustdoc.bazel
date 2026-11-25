@@ -1,0 +1,63 @@
+# rustdoc as a library. It links the compiler's crates through
+# `#![feature(rustc_private)]`, which `RUSTC_BOOTSTRAP` allows on a stable
+# compiler, and its templates and static files are read relative to this
+# directory, which is why this BUILD file lives here.
+load("@bootstrap_rust_example//:tools.bzl", "RUST_VERSION")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+# Minifies the JavaScript and CSS and hashes every static file into `OUT_DIR`,
+# where `html/static_files.rs` includes them from.
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    crate_name = "build_script_build",
+    data = glob(["html/static/**"]),
+    edition = "2024",
+    deps = [
+        "@tool_crates//:expect-test",
+        "@tool_crates//:minifier",
+        "@tool_crates//:sha2",
+    ],
+)
+
+rust_library(
+    name = "rustdoc",
+    srcs = glob(["**/*.rs"]),
+    compile_data = ["askama.toml"] + glob(["html/**"]),
+    crate_root = "lib.rs",
+    edition = "2024",
+    rustc_env = {
+        # What `rustdoc --version` reports, which `rustc_driver::version!`
+        # reads where it is expanded, here; bootstrap sets it from `src/version`.
+        "CFG_VERSION": RUST_VERSION + " (bootstrap_rust example)",
+        # Where the links to the standard library's documentation point, as
+        # bootstrap sets it for a stable release.
+        "DOC_RUST_LANG_ORG_CHANNEL": "https://doc.rust-lang.org/stable",
+        "RUSTC_BOOTSTRAP": "1",
+    },
+    visibility = ["//visibility:public"],
+    deps = [
+        ":build_script",
+        "//src/rustdoc-json-types:rustdoc_json_types",
+        "@tool_crates//:arrayvec",
+        "@tool_crates//:askama",
+        "@tool_crates//:base64",
+        "@tool_crates//:indexmap",
+        "@tool_crates//:itertools",
+        "@tool_crates//:minifier",
+        "@tool_crates//:proc-macro2",
+        "@tool_crates//:pulldown-cmark-escape",
+        "@tool_crates//:regex",
+        "@tool_crates//:serde",
+        "@tool_crates//:serde_json",
+        "@tool_crates//:smallvec",
+        "@tool_crates//:stringdex",
+        "@tool_crates//:tempfile",
+        "@tool_crates//:threadpool",
+        "@tool_crates//:tracing",
+        "@tool_crates//:tracing-subscriber",
+        "@tool_crates//:tracing-tree",
+        "@tool_crates//:unicode-segmentation",
+    ],
+)
