@@ -213,7 +213,12 @@ def distribution_relative_path(file, target):
     its path relative to the package it is declared in, and a file from the
     main repository with neither falls back to its workspace-relative path.
     Source and generated files are treated alike since the path is taken from
-    `short_path` rather than the output-root-prefixed `path`.
+    `short_path` rather than the output-root-prefixed `path`. A file of another
+    generated sysroot, reached through `current_rustc_lib_files` say, lies
+    under that sysroot's own directory, `<toolchain name>/lib/...`; what is
+    left after the package is cut back to its `bin/` or `lib/`, so a toolchain
+    assembled from the registered toolchain's files gets a distribution's
+    layout rather than a nested copy.
 
     Args:
         file (File): A file of the distribution.
@@ -229,7 +234,14 @@ def distribution_relative_path(file, target):
 
     for package in (target.label.package, file.owner.package if file.owner else ""):
         if package and path.startswith(package + "/"):
-            return path[len(package) + 1:]
+            path = path[len(package) + 1:]
+            break
+
+    if not path.startswith(("bin/", "lib/")):
+        for root in ("/bin/", "/lib/"):
+            index = path.find(root)
+            if index != -1:
+                return path[index + 1:]
     return path
 
 def symlink_sysroot_tree(*, ctx, name, target, target_files = None, declared = None, fallback_directory = None, skip_directory = None):

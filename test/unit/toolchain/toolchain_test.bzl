@@ -234,6 +234,28 @@ def _rust_std_owns_target_lib_test_impl(ctx):
 
     return analysistest.end(env)
 
+def _assembled_from_host_toolchain_test_impl(ctx):
+    """A toolchain assembled from the registered toolchain's files lays them out as a distribution would."""
+    env = analysistest.begin(ctx)
+    toolchain_info = analysistest.target_under_test(env)[platform_common.ToolchainInfo]
+
+    sysroot = toolchain_info.sysroot
+    relative = [
+        file.path[len(sysroot) + 1:]
+        for file in toolchain_info.sysroot_files.to_list()
+        if file.path.startswith(sysroot + "/")
+    ]
+    asserts.true(env, len(relative) > 2, "the host's compiler libraries are in the tree: {}".format(relative))
+    for path in relative:
+        asserts.true(
+            env,
+            path == "rust.sysroot" or path.startswith(("bin/", "lib/")),
+            "{} is not laid out as a distribution's file".format(path),
+        )
+    asserts.true(env, "bin/" + toolchain_info.rustc.basename in relative, relative)
+
+    return analysistest.end(env)
+
 def _crate_built_without_std_test_impl(ctx):
     """A crate built with such a toolchain gets `core` from `deps` and no standard library search path."""
     env = analysistest.begin(ctx)
@@ -261,6 +283,7 @@ def _crate_built_without_std_test_impl(ctx):
 toolchain_specifies_target_triple_test = analysistest.make(_toolchain_specifies_target_triple_test_impl)
 toolchain_without_std_test = analysistest.make(_toolchain_without_std_test_impl)
 rust_std_owns_target_lib_test = analysistest.make(_rust_std_owns_target_lib_test_impl)
+assembled_from_host_toolchain_test = analysistest.make(_assembled_from_host_toolchain_test_impl)
 crate_built_without_std_test = analysistest.make(
     _crate_built_without_std_test_impl,
     config_settings = {
@@ -504,6 +527,21 @@ def _define_test_targets():
         target_triple = "toolchain-test-triple",
     )
 
+    # A toolchain assembled from the files of the toolchain registered for
+    # the execution platform, as a toolchain for another target or with
+    # another standard library is.
+    rust_toolchain(
+        name = "rust_assembled_from_host_toolchain",
+        binary_ext = "",
+        dylib_ext = ".so",
+        exec_triple = "x86_64-unknown-none",
+        rustc = "//rust/toolchain:current_rustc_files",
+        rustc_lib = "//rust/toolchain:current_rustc_lib_files",
+        staticlib_ext = ".a",
+        stdlib_linkflags = [],
+        target_triple = "toolchain-test-triple",
+    )
+
     rust_lto_flag(
         name = "fat_lto",
         build_setting_default = "fat",
@@ -588,6 +626,10 @@ def toolchain_test_suite(name):
         name = "rust_std_owns_target_lib_test",
         target_under_test = ":rust_built_std_toolchain",
     )
+    assembled_from_host_toolchain_test(
+        name = "assembled_from_host_toolchain_test",
+        target_under_test = ":rust_assembled_from_host_toolchain",
+    )
 
     native.test_suite(
         name = name,
@@ -606,5 +648,6 @@ def toolchain_test_suite(name):
             ":toolchain_without_std_test",
             ":crate_built_without_std_test",
             ":rust_std_owns_target_lib_test",
+            ":assembled_from_host_toolchain_test",
         ],
     )
