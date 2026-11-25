@@ -30,6 +30,7 @@ load(
     "load_rustc_dev_nightly",
     "load_rustfmt",
     "select_rust_version",
+    "sibling_libc_triple",
     "toolchain_repository_hub",
 )
 load("//rust/private:semver.bzl", "semver")
@@ -259,6 +260,7 @@ def rust_register_toolchains(
             urls = urls,
             versions = versions,
             aliases = dict(aliases),
+            libc_variants = True,
         )
 
         for toolchain in _get_toolchain_repositories(
@@ -269,6 +271,7 @@ def rust_register_toolchains(
             fallback_target_compatible_with = None,
             aliases = aliases,
             compact_windows_names = compact_windows_names,
+            libc_variants = True,
         ):
             toolchain_names.append(toolchain.name)
             toolchain_labels[toolchain.name] = "@{}//:{}".format(toolchain.name + "_tools", "rust_toolchain")
@@ -302,6 +305,7 @@ def rust_register_toolchains(
         )
         toolchain_names.append(rustfmt_repo_name)
         toolchain_labels[rustfmt_repo_name] = "@{}_tools//:rustfmt_toolchain".format(rustfmt_repo_name)
+
         exec_compatible_with_by_toolchain[rustfmt_repo_name] = triple_to_constraint_set(exec_triple)
         target_compatible_with_by_toolchain[rustfmt_repo_name] = []
         toolchain_types[rustfmt_repo_name] = "@rules_rust//rust/rustfmt:toolchain_type"
@@ -402,6 +406,21 @@ _RUST_TOOLCHAIN_REPOSITORY_ATTRS = {
     ),
     "global_allocator_library": attr.string(
         doc = "Target that provides allocator functions when a global allocator is used with [`cc_common.link`](https://bazel.build/rules/lib/toplevel/cc_common#link).",
+    ),
+    "libc_std_anchors": attr.label_keyed_string_dict(
+        doc = (
+            "The repositories holding the standard libraries of `libc_variants`, each a label to " +
+            "any file in it, mapped to the libc it serves."
+        ),
+        default = {},
+    ),
+    "libc_variants": attr.string_dict(
+        doc = (
+            "The target triples the `rust_toolchain` selects between by the libc of the target " +
+            "platform, keyed by libc (`glibc`, `musl`). `target_triple` must be one of them: it " +
+            "serves platforms declaring no libc, or a libc without a variant. See `//rust/private/libc`."
+        ),
+        default = {},
     ),
     "netrc": attr.string(
         doc = ".netrc file to use for authentication; mirrors the eponymous attribute from http_archive",
@@ -573,6 +592,18 @@ def _rust_toolchain_tools_repository_impl(ctx):
     clippy_anchor = None if COMPONENT.clippy in components else ctx.attr.clippy_anchor
     has_rustc = COMPONENT.rustc in components or bool(rustc_anchor)
     has_std = COMPONENT.rust_std in components or bool(std_anchor)
+
+    # The standard libraries the `rust_toolchain` selects between by the libc
+    # of the target platform, keyed by libc.
+    libc_std_anchors = {libc: anchor for anchor, libc in ctx.attr.libc_std_anchors.items()}
+    libc_variants = {}
+    for libc, variant_triple in ctx.attr.libc_variants.items():
+        if libc not in libc_std_anchors:
+            fail("{}: `libc_std_anchors` names no repository for the {} standard library".format(ctx.name, libc))
+        libc_variants[libc] = struct(
+            target_triple = triple(variant_triple),
+            std_repository = libc_std_anchors[libc].repo_name,
+        )
     has_cargo = COMPONENT.cargo in components or bool(cargo_anchor)
     has_clippy = COMPONENT.clippy in components or bool(clippy_anchor)
 
@@ -702,6 +733,7 @@ def _rust_toolchain_tools_repository_impl(ctx):
             default_edition = ctx.attr.edition,
             tools_repository = rustc_anchor.repo_name if rustc_anchor else None,
             std_repository = std_anchor.repo_name if std_anchor else None,
+            libc_variants = libc_variants,
             include_llvm_tools = include_llvm_tools,
             include_linker = include_linker,
             include_objcopy = include_objcopy,
@@ -842,24 +874,6 @@ def _shared_tool_repositories(
             **kwargs
         )
     return repositories
-
-def _target_components(exec_triple, target_triple, shared):
-    """What a target triple's repository downloads and where its standard library is.
-
-    The execution platform's own standard library lives in the compiler
-    repository; every other target triple fetches its own.
-
-    Args:
-        exec_triple (str): The Rust-style triple the tools run on.
-        target_triple (str): The Rust-style triple the toolchain builds for.
-        shared (dict[str, str]): The shared repositories, from `_shared_tool_repositories`.
-
-    Returns:
-        dict: `components` and `std_anchor` for `rust_toolchain_tools_repository`.
-    """
-    if target_triple == exec_triple:
-        return {"components": [], "std_anchor": shared[COMPONENT.rustc]}
-    return {"components": TARGET_COMPONENTS, "std_anchor": None}
 
 _RUST_ANALYZER_TOOLCHAIN_TOOLS_REPOSITORY_ATTRS = {
     "auth": attr.string_dict(
@@ -1071,6 +1085,57 @@ rustfmt_toolchain_tools_repository = repository_rule(
 
 # --- Internal helpers ---
 
+# The libc of a Linux ABI by its prefix: `gnu`, `gnueabi`, `gnueabihf`,
+# `gnuabi64` and `gnux32` link glibc; `musl`, `musleabi`, `musleabihf` and
+# `muslabi64` link musl.
+_LINUX_LIBC_BY_ABI_PREFIX = {"gnu": "glibc", "musl": "musl"}
+
+def _linux_libc_variant(target_triple):
+    """Splits a Linux triple into the toolchain it belongs to and the libc it links.
+
+    Args:
+        target_triple (str): A Rust-style target triple.
+
+    Returns:
+        struct: `group`, the triple without its libc (`x86_64-unknown-linux`,
+            `arm-unknown-linux-eabihf`), and `libc` (`glibc` or `musl`); or `None`
+            for a triple without a libc variant.
+    """
+    parsed = triple(target_triple)
+    if parsed.system != "linux" or not parsed.abi:
+        return None
+    for prefix, libc in _LINUX_LIBC_BY_ABI_PREFIX.items():
+        if parsed.abi.startswith(prefix):
+            group = "{}-{}-{}".format(parsed.arch, parsed.vendor, parsed.system)
+            suffix = parsed.abi[len(prefix):]
+            if suffix:
+                group += "-" + suffix
+            return struct(group = group, libc = libc)
+    return None
+
+def _libc_free_constraints(target_triple):
+    """The constraints of a triple without its libc: those its glibc and musl variants share.
+
+    A toolchain which picks the libc by the platform, for its target as well as
+    its execution platform, matches platforms of either libc. Which constraint
+    stands for the libc, if any, is known to `triple_mappings.bzl` alone, so it
+    is found by comparing the triple with its other libc variant.
+
+    Args:
+        target_triple (str): A Rust-style triple.
+
+    Returns:
+        list: The constraint labels, those of `triple_to_constraint_set` for a triple
+            without libc variants.
+    """
+    constraints = triple_to_constraint_set(target_triple)
+    variant = _linux_libc_variant(target_triple)
+    if not variant:
+        return constraints
+    other = [libc for libc in _LINUX_LIBC_BY_ABI_PREFIX.values() if libc != variant.libc][0]
+    sibling = triple_to_constraint_set(sibling_libc_triple(triple(target_triple), other))
+    return [c for c in constraints if c in sibling]
+
 def _get_toolchain_repositories(
         *,
         name,
@@ -1079,40 +1144,101 @@ def _get_toolchain_repositories(
         versions,
         fallback_target_compatible_with,
         compact_windows_names,
-        aliases):
-    """Compute the set of toolchain repository structs for the given parameters."""
+        aliases,
+        libc_variants = False):
+    """Compute the set of toolchain repository structs for the given parameters.
+
+    With `libc_variants`, the glibc and musl triples of one Linux CPU make up a
+    single toolchain which picks its standard library by the libc of the target
+    platform (see `//rust/private/libc`). It is named after the triple without its libc,
+    e.g. `x86_64-unknown-linux`, and its `target_triple` is the variant used for
+    platforms declaring no libc: the one of the execution platform, else glibc.
+    The execution platform's own CPU gets both libcs without being asked, as its
+    toolchain also runs on both; other CPUs get the variants in
+    `extra_target_triples`.
+
+    Args:
+        name (str): The prefix of the toolchain names.
+        exec_triple (str): The Rust-style triple the tools run on.
+        extra_target_triples (list or dict): Further target triples, optionally mapped to their
+            `target_compatible_with` constraints.
+        versions (list): The toolchain versions, one per channel.
+        fallback_target_compatible_with (list): Constraints for triples without their own, or `None`
+            to derive them from the triple.
+        compact_windows_names (bool): Whether to hash the names of toolchains for Windows execution
+            platforms, to avoid MAX_PATH issues.
+        aliases (dict): Replacement toolchain names, keyed by the names computed here. Entries used
+            are removed.
+        libc_variants (bool): Whether to merge the Linux libc variants of a CPU into one toolchain.
+
+    Returns:
+        list: A struct per toolchain with `name`, `target_triple`, `channel`,
+            `target_constraints` and `libc_variants` (the variant triples keyed by libc, or
+            empty).
+    """
     extra_target_triples_list = extra_target_triples.keys() if type(extra_target_triples) == "dict" else extra_target_triples
 
-    toolchain_repos = {}
-
-    for target_triple in depset([exec_triple] + extra_target_triples_list).to_list():
-        # Parse all provided versions while checking for duplicates
-        channels = {}
-        for version in versions:
-            if version.startswith(("beta", "nightly")):
-                channel, _, _ = version.partition("/")
-            else:
-                channel = "stable"
-
-            if channel in channels:
-                fail("Duplicate {} channels provided for {}: {}".format(channel, name, versions))
-
-            channels.update({channel: struct(
-                name = channel,
-                version = version,
-            )})
-
-        if type(extra_target_triples) == "dict" and target_triple in extra_target_triples:
-            target_constraints = extra_target_triples[target_triple]
-        elif fallback_target_compatible_with != None:
-            target_constraints = fallback_target_compatible_with
+    # Parse all provided versions while checking for duplicates
+    channels = {}
+    for version in versions:
+        if version.startswith(("beta", "nightly")):
+            channel, _, _ = version.partition("/")
         else:
-            target_constraints = triple_to_constraint_set(target_triple)
+            channel = "stable"
+
+        if channel in channels:
+            fail("Duplicate {} channels provided for {}: {}".format(channel, name, versions))
+
+        channels.update({channel: struct(
+            name = channel,
+            version = version,
+        )})
+
+    def target_constraints(target_triple):
+        if type(extra_target_triples) == "dict" and target_triple in extra_target_triples:
+            return extra_target_triples[target_triple]
+        elif fallback_target_compatible_with != None:
+            return fallback_target_compatible_with
+        elif libc_variants:
+            return _libc_free_constraints(target_triple)
+        return triple_to_constraint_set(target_triple)
+
+    target_triples = [exec_triple] + extra_target_triples_list
+
+    # The triples of each toolchain, keyed by libc; `None` for a toolchain
+    # without libc variants.
+    groups = {}
+    for target_triple in depset(target_triples).to_list():
+        variant = _linux_libc_variant(target_triple) if libc_variants else None
+        if variant:
+            groups.setdefault(variant.group, {})[variant.libc] = target_triple
+        else:
+            groups[target_triple] = {None: target_triple}
+
+    exec_variant = _linux_libc_variant(exec_triple) if libc_variants else None
+
+    toolchain_repos = {}
+    for group, variants in groups.items():
+        if None in variants:
+            default_triple = variants[None]
+            variants = {}
+        elif exec_variant and exec_variant.libc in variants:
+            default_triple = variants[exec_variant.libc]
+        elif "glibc" in variants:
+            default_triple = variants["glibc"]
+        else:
+            default_triple = variants.values()[0]
+
+        # A toolchain selecting its libc by the platform carries the
+        # constraints its variants share.
+        constraints = target_constraints(default_triple)
+        for variant_triple in variants.values():
+            constraints = [c for c in constraints if c in target_constraints(variant_triple)]
 
         # Define toolchains for each requested version
         for channel in channels.values():
             # Check if this toolchain is requested to be aliased.
-            full_name = "{}__{}__{}".format(name, target_triple, channel.name)
+            full_name = "{}__{}__{}".format(name, group, channel.name)
             if full_name in aliases:
                 full_name = aliases.pop(full_name)
             elif compact_windows_names and "windows" in exec_triple:
@@ -1120,9 +1246,10 @@ def _get_toolchain_repositories(
 
             toolchain_repo = struct(
                 name = full_name,
-                target_triple = target_triple,
+                target_triple = default_triple,
                 channel = channel,
-                target_constraints = target_constraints,
+                target_constraints = constraints,
+                libc_variants = variants,
             )
 
             if full_name in toolchain_repos:
@@ -1171,15 +1298,21 @@ def rust_repository_set(
         exec_compatible_with = None,
         default_target_compatible_with = None,
         aliases = {},
-        compact_windows_names = _COMPACT_WINDOWS_NAMES):
+        compact_windows_names = _COMPACT_WINDOWS_NAMES,
+        libc_variants = False):
     """Assembles the repositories for the given toolchain params and returns the details \
     the hub needs to declare their toolchains.
 
     Per channel in `versions`, the release is spread over `<name>__<channel>__rustc` (the compiler,
     the tools beside it and the standard library of the execution platform, shared by every target
     triple), `<name>__<channel>__cargo` and `<name>__<channel>__clippy` (fetched only by targets
-    running Cargo or Clippy), and one `<name>__<target_triple>__<channel>_tools` per target triple
-    holding the toolchain declarations and, for another target triple, its standard library.
+    running Cargo or Clippy), one `<name>__<target_triple>__<channel>__std` per other target triple
+    holding its standard library, and one `<name>__<toolchain>__<channel>_tools` per toolchain
+    holding nothing but the toolchain declarations, so that changing them never fetches again.
+
+    With `libc_variants`, the glibc and musl triples of one Linux CPU make up a single toolchain,
+    `<name>__<triple without libc>__<channel>`, which selects its standard library by the libc of
+    the target platform; see `_get_toolchain_repositories`.
 
     Args:
         name (str): The name of the generated repository
@@ -1214,6 +1347,7 @@ def rust_repository_set(
         aliases (dict): Replacement names to use for toolchains created by this macro.
         compact_windows_names (bool): Whether or not to produce compact repository names for windows
             toolchains. This is to avoid MAX_PATH issues.
+        libc_variants (bool): Whether to merge the Linux libc variants of a CPU into one toolchain.
 
     Returns:
         dict[str, dict]: A dict of information about all generated toolchains.
@@ -1229,6 +1363,7 @@ def rust_repository_set(
         fallback_target_compatible_with = default_target_compatible_with,
         aliases = aliases,
         compact_windows_names = compact_windows_names,
+        libc_variants = libc_variants,
     ):
         # The compiler, Cargo and Clippy of a release are the same for every
         # target triple: `<name>__<channel>__rustc` and friends, declared once.
@@ -1249,21 +1384,62 @@ def rust_repository_set(
             )
         shared = shared_by_channel[toolchain.channel.name]
 
-        toolchain_extra_exec_rustc_flags = _get_flags_for_triple(
-            "extra_exec_rustc_flags",
-            extra_exec_rustc_flags,
-            toolchain.target_triple,
-        )
-        toolchain_extra_rustc_flags = _get_flags_for_triple(
-            "extra_rustc_flags",
-            extra_rustc_flags,
-            toolchain.target_triple,
-        )
+        variant_triples = toolchain.libc_variants.values() if toolchain.libc_variants else [toolchain.target_triple]
+
+        # Flags and levels belong to the toolchain, so its libc variants must agree on them.
+        def for_triple(attr_name, value, target_triple):
+            if attr_name in ("opt_level", "strip_level"):
+                return value.get(target_triple) if value != None else None
+            return _get_flags_for_triple(attr_name, value, target_triple)
+
+        per_toolchain = {}
+        for attr_name, value in {
+            "extra_exec_rustc_flags": extra_exec_rustc_flags,
+            "extra_rustc_flags": extra_rustc_flags,
+            "opt_level": opt_level,
+            "strip_level": strip_level,
+        }.items():
+            per_toolchain[attr_name] = for_triple(attr_name, value, toolchain.target_triple)
+            for variant_triple in variant_triples:
+                if for_triple(attr_name, value, variant_triple) != per_toolchain[attr_name]:
+                    fail("{}: `{}` differs between the libc variants {} of the `{}` toolchain. Configure them through `repository_set` instead.".format(
+                        name,
+                        attr_name,
+                        variant_triples,
+                        toolchain.name,
+                    ))
 
         tc_exec_compatible_with = exec_compatible_with if exec_compatible_with != None else triple_to_constraint_set(exec_triple)
         tc_target_compatible_with = toolchain.target_constraints if toolchain.target_constraints != None else triple_to_constraint_set(toolchain.target_triple)
-        tools_repo_name = "{}_tools".format(toolchain.name)
 
+        # The standard library of the execution platform comes with the compiler;
+        # every other target triple fetches its own into a repository which holds
+        # nothing else, so it is only fetched once a toolchain selects it.
+        std_anchors = {}
+        for variant_triple in variant_triples:
+            if variant_triple == exec_triple:
+                std_anchors[variant_triple] = shared[COMPONENT.rustc]
+                continue
+            std_repo_name = "{}__{}__{}__std".format(name, variant_triple, toolchain.channel.name)
+            if compact_windows_names and "windows" in exec_triple:
+                std_repo_name = "rw-{}".format(abs(hash(std_repo_name)))
+            rust_toolchain_tools_repository(
+                name = std_repo_name,
+                exec_triple = exec_triple,
+                target_triple = variant_triple,
+                version = toolchain.channel.version,
+                components = TARGET_COMPONENTS,
+                declare_toolchains = False,
+                dev_components = dev_components,
+                sha256s = sha256s,
+                urls = urls,
+                auth = auth,
+                netrc = netrc,
+                auth_patterns = auth_patterns,
+            )
+            std_anchors[variant_triple] = "@{}//:BUILD.bazel".format(std_repo_name)
+
+        tools_repo_name = "{}_tools".format(toolchain.name)
         rust_toolchain_tools_repository(
             name = tools_repo_name,
             exec_triple = exec_triple,
@@ -1274,29 +1450,32 @@ def rust_repository_set(
             version = toolchain.channel.version,
             edition = edition,
             dev_components = dev_components,
-            extra_rustc_flags = toolchain_extra_rustc_flags,
-            extra_exec_rustc_flags = toolchain_extra_exec_rustc_flags,
-            opt_level = opt_level.get(toolchain.target_triple) if opt_level != None else None,
-            strip_level = strip_level.get(toolchain.target_triple) if strip_level != None else None,
+            extra_rustc_flags = per_toolchain["extra_rustc_flags"],
+            extra_exec_rustc_flags = per_toolchain["extra_exec_rustc_flags"],
+            opt_level = per_toolchain["opt_level"],
+            strip_level = per_toolchain["strip_level"],
             sha256s = sha256s,
             urls = urls,
             auth = auth,
             netrc = netrc,
             auth_patterns = auth_patterns,
+            components = [],
             rustc_anchor = shared[COMPONENT.rustc],
+            std_anchor = std_anchors[toolchain.target_triple],
             cargo_anchor = shared[COMPONENT.cargo],
             clippy_anchor = shared[COMPONENT.clippy],
-            **_target_components(exec_triple, toolchain.target_triple, shared)
+            libc_variants = toolchain.libc_variants,
+            libc_std_anchors = {std_anchors[variant_triple]: libc for libc, variant_triple in toolchain.libc_variants.items()},
         )
 
         tools_toolchain_label = "@{}//:rust_toolchain".format(tools_repo_name)
         toolchain_type = "@rules_rust//rust:toolchain"
         companion_labels = _companion_toolchain_labels(tools_repo_name)
 
-        # A repository set registers exactly the toolchains it was given, with
-        # the constraints and settings it was given, and without the channel
-        # setting of the default toolchains: a set which only provides, say, a
-        # nightly resolves without `--@rules_rust//rust/toolchain/channel=nightly`,
+        # A repository set is the escape hatch: its toolchains carry exactly the
+        # constraints and settings it was given, neither the channel setting nor
+        # the libc setting of the default toolchains. A set which only provides,
+        # say, a nightly resolves without `--@rules_rust//rust/toolchain/channel=nightly`,
         # and modules rely on that.
         all_toolchain_details[toolchain.name] = {
             "exec_compatible_with": tc_exec_compatible_with,

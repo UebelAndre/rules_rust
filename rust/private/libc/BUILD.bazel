@@ -1,0 +1,78 @@
+"""Config settings for the C standard library of a build.
+
+`:glibc` and `:musl` match when the build links that libc. Two sources answer
+the question, in this order of precedence:
+
+* `:platform_libc`: the libc the platform declares available through the
+  constraints of https://github.com/bazel-contrib/platforms_contrib. A platform
+  declaring both counts as glibc, one declaring neither says nothing.
+* `:cc_toolchain_libc`: the libc the resolved C++ toolchain links, read from its
+  `target_libc` like `@rules_cc//cc/libc`. It is the fallback until platforms
+  commonly declare their libc, and goes away with `cc_toolchain.bzl` then.
+
+The default toolchain of a Linux CPU selects its standard library, target triple
+and tools on these settings, in the target and the exec configuration
+respectively, so that a build never links a Rust standard library against one
+libc and C code against another. The settings are an implementation detail of
+the toolchains: code which needs to `select()` on the libc should use
+`@rules_cc//cc/libc`.
+"""
+
+load(":cc_toolchain.bzl", "cc_toolchain_libc_flag")
+load(":libc.bzl", "libc_flag")
+load(":platform.bzl", "platform_libc_flag")
+
+package(default_visibility = ["//visibility:public"])
+
+config_setting(
+    name = "platform_declares_glibc",
+    constraint_values = ["@platforms_contrib//os/linux/libc/glibc:available"],
+    visibility = ["//visibility:private"],
+)
+
+config_setting(
+    name = "platform_declares_musl",
+    constraint_values = ["@platforms_contrib//os/linux/libc/musl:available"],
+    visibility = ["//visibility:private"],
+)
+
+# A superset of both settings above, so the most specific match for a platform
+# declaring both libcs.
+config_setting(
+    name = "platform_declares_both",
+    constraint_values = [
+        "@platforms_contrib//os/linux/libc/glibc:available",
+        "@platforms_contrib//os/linux/libc/musl:available",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+platform_libc_flag(
+    name = "platform_libc",
+    libc = select({
+        ":platform_declares_both": "glibc",
+        ":platform_declares_glibc": "glibc",
+        ":platform_declares_musl": "musl",
+        "//conditions:default": "",
+    }),
+)
+
+cc_toolchain_libc_flag(name = "cc_toolchain_libc")
+
+libc_flag(
+    name = "libc",
+    authorities = [
+        ":platform_libc",
+        ":cc_toolchain_libc",
+    ],
+)
+
+config_setting(
+    name = "glibc",
+    flag_values = {":libc": "glibc"},
+)
+
+config_setting(
+    name = "musl",
+    flag_values = {":libc": "musl"},
+)

@@ -438,11 +438,6 @@ def abi_to_constraints(abi, *, arch = None, system = None):
 
     all_abi_constraints = []
 
-    # add constraints for MUSL static compilation and linking
-    # to separate the MUSL from the non-MUSL toolchain on x86_64
-    # if abi == "musl" and system == "linux" and arch == "x86_64":
-    # all_abi_constraints.append("//rust/platform/constraints:musl_on")
-
     # add constraints for iOS + watchOS simulator and device triples
     if system in ["ios", "watchos"]:
         if arch == "x86_64" or abi == "sim":
@@ -450,8 +445,12 @@ def abi_to_constraints(abi, *, arch = None, system = None):
         else:
             all_abi_constraints.append("@apple_support//constraints:device")
 
-    # TODO(bazelbuild/platforms#38): Implement when C++ toolchain is more mature and we
-    # figure out how they're doing this
+    # Linux `gnu*` and `musl*` triples share a constraint set: the default
+    # toolchain of a Linux CPU chooses the libc through `//rust/private/libc`.
+    # Mapping the libc to the `platforms_contrib` constraints here, so that
+    # `//rust/platform:<triple>` and `rust.repository_set` tell the two apart,
+    # waits for `platforms_contrib` to mature past its alpha and for platforms
+    # to commonly declare their libc.
     return all_abi_constraints
 
 def triple_to_system(target_triple):

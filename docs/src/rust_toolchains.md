@@ -71,3 +71,49 @@ toolchain and fall back to those attributes.
 - [rust_stdlib_filegroup](./rust_stdlib_filegroup.md) — Group the files of a Rust
   standard library archive into a target that can be attached to a
   `rust_toolchain` via the `rust_std` attribute.
+
+## Linux libc (glibc vs musl)
+
+The CPU and OS of a toolchain's target triple map to constraints from `@platforms`
+(see `triple_to_constraint_set` in `@rules_rust//rust/platform:triple_mappings.bzl`).
+That alone makes `x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`
+indistinguishable, so the `rust` extension registers a single toolchain per
+Linux CPU, named after the triple without its libc (e.g.
+`rust_linux_x86_64__x86_64-unknown-linux__stable`). Toolchain resolution
+therefore has exactly one candidate for any Linux platform, and the toolchain
+picks the libc itself. The libc of a build is what the platform declares
+available through the constraints of
+[platforms_contrib](https://github.com/bazel-contrib/platforms_contrib),
+`@platforms_contrib//os/linux/libc/{glibc,musl}:available`, glibc for a platform
+declaring both, and, where the platform declares none, what the resolved C++
+toolchain links, its `target_libc` as `@rules_cc//cc/libc` reads it, so that Rust
+code and C code are never linked against different ones. The toolchain's
+`rust_std` and `target_triple` are `select()`s on it. A platform declaring no
+libc, served by a C++ toolchain which does not name its either, gets the
+toolchain's default: glibc, unless the toolchain runs on musl.
+
+The standard library of each libc lives in a repository of its own, fetched only
+once a platform selects it. The musl triple of a CPU has to be among the
+toolchain's `extra_target_triples`; a toolchain without the standard library a
+platform asks for falls back to its default.
+
+So building for musl is a matter of the C++ toolchain. With the musl toolchains
+of [toolchains_musl](https://github.com/bazel-contrib/musl-toolchain), which
+report `musl`, constrained to platforms declaring musl:
+
+```python
+platform(
+    name = "linux_x86_64_musl",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+        "@platforms_contrib//os/linux/libc/musl:available",
+    ],
+)
+```
+
+`--platforms=//:linux_x86_64_musl` selects the musl C++ toolchain and the musl
+standard library alike. `rust.repository_set` registers exactly the toolchains
+it is given, one per triple, as
+[`examples/cross_compile_musl`](https://github.com/bazelbuild/rules_rust/tree/main/examples/cross_compile_musl)
+shows.

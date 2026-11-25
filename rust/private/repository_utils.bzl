@@ -372,7 +372,7 @@ load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
 
 rust_toolchain(
     name = "{toolchain_name}",
-    rust_std = "{rust_std_label}",
+    rust_std = {rust_std},
     rustc = "{rustc_label}",
     linker = {linker_label},
     linker_type = {linker_type},
@@ -390,7 +390,7 @@ rust_toolchain(
     stdlib_linkflags = [{stdlib_linkflags}],
     default_edition = "{default_edition}",
     exec_triple = "{exec_triple}",
-    target_triple = "{target_triple}",
+    target_triple = {target_triple},
     visibility = ["//visibility:public"],
     extra_rustc_flags = {extra_rustc_flags},
     extra_exec_rustc_flags = {extra_exec_rustc_flags},
@@ -402,6 +402,41 @@ rust_toolchain(
     tags = ["rust_version={version}"],
 )
 """
+
+# The libcs `//rust/private/libc` tells apart, with the `config_setting` of each.
+_LIBC_SETTINGS = {
+    "glibc": "@rules_rust//rust/private/libc:glibc",
+    "musl": "@rules_rust//rust/private/libc:musl",
+}
+
+# The libc linked by a Linux ABI with the given prefix.
+_LIBC_BY_ABI_PREFIX = {"gnu": "glibc", "musl": "musl"}
+
+def _select(branches, default):
+    """Renders a `select()` over `branches` (pairs of setting and value) falling back to `default`."""
+    lines = ["select({"]
+    for setting, value in branches:
+        lines.append("        {}: {},".format(repr(setting), repr(value)))
+    lines.append("        \"//conditions:default\": {},".format(repr(default)))
+    lines.append("    })")
+    return "\n".join(lines)
+
+def sibling_libc_triple(target_triple, libc):
+    """The triple of `target_triple`'s `libc` variant, e.g. the musl triple of a glibc one.
+
+    Args:
+        target_triple (triple): A Linux triple with a `gnu*` or `musl*` ABI.
+        libc (str): `glibc` or `musl`.
+
+    Returns:
+        str: The triple with its libc swapped for `libc`, or `None` for other triples.
+    """
+    new_prefix = [prefix for prefix, prefix_libc in _LIBC_BY_ABI_PREFIX.items() if prefix_libc == libc][0]
+    for prefix in _LIBC_BY_ABI_PREFIX:
+        if target_triple.abi.startswith(prefix):
+            abi = new_prefix + target_triple.abi[len(prefix):]
+            return "{}-{}-{}-{}".format(target_triple.arch, target_triple.vendor, target_triple.system, abi)
+    return None
 
 def BUILD_for_rust_toolchain(
         name,
@@ -423,7 +458,8 @@ def BUILD_for_rust_toolchain(
         opt_level = None,
         strip_level = None,
         tools_repository = None,
-        std_repository = None):
+        std_repository = None,
+        libc_variants = {}):
     """Emits a toolchain declaration to match an existing compiler and stdlib.
 
     Args:
@@ -454,12 +490,42 @@ def BUILD_for_rust_toolchain(
             declaration is written to.
         std_repository (str, optional): The canonical name of the repository holding the standard library
             for `target_triple`, when it is not the repository this declaration is written to.
+        libc_variants (dict, optional): The variants the toolchain selects between by the libc of the
+            target platform, keyed by libc: structs of `target_triple` (a `triple`) and
+            `std_repository`. `target_triple` must be one of them and serves platforms declaring no
+            libc; a platform declaring a libc without a variant falls back to it as well.
 
     Returns:
         str: A rendered template of a `rust_toolchain` declaration
     """
     tools = "@@{}//:".format(tools_repository) if tools_repository else "//:"  # buildifier: disable=canonical-repository
-    std = "@@{}//:".format(std_repository) if std_repository else "//:"  # buildifier: disable=canonical-repository
+
+    def std_label(repository, variant_triple):
+        std = "@@{}//:".format(repository) if repository else "//:"  # buildifier: disable=canonical-repository
+        return std + "rust_std-" + variant_triple.str
+
+    rust_std = repr(std_label(std_repository, target_triple))
+    target_triple_value = repr(target_triple.str)
+    if libc_variants:
+        default_libcs = [libc for libc, variant in libc_variants.items() if variant.target_triple.str == target_triple.str]
+        if len(default_libcs) != 1:
+            fail("`target_triple` {} must be one of the `libc_variants` {}".format(target_triple.str, libc_variants))
+
+        # Every libc is listed, falling back to the default variant, so the
+        # choice reads the same in every toolchain.
+        default_variant = libc_variants[default_libcs[0]]
+        branches = [
+            (setting, libc_variants.get(libc, default_variant))
+            for libc, setting in _LIBC_SETTINGS.items()
+        ]
+        rust_std = _select(
+            [(setting, std_label(variant.std_repository, variant.target_triple)) for setting, variant in branches],
+            std_label(std_repository, target_triple),
+        )
+        target_triple_value = _select(
+            [(setting, variant.target_triple.str) for setting, variant in branches],
+            target_triple.str,
+        )
 
     if stdlib_linkflags == None:
         stdlib_linkflags = ", ".join([
@@ -497,7 +563,7 @@ def BUILD_for_rust_toolchain(
 
     return _build_file_for_rust_toolchain_template.format(
         toolchain_name = name,
-        rust_std_label = std + "rust_std-" + target_triple.str,
+        rust_std = rust_std,
         rustc_label = tools + "rustc",
         rustc_lib_label = tools + "rustc_lib",
         binary_ext = system_to_binary_ext(target_triple.system),
@@ -509,7 +575,7 @@ def BUILD_for_rust_toolchain(
         stdlib_linkflags = stdlib_linkflags,
         default_edition = default_edition,
         exec_triple = exec_triple.str,
-        target_triple = target_triple.str,
+        target_triple = target_triple_value,
         llvm_cov_label = repr(llvm_cov_label),
         llvm_profdata_label = repr(llvm_profdata_label),
         llvm_lib_label = repr(llvm_lib_label),
