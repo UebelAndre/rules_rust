@@ -3,6 +3,7 @@
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//rust:defs.bzl", "rust_binary", "rust_library", "rust_proc_macro", "rust_shared_library", "rust_static_library")
+load("//rust:rust_common.bzl", "RustToolchainInfo")
 load(
     "//test/unit:common.bzl",
     "assert_argv_contains",
@@ -15,7 +16,7 @@ load(
 )
 
 def _get_toolchain(ctx):
-    return ctx.attr._toolchain[platform_common.ToolchainInfo]
+    return ctx.attr._toolchain[RustToolchainInfo]
 
 def _get_darwin_component(arg):
     """Extract darwin component from a path.

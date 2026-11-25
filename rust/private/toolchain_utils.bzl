@@ -5,9 +5,10 @@ load("//cargo/private:cargo_toolchain.bzl", "find_cargo")
 load("//rust/private:clippy_toolchain.bzl", "find_clippy")
 load("//rust/private:common.bzl", "rust_common")
 load("//rust/private:rustdoc_toolchain.bzl", "find_rustdoc")
+load("//rust/private:utils.bzl", "find_toolchain")
 
 def _toolchain_files_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("//rust:toolchain_type"))]
+    toolchain = find_toolchain(ctx)
 
     runfiles = None
     if ctx.attr.tool == "cargo":
@@ -100,7 +101,7 @@ toolchain_files = rule(
 )
 
 def _rust_toolchain_alias_impl(ctx):
-    toolchain = ctx.toolchains[str(Label("@rules_rust//rust:toolchain_type"))]
+    toolchain = find_toolchain(ctx)
     if not toolchain:
         if ctx.attr.mandatory:
             fail("{}: no `rust_toolchain` is registered for the current platform".format(ctx.label))
@@ -108,6 +109,8 @@ def _rust_toolchain_alias_impl(ctx):
 
     return [
         toolchain,
+        # The `ToolchainInfo` too, which targets have read off this alias.
+        ctx.toolchains[rust_common.toolchain_type],
         toolchain.make_variables,
         DefaultInfo(
             files = toolchain.all_files,

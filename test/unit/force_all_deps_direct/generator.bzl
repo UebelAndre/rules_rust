@@ -8,6 +8,9 @@ load("//rust/private:providers.bzl", "BuildInfo", "CrateInfo", "DepInfo", "DepVa
 # buildifier: disable=bzl-visibility
 load("//rust/private:rustc.bzl", "rustc_compile_action")
 
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "find_toolchain")
+
 _TEMPLATE = """\
 use direct::direct_fn;
 use transitive::transitive_fn;
@@ -25,7 +28,7 @@ def _generator_impl(ctx):
         content = _TEMPLATE,
     )
 
-    toolchain = ctx.toolchains[Label("//rust:toolchain_type")]
+    toolchain = find_toolchain(ctx)
 
     # Determine unique hash for this rlib
     output_hash = repr(hash(rs_file.path))

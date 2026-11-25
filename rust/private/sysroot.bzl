@@ -110,7 +110,7 @@ as `--sysroot` since #2223 and done so by default since #2277. Companion
 toolchains derive theirs from it with `derive_sysroot`.
 """
 
-load("//rust/private:common.bzl", "rust_common")
+load("//rust/private:utils.bzl", "find_toolchain")
 
 def companion_rust_toolchain_attrs(tool):
     """The attributes tying a companion toolchain to a `rust_toolchain`.
@@ -189,7 +189,7 @@ def companion_rust_toolchain(ctx, tool):
             "that the `rust_toolchain` resolved for `@rules_rust//rust:toolchain_type` can be checked " +
             "against it."
         ).format(ctx.label, tool))
-    rust_toolchain = ctx.toolchains[rust_common.toolchain_type]
+    rust_toolchain = find_toolchain(ctx)
     if not rust_toolchain:
         fail("{}: no `rust_toolchain` is registered for the current platform".format(ctx.label))
     for field in release_fields:

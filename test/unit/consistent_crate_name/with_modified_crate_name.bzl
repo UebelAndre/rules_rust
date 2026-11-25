@@ -8,8 +8,11 @@ load("//rust/private:providers.bzl", "BuildInfo", "CrateInfo", "DepInfo", "DepVa
 # buildifier: disable=bzl-visibility
 load("//rust/private:rustc.bzl", "rustc_compile_action")
 
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "find_toolchain")
+
 def _with_modified_crate_name_impl(ctx):
-    toolchain = ctx.toolchains[Label("//rust:toolchain_type")]
+    toolchain = find_toolchain(ctx)
 
     crate_root = ctx.file.src
     output_hash = repr(hash(crate_root.path))

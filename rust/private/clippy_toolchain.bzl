@@ -3,6 +3,7 @@
 load("//rust/private:common.bzl", "rust_common")
 load("//rust/private:lint_test.bzl", "rlocationpath")
 load("//rust/private:sysroot.bzl", "companion_rust_toolchain", "companion_rust_toolchain_attrs", "derive_sysroot", "expand_toolchain_flags")
+load("//rust/private:utils.bzl", "find_toolchain")
 
 def _clippy_toolchain_impl(ctx):
     # `clippy-driver` is a rustc driver: it loads `librustc_driver` from
@@ -130,7 +131,7 @@ def _clippy_toolchain_alias_impl(ctx):
     # Resolved as a rule running Clippy would, so that the alias stands in
     # for the deprecated `rust_toolchain.clippy_driver` wherever `find_clippy`
     # falls back to it.
-    toolchain = find_clippy(ctx, ctx.toolchains[rust_common.toolchain_type])
+    toolchain = find_clippy(ctx, find_toolchain(ctx))
     if not toolchain:
         if ctx.attr.mandatory:
             fail("{}: no `clippy_toolchain` is registered for the current platform".format(ctx.label))

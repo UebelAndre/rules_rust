@@ -1,11 +1,16 @@
 """Unit tests for rust toolchains."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_rust_toolchain_test_target_json//:defs.bzl", "TARGET_JSON")
 load("//rust:defs.bzl", "rust_lto_flag")
+load("//rust:rust_common.bzl", "RustToolchainInfo")
 load("//rust:toolchain.bzl", "rust_stdlib_filegroup", "rust_toolchain")
 load("//rust/platform:triple.bzl", "triple")
+
+# buildifier: disable=bzl-visibility
+load("//rust/private:providers.bzl", "RUST_TOOLCHAIN_SETTINGS", "rust_toolchain_info_fields")
 
 def _toolchain_specifies_target_triple_test_impl(ctx):
     env = analysistest.begin(ctx)
@@ -96,6 +101,75 @@ def _std_libs_support_srcs_outside_package_test_impl(ctx):
 
     return analysistest.end(env)
 
+def _toolchain_info_is_carried_by_toolchain_info_test_impl(ctx):
+    """`rust_toolchain` returns a `RustToolchainInfo`, and its `ToolchainInfo` carries the same data.
+
+    Rules outside `rules_rust` read the fields off
+    `ctx.toolchains["@rules_rust//rust:toolchain_type"]`, so every field of the
+    provider is on the `ToolchainInfo` too, with the provider itself as
+    `rust_toolchain_info`.
+    """
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+    info = target[RustToolchainInfo]
+    toolchain = target[platform_common.ToolchainInfo]
+    asserts.equals(env, info, toolchain.rust_toolchain_info)
+    for field, value in rust_toolchain_info_fields(info).items():
+        asserts.true(env, hasattr(toolchain, field), "`ToolchainInfo` lacks `{}`".format(field))
+        asserts.equals(env, value, getattr(toolchain, field, None), field)
+    return analysistest.end(env)
+
+def _toolchain_info_rejects_another_setting_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    asserts.expect_failure(env, "only a rule whose `_codegen_units` is `")
+    return analysistest.end(env)
+
+def _toolchain_info_rejects_a_missing_setting_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    asserts.expect_failure(env, "only a rule with the attribute `_no_std` (defaulting to `")
+    return analysistest.end(env)
+
+# The targets these tests analyze fail in every configuration, so outside the
+# tests they are incompatible rather than broken: `manual` keeps them out of
+# wildcard builds, but `cquery` and `aquery` analyze them all the same. The
+# tests flip this flag through their transition.
+_NEGATIVE_TESTS_FLAG = Label("//test/unit/toolchain:negative_toolchain_tests")
+
+def _construct_toolchain_info_impl(ctx):
+    """A rule which is not `rust_toolchain` constructing a `RustToolchainInfo`."""
+    return [RustToolchainInfo(ctx = ctx)]
+
+_toolchain_reading_another_setting = rule(
+    implementation = _construct_toolchain_info_impl,
+    attrs = {
+        name: attr.label(default = setting)
+        for name, setting in RUST_TOOLCHAIN_SETTINGS.items()
+    } | {
+        "_codegen_units": attr.label(default = Label("//rust/settings:pipelined_compilation")),
+    },
+)
+
+_toolchain_missing_a_setting = rule(
+    implementation = _construct_toolchain_info_impl,
+    attrs = {
+        name: attr.label(default = setting)
+        for name, setting in RUST_TOOLCHAIN_SETTINGS.items()
+        if name != "_no_std"
+    },
+)
+
+toolchain_info_is_carried_by_toolchain_info_test = analysistest.make(_toolchain_info_is_carried_by_toolchain_info_test_impl)
+toolchain_info_rejects_another_setting_test = analysistest.make(
+    _toolchain_info_rejects_another_setting_test_impl,
+    expect_failure = True,
+    config_settings = {str(_NEGATIVE_TESTS_FLAG): True},
+)
+toolchain_info_rejects_a_missing_setting_test = analysistest.make(
+    _toolchain_info_rejects_a_missing_setting_test_impl,
+    expect_failure = True,
+    config_settings = {str(_NEGATIVE_TESTS_FLAG): True},
+)
+
 toolchain_specifies_target_triple_test = analysistest.make(_toolchain_specifies_target_triple_test_impl)
 toolchain_specifies_target_json_test = analysistest.make(_toolchain_specifies_target_json_test_impl)
 toolchain_location_expands_linkflags_test = analysistest.make(_toolchain_location_expands_linkflags_impl)
@@ -104,6 +178,30 @@ toolchain_uses_custom_lto_flag_test = analysistest.make(_toolchain_uses_custom_l
 std_libs_support_srcs_outside_package_test = analysistest.make(_std_libs_support_srcs_outside_package_test_impl)
 
 def _define_test_targets():
+    bool_flag(
+        name = _NEGATIVE_TESTS_FLAG.name,
+        build_setting_default = False,
+    )
+    native.config_setting(
+        name = "negative_toolchain_tests_enabled",
+        flag_values = {str(_NEGATIVE_TESTS_FLAG): "True"},
+    )
+    negative_kwargs = {
+        "tags": ["manual"],
+        "target_compatible_with": select({
+            ":negative_toolchain_tests_enabled": [],
+            "//conditions:default": ["@platforms//:incompatible"],
+        }),
+    }
+    _toolchain_reading_another_setting(
+        name = "toolchain_reading_another_setting",
+        **negative_kwargs
+    )
+    _toolchain_missing_a_setting(
+        name = "toolchain_missing_a_setting",
+        **negative_kwargs
+    )
+
     native.filegroup(
         name = "stdlib_srcs",
         srcs = ["config.txt"],
@@ -239,6 +337,18 @@ def toolchain_test_suite(name):
     """
     _define_test_targets()
 
+    toolchain_info_is_carried_by_toolchain_info_test(
+        name = "toolchain_info_is_carried_by_toolchain_info_test",
+        target_under_test = ":rust_triple_toolchain",
+    )
+    toolchain_info_rejects_another_setting_test(
+        name = "toolchain_info_rejects_another_setting_test",
+        target_under_test = ":toolchain_reading_another_setting",
+    )
+    toolchain_info_rejects_a_missing_setting_test(
+        name = "toolchain_info_rejects_a_missing_setting_test",
+        target_under_test = ":toolchain_missing_a_setting",
+    )
     toolchain_specifies_target_triple_test(
         name = "toolchain_specifies_target_triple_test",
         target_under_test = ":rust_triple_toolchain",
@@ -271,6 +381,9 @@ def toolchain_test_suite(name):
     native.test_suite(
         name = name,
         tests = [
+            ":toolchain_info_is_carried_by_toolchain_info_test",
+            ":toolchain_info_rejects_another_setting_test",
+            ":toolchain_info_rejects_a_missing_setting_test",
             ":toolchain_specifies_target_triple_test",
             ":toolchain_specifies_target_json_test",
             ":toolchain_specifies_inline_target_json_test",

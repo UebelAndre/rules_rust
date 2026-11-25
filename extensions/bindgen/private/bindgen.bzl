@@ -29,7 +29,7 @@ load("@rules_rust//rust:rust_common.bzl", "BuildInfo")
 load("@rules_rust//rust/private:rustc.bzl", "get_linker_and_args")
 
 # buildifier: disable=bzl-visibility
-load("@rules_rust//rust/private:utils.bzl", "find_cc_toolchain", "get_lib_name_default", "get_preferred_artifact")
+load("@rules_rust//rust/private:utils.bzl", "find_cc_toolchain", "find_toolchain", "get_lib_name_default", "get_preferred_artifact")
 
 # TODO(hlopko): use the more robust logic from rustc.bzl also here, through a reasonable API.
 def _get_libs_for_static_executable(dep):
@@ -270,7 +270,7 @@ def _rust_bindgen_impl(ctx):
     # Configure Bindgen Arguments
     args.add_all(ctx.attr.bindgen_flags)
 
-    rust_toolchain = ctx.toolchains[Label("@rules_rust//rust:toolchain_type")]
+    rust_toolchain = find_toolchain(ctx)
     user_flags = [f.split("=")[0] for f in ctx.attr.bindgen_flags]
 
     # Ignore `nightly` or `beta` versions (`version_semver` is `None` for channel labels).

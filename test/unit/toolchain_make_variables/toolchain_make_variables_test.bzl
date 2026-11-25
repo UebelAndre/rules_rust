@@ -2,6 +2,7 @@
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest")
 load("//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
+load("//rust:rust_common.bzl", "RustToolchainInfo")
 load("//test/unit:common.bzl", "assert_action_mnemonic", "assert_env_value")
 
 _RUST_TOOLCHAIN_ENV = {
@@ -64,7 +65,7 @@ def _rust_toolchain_make_variable_expansion_test_common_impl(ctx, mnemonic):
             "ENV_VAR_CARGO": toolchain.cargo.path,
         }
     else:
-        toolchain = ctx.attr._current_rust_toolchain[platform_common.ToolchainInfo]
+        toolchain = ctx.attr._current_rust_toolchain[RustToolchainInfo]
         env_vars = _RUST_TOOLCHAIN_ENV
         expected_values = {
             "ENV_VAR_RUSTC": toolchain.rustc.path,

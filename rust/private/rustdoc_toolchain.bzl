@@ -3,6 +3,7 @@
 load("//rust/private:common.bzl", "rust_common")
 load("//rust/private:lint_test.bzl", "rlocationpath")
 load("//rust/private:sysroot.bzl", "companion_rust_toolchain", "companion_rust_toolchain_attrs", "derive_sysroot", "expand_toolchain_flags")
+load("//rust/private:utils.bzl", "find_toolchain")
 
 def _rustdoc_toolchain_impl(ctx):
     # `rustdoc` is a rustc driver: it loads `librustc_driver` from `../lib`
@@ -115,7 +116,7 @@ def _rustdoc_toolchain_alias_impl(ctx):
     # Resolved as a rule running rustdoc would, so that the alias stands in
     # for the deprecated `rust_toolchain.rust_doc` wherever `find_rustdoc`
     # falls back to it.
-    toolchain = find_rustdoc(ctx, ctx.toolchains[rust_common.toolchain_type])
+    toolchain = find_rustdoc(ctx, find_toolchain(ctx))
     if not toolchain:
         if ctx.attr.mandatory:
             fail("{}: no `rustdoc_toolchain` is registered for the current platform".format(ctx.label))

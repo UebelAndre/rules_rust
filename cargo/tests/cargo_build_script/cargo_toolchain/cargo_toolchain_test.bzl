@@ -4,6 +4,9 @@ load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts", "unittest")
 load("//cargo:cargo_toolchain.bzl", "cargo_version_mismatch")
 load("//rust:defs.bzl", "rust_common")
 
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "find_toolchain")
+
 _ResolvedVersionsInfo = provider(
     doc = "The release identifiers of the resolved Cargo and Rust toolchains.",
     fields = ["cargo", "rust"],
@@ -19,7 +22,7 @@ def _identifiers(toolchain):
 def _resolved_versions_impl(ctx):
     return [_ResolvedVersionsInfo(
         cargo = _identifiers(ctx.toolchains[rust_common.cargo_toolchain_type]),
-        rust = _identifiers(ctx.toolchains[rust_common.toolchain_type]),
+        rust = _identifiers(find_toolchain(ctx)),
     )]
 
 resolved_versions = rule(

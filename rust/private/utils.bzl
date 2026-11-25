@@ -59,15 +59,25 @@ def parse_env_strings(entries):
     return env_vars
 
 def find_toolchain(ctx):
-    """Finds the first rust toolchain that is configured.
+    """Finds the Rust toolchain the rule resolved.
 
     Args:
         ctx (ctx): The ctx object for the current target.
 
     Returns:
-        rust_toolchain: A Rust toolchain context.
+        RustToolchainInfo: The toolchain resolved for `@rules_rust//rust:toolchain_type`,
+            or `None` when the rule declared the type optional and none resolved.
     """
-    return ctx.toolchains[Label("//rust:toolchain_type")]
+    toolchain = ctx.toolchains[Label("//rust:toolchain_type")]
+    if toolchain == None:
+        return None
+    info = getattr(toolchain, "rust_toolchain_info", None)
+    if info == None:
+        fail(
+            "{}: the toolchain resolved for `@rules_rust//rust:toolchain_type` carries no `RustToolchainInfo`. ".format(ctx.label) +
+            "Declare Rust toolchains with `rust_toolchain`, which returns one.",
+        )
+    return info
 
 # A global kill switch to test without a cc toolchain present.
 _FORCE_DISABLE_CC_TOOLCHAIN = False

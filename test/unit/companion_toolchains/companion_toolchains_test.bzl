@@ -14,6 +14,9 @@ load("//cargo:defs.bzl", "cargo_build_script")
 load("//rust:clippy_toolchain.bzl", "clippy_toolchain")
 load("//rust:defs.bzl", "rust_clippy_aspect", "rust_common", "rust_doc", "rust_library")
 load("//rust:rustdoc_toolchain.bzl", "rustdoc_toolchain")
+
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "find_toolchain")
 load(":sysroot_test.bzl", "symlinked_distribution_toolchains")
 
 _RUSTDOC = ["rustdoc", "rustdoc.exe"]
@@ -362,7 +365,7 @@ def _relative_layout(root, files):
     return layout
 
 def _sysroot_layouts_impl(ctx):
-    rust = ctx.toolchains[rust_common.toolchain_type]
+    rust = find_toolchain(ctx)
     rustdoc = ctx.toolchains[rust_common.rustdoc_toolchain_type]
     clippy = ctx.toolchains[rust_common.clippy_toolchain_type]
     return [_SysrootLayoutInfo(

@@ -7,6 +7,9 @@ load("//crate_universe/private:urls.bzl", "CARGO_BAZEL_LABEL")
 load("//rust:defs.bzl", "rust_common")
 load("//rust/platform:triple_mappings.bzl", "SUPPORTED_PLATFORM_TRIPLES")
 
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "find_toolchain")
+
 _UNIX_WRAPPER = """\
 #!/usr/bin/env bash
 
@@ -145,7 +148,7 @@ def _expand_env(value, is_windows):
     return "\"${{{}}}\"".format(value)
 
 def _is_windows(ctx):
-    toolchain = ctx.toolchains[Label("@rules_rust//rust:toolchain_type")]
+    toolchain = find_toolchain(ctx)
     return toolchain.target_os == "windows"
 
 def _get_output_package(ctx):
@@ -389,7 +392,7 @@ def generate_config_file(
     )
 
 def _crates_vendor_impl(ctx):
-    toolchain = ctx.toolchains[Label("@rules_rust//rust:toolchain_type")]
+    toolchain = find_toolchain(ctx)
     cargo = find_cargo(ctx, toolchain)
     if not cargo.cargo:
         fail("{}: no `cargo_toolchain` is registered for the current platform and the `rust_toolchain` has no `cargo`".format(ctx.label))

@@ -25,6 +25,9 @@ load(
     "triple_to_constraint_set",
 )
 
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "find_toolchain")
+
 _SYMLINKED_DISTRIBUTION = "@rules_rust_test_symlinked_rust"
 
 def _with_extra_toolchains_impl(settings, attr):
@@ -40,7 +43,7 @@ _with_extra_toolchains = transition(
 
 def _sysroot_for_test_impl(ctx):
     """Resolve the toolchains under `extra_toolchains` and expose one sysroot."""
-    rust_toolchain = ctx.toolchains[rust_common.toolchain_type]
+    rust_toolchain = find_toolchain(ctx)
     if ctx.attr.kind == "rust":
         anchor = rust_toolchain.sysroot_anchor
         files = rust_toolchain.sysroot_files
@@ -87,7 +90,7 @@ toolchain_sysroot = rule(
 
 def _distribution_std_impl(ctx):
     """The standard library the resolved `rust_toolchain` was built from, as distributed."""
-    rust_toolchain = ctx.toolchains[rust_common.toolchain_type]
+    rust_toolchain = find_toolchain(ctx)
 
     # The toolchain keeps the standard library's own files, outside its
     # sysroot, for `$(location)` expansion. They are the distribution's copy.

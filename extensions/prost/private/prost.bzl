@@ -23,6 +23,7 @@ load(
     "@rules_rust//rust/private:utils.bzl",
     "can_build_metadata",
     "can_use_metadata_for_pipelining",
+    "find_toolchain",
     "generate_output_diagnostics",
 )
 load("//:providers.bzl", "ProstProtoInfo")
@@ -167,7 +168,7 @@ def _compile_rust(
     Returns:
       A DepVariantInfo provider.
     """
-    toolchain = ctx.toolchains["@rules_rust//rust:toolchain_type"]
+    toolchain = find_toolchain(ctx)
     output_hash = repr(hash(src.path + ".prost"))
 
     lib_name = "{prefix}{name}-{lib_hash}{extension}".format(

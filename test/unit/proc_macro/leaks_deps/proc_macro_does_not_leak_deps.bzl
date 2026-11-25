@@ -2,9 +2,10 @@
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("//rust:defs.bzl", "rust_library", "rust_proc_macro", "rust_test")
+load("//rust:rust_common.bzl", "RustToolchainInfo")
 
 def _get_toolchain(ctx):
-    return ctx.attr._toolchain[platform_common.ToolchainInfo]
+    return ctx.attr._toolchain[RustToolchainInfo]
 
 def _proc_macro_does_not_leak_deps_impl(ctx):
     env = analysistest.begin(ctx)

@@ -6,6 +6,9 @@ load("//rust/private:common.bzl", "rust_common")
 # buildifier: disable=bzl-visibility
 load("//rust/private:lint_test.bzl", "rlocationpath")
 
+# buildifier: disable=bzl-visibility
+load("//rust/private:utils.bzl", "find_toolchain")
+
 def _cargo_toolchain_impl(ctx):
     cargo = ctx.file.cargo
 
@@ -109,7 +112,7 @@ def _cargo_toolchain_alias_impl(ctx):
     if not toolchain:
         # Until the deprecated `rust_toolchain.cargo` is removed, stand in for
         # it so that this target resolves wherever `find_cargo` would.
-        rust_toolchain = ctx.toolchains[rust_common.toolchain_type]
+        rust_toolchain = find_toolchain(ctx)
         if rust_toolchain and rust_toolchain.cargo:
             make_variables = platform_common.TemplateVariableInfo({
                 "CARGO": rust_toolchain.cargo.path,

@@ -10,6 +10,7 @@ load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("//rust/platform:triple.bzl", "triple")
 load("//rust/private:common.bzl", "rust_common")
 load("//rust/private:lto.bzl", "RustLtoInfo")
+load("//rust/private:providers.bzl", "RUST_TOOLCHAIN_SETTINGS", "RustToolchainInfo", "rust_toolchain_info_fields")
 load(
     "//rust/private:rust_allocator_libraries.bzl",
     "make_libstd_and_allocator_ccinfo",
@@ -351,7 +352,7 @@ def _rust_toolchain_impl(ctx):
         ctx (ctx): The rule's context object
 
     Returns:
-        list: A list containing the target's toolchain Provider info
+        list: The `RustToolchainInfo`, the `ToolchainInfo` carrying it, and the make variables.
     """
     compilation_mode_opts = {}
     for k, opt_level in ctx.attr.opt_level.items():
@@ -560,7 +561,8 @@ def _rust_toolchain_impl(ctx):
     # values (e.g. unset, or channel labels like "nightly" without a version).
     version_semver = semver(ctx.attr.version) if _is_semver_string(ctx.attr.version) else None
 
-    toolchain = platform_common.ToolchainInfo(
+    toolchain_info = RustToolchainInfo(
+        ctx = ctx,
         all_files = depset(transitive = [sysroot.tree_files, support_files]),
         support_files = support_files,
         binary_ext = ctx.attr.binary_ext,
@@ -637,7 +639,14 @@ def _rust_toolchain_impl(ctx):
         _experimental_use_allocator_libraries_with_mangled_symbols_setting = ctx.attr._experimental_use_allocator_libraries_with_mangled_symbols_setting[BuildSettingInfo].value,
     )
     return [
-        toolchain,
+        toolchain_info,
+        # The `ToolchainInfo` carries the same fields as the provider, where
+        # rules outside `rules_rust` have read them from
+        # `ctx.toolchains["@rules_rust//rust:toolchain_type"]`.
+        platform_common.ToolchainInfo(
+            rust_toolchain_info = toolchain_info,
+            **rust_toolchain_info_fields(toolchain_info)
+        ),
         make_variable_info,
     ]
 
@@ -899,67 +908,10 @@ rust_toolchain = rule(
             doc = "The version of the Rust compiler (e.g. `1.94.1`).",
             default = "",
         ),
-        "_codegen_units": attr.label(
-            default = Label("//rust/settings:codegen_units"),
-        ),
-        "_experimental_compile_rustdoc_tests": attr.label(
-            default = Label("//rust/settings:experimental_compile_rustdoc_tests"),
-        ),
-        "_experimental_use_allocator_libraries_with_mangled_symbols_setting": attr.label(
-            default = Label("//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols"),
-            providers = [BuildSettingInfo],
-            doc = (
-                "Label to a boolean build setting that informs the target build whether to use rust-based " +
-                "allocator libraries that mangle symbols."
-            ),
-        ),
-        "_experimental_use_coverage_metadata_files": attr.label(
-            default = Label("//rust/settings:experimental_use_coverage_metadata_files"),
-        ),
-        "_experimental_use_global_allocator": attr.label(
-            default = Label("//rust/settings:experimental_use_global_allocator"),
-            doc = (
-                "Label to a boolean build setting that informs the target build whether a global allocator is being used." +
-                "This flag is only relevant when used together with --@rules_rust//rust/settings:experimental_use_global_allocator."
-            ),
-        ),
-        "_incompatible_do_not_include_data_in_compile_data": attr.label(
-            default = Label("//rust/settings:incompatible_do_not_include_data_in_compile_data"),
-            doc = "Label to a boolean build setting that controls whether to include data files in compile_data.",
-        ),
-        "_incompatible_do_not_include_transitive_data_in_compile_inputs": attr.label(
-            default = Label("//rust/settings:incompatible_do_not_include_transitive_data_in_compile_inputs"),
-            doc = "Label to a boolean build setting that controls whether to include transitive data dependencies in compile inputs.",
-        ),
-        "_link_std_dylib_setting": attr.label(
-            default = Label("@rules_rust//rust/settings:experimental_link_std_dylib"),
-            doc = "Label to a boolean build setting that controls whether to link libstd dynamically.",
-        ),
-        "_linker_preference": attr.label(
-            default = Label("//rust/settings:toolchain_linker_preference"),
-        ),
-        "_no_std": attr.label(
-            default = Label("//rust/settings:no_std"),
-        ),
-        "_pipelined_compilation": attr.label(
-            default = Label("//rust/settings:pipelined_compilation"),
-        ),
-        "_rename_first_party_crates": attr.label(
-            default = Label("//rust/settings:rename_first_party_crates"),
-        ),
-        "_skip_fission_for_rust": attr.label(
-            default = Label("//rust/settings:skip_fission_for_rust"),
-        ),
-        "_third_party_dir": attr.label(
-            default = Label("//rust/settings:third_party_dir"),
-        ),
-        "_toolchain_generated_sysroot": attr.label(
-            default = Label("//rust/settings:toolchain_generated_sysroot"),
-            doc = (
-                "Label to a boolean build setting that lets the rule knows whether to set --sysroot to rustc. " +
-                "This flag is only relevant when used together with --@rules_rust//rust/settings:toolchain_generated_sysroot."
-            ),
-        ),
+    } | {
+        # The build settings the toolchain reads: see `RUST_TOOLCHAIN_SETTINGS`.
+        name: attr.label(default = setting)
+        for name, setting in RUST_TOOLCHAIN_SETTINGS.items()
     },
     toolchains = use_cc_toolchain(mandatory = False),
     doc = """Declares a Rust toolchain for use.

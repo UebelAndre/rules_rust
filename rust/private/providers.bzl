@@ -152,6 +152,157 @@ StdLibInfo = provider(
     },
 )
 
+# The build settings a `rust_toolchain` reads, by the private attribute that
+# carries each. `RustToolchainInfo`'s constructor checks that the rule
+# constructing one has these attributes at these labels: the fields it fills
+# from them decide how every rustc action behaves, so a toolchain which read
+# other settings would compile differently from what the flags on the command
+# line say.
+RUST_TOOLCHAIN_SETTINGS = {
+    "_codegen_units": Label("//rust/settings:codegen_units"),
+    "_experimental_compile_rustdoc_tests": Label("//rust/settings:experimental_compile_rustdoc_tests"),
+    "_experimental_use_allocator_libraries_with_mangled_symbols_setting": Label("//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols"),
+    "_experimental_use_coverage_metadata_files": Label("//rust/settings:experimental_use_coverage_metadata_files"),
+    "_experimental_use_global_allocator": Label("//rust/settings:experimental_use_global_allocator"),
+    "_incompatible_do_not_include_data_in_compile_data": Label("//rust/settings:incompatible_do_not_include_data_in_compile_data"),
+    "_incompatible_do_not_include_transitive_data_in_compile_inputs": Label("//rust/settings:incompatible_do_not_include_transitive_data_in_compile_inputs"),
+    "_link_std_dylib_setting": Label("//rust/settings:experimental_link_std_dylib"),
+    "_linker_preference": Label("//rust/settings:toolchain_linker_preference"),
+    "_no_std": Label("//rust/settings:no_std"),
+    "_pipelined_compilation": Label("//rust/settings:pipelined_compilation"),
+    "_rename_first_party_crates": Label("//rust/settings:rename_first_party_crates"),
+    "_skip_fission_for_rust": Label("//rust/settings:skip_fission_for_rust"),
+    "_third_party_dir": Label("//rust/settings:third_party_dir"),
+    "_toolchain_generated_sysroot": Label("//rust/settings:toolchain_generated_sysroot"),
+}
+
+_RUST_TOOLCHAIN_INFO_FIELDS = {
+    "all_files": "Depset[File]: Every file an action running `rustc` needs: the sysroot and `support_files`.",
+    "binary_ext": "str: The extension of the binaries `rustc` produces.",
+    "cargo": "Optional[File]: The deprecated `rust_toolchain.cargo`, as laid out in the sysroot. Prefer the `cargo_toolchain`.",
+    "cargo_clippy": "Optional[File]: The deprecated `rust_toolchain.cargo_clippy`, as laid out in the sysroot. Prefer the `clippy_toolchain`.",
+    "channel": "str: The release channel (`stable`, `beta`, `nightly`), or empty.",
+    "clippy_driver": "Optional[File]: The deprecated `rust_toolchain.clippy_driver`, as laid out in the sysroot. Prefer the `clippy_toolchain`.",
+    "compilation_mode_opts": "Dict[str, struct]: `debug_info`, `opt_level` and `strip_level` by compilation mode (`dbg`, `fastbuild`, `opt`).",
+    "coverage_supported": "bool: Whether crates can be instrumented for coverage: `llvm_cov` is set and the standard library carries `profiler_builtins`.",
+    "default_edition": "Optional[str]: The edition of crates which do not state one, or `None` when every crate must.",
+    "dlltool": "Optional[File]: The `dlltool` `rustc` generates import libraries with.",
+    "dylib_ext": "str: The extension of the dynamic libraries `rustc` produces.",
+    "env": "Dict[str, str]: Environment variables set in every action.",
+    "exec_triple": "struct: The execution platform's triple, as `@rules_rust//rust/platform:triple.bzl` parses it.",
+    "extra_exec_rustc_flags": "List[str]: Flags added to `rustc` in the exec configuration, expanded.",
+    "extra_rustc_flags": "List[str]: Flags added to `rustc` in the target configuration, expanded.",
+    "extra_rustc_flags_for_crate_types": "Dict[str, List[str]]: Flags added to `rustc` by crate type.",
+    "iso_date": "str: The date of a `beta` or `nightly` release, or empty.",
+    "libstd_and_allocator_ccinfo": "Optional[CcInfo]: The standard library and `allocator_library`, for linking Rust into a `cc_*` target.",
+    "libstd_and_global_allocator_ccinfo": "Optional[CcInfo]: The standard library and `global_allocator_library`.",
+    "libstd_dylib_and_allocator_ccinfo": "Optional[CcInfo]: The standard library as a dynamic library and `allocator_library`.",
+    "libstd_dylib_and_global_allocator_ccinfo": "Optional[CcInfo]: The standard library as a dynamic library and `global_allocator_library`.",
+    "linker": "Optional[File]: The explicit linker (`rust_toolchain.linker`), as laid out in the sysroot.",
+    "linker_preference": "Optional[str]: `cc`, `rust`, or `None` when nothing stated one.",
+    "linker_type": "Optional[str]: `direct`, `indirect`, or `None` to follow `linker_preference`.",
+    "llvm_cov": "Optional[File]: `llvm-cov`.",
+    "llvm_lib": "List[File]: The `libLLVM` shared objects.",
+    "llvm_profdata": "Optional[File]: `llvm-profdata`.",
+    "lto": "RustLtoInfo: The link time optimization mode.",
+    "make_libstd_and_allocator_ccinfo": "function: Builds a `CcInfo` of the standard library and an allocator library for a rule's own label and actions.",
+    "make_variables": "TemplateVariableInfo: `RUSTC`, `RUST_SYSROOT`, `RUST_SYSROOT_SHORT`, `RUST_DEFAULT_EDITION`, and `CARGO`, `RUSTDOC`, `RUSTFMT` where the deprecated attributes are set.",
+    "nostd_and_global_allocator_ccinfo": "Optional[CcInfo]: `core` and `alloc` without `std`, and `global_allocator_library`.",
+    "per_crate_rustc_flags": "List[str]: Flags added to `rustc` for crates matched by name or path.",
+    "require_explicit_unstable_features": "bool: Whether unstable features must be opted into with `-Zallow-features`.",
+    "rust_doc": "Optional[File]: The deprecated `rust_toolchain.rust_doc`, as laid out in the sysroot. Prefer the `rustdoc_toolchain`.",
+    "rust_objcopy": "Optional[File]: `rust-objcopy`, as laid out in the sysroot.",
+    "rust_std": "Depset[File]: The standard library's files, as laid out in the sysroot.",
+    "rust_std_dylib": "Optional[File]: The standard library's `libstd` dynamic library.",
+    "rust_std_paths": "Depset[str]: The directories of `rust_std`.",
+    "rustc": "File: The compiler, as laid out in the sysroot.",
+    "rustc_lib": "Depset[File]: The libraries the compiler loads, as laid out in the sysroot.",
+    "rustfmt": "Optional[File]: The deprecated `rust_toolchain.rustfmt`, as laid out in the sysroot. Prefer the `rustfmt_toolchain`.",
+    "staticlib_ext": "str: The extension of the static libraries `rustc` produces.",
+    "stdlib_linkflags": "CcInfo: The flags a C++ linker needs to link the standard library, as a linking context.",
+    "support_files": "Depset[File]: The files an action needs besides the sysroot: the standard library's own files, the C++ toolchain and `dlltool`.",
+    "sysroot": "str: The path of the sysroot the actions pass to `rustc`.",
+    "sysroot_anchor": "File: A file at the root of the sysroot, whose directory is `sysroot`.",
+    "sysroot_files": "Depset[File]: The sysroot's tree.",
+    "sysroot_short_path": "str: The short path of the sysroot, for actions which run at execution time.",
+    "target_abi": "Optional[str]: The target's ABI, from the triple or the target specification.",
+    "target_arch": "Optional[str]: The target's architecture, from the triple or the target specification.",
+    "target_flag_value": "str: What `--target` is given: the triple, or the path of the target specification.",
+    "target_json": "Optional[File]: The custom target specification, when `target_json` is set.",
+    "target_os": "Optional[str]: The target's operating system, from the triple or the target specification.",
+    "target_triple": "Optional[struct]: The target platform's triple, as `@rules_rust//rust/platform:triple.bzl` parses it, or `None` with `target_json`.",
+    "version": "str: The compiler's version, as stated.",
+    "version_semver": "Optional[struct]: `version` parsed as `@rules_rust//rust/private:semver.bzl` does, or `None` when it is not a version.",
+    "_codegen_units": "int: `--@rules_rust//rust/settings:codegen_units`.",
+    "_experimental_compile_rustdoc_tests": "bool: `--@rules_rust//rust/settings:experimental_compile_rustdoc_tests`.",
+    "_experimental_use_allocator_libraries_with_mangled_symbols": "int: `rust_toolchain.experimental_use_allocator_libraries_with_mangled_symbols`.",
+    "_experimental_use_allocator_libraries_with_mangled_symbols_setting": "bool: `--@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols`.",
+    "_experimental_use_cc_common_link": "bool: Whether binaries are linked with `cc_common.link`.",
+    "_experimental_use_coverage_metadata_files": "bool: `--@rules_rust//rust/settings:experimental_use_coverage_metadata_files`.",
+    "_experimental_use_global_allocator": "bool: `--@rules_rust//rust/settings:experimental_use_global_allocator`.",
+    "_incompatible_do_not_include_data_in_compile_data": "bool: `--@rules_rust//rust/settings:incompatible_do_not_include_data_in_compile_data`.",
+    "_incompatible_do_not_include_transitive_data_in_compile_inputs": "bool: `--@rules_rust//rust/settings:incompatible_do_not_include_transitive_data_in_compile_inputs`.",
+    "_link_std_dylib": "bool: Whether the standard library is linked dynamically.",
+    "_no_std": "str: `--@rules_rust//rust/settings:no_std`.",
+    "_pipelined_compilation": "bool: `--@rules_rust//rust/settings:pipelined_compilation`.",
+    "_rename_first_party_crates": "bool: `--@rules_rust//rust/settings:rename_first_party_crates`.",
+    "_skip_fission_for_rust": "bool: `--@rules_rust//rust/settings:skip_fission_for_rust`.",
+    "_third_party_dir": "str: `--@rules_rust//rust/settings:third_party_dir`.",
+    "_toolchain_generated_sysroot": "bool: `--@rules_rust//rust/settings:toolchain_generated_sysroot`.",
+}
+
+def _rust_toolchain_info_init(*, ctx, **fields):
+    """Checks that the rule constructing a `RustToolchainInfo` reads the settings its fields stand for.
+
+    Args:
+        ctx (ctx): The context of the rule constructing the provider.
+        **fields: The provider's fields.
+
+    Returns:
+        dict: The fields.
+    """
+    for name, setting in RUST_TOOLCHAIN_SETTINGS.items():
+        target = getattr(ctx.attr, name, None)
+        if target == None:
+            fail("{}: only a rule with the attribute `{}` (defaulting to `{}`) can construct a `RustToolchainInfo`".format(
+                ctx.label,
+                name,
+                setting,
+            ))
+        if target.label != setting:
+            fail("{}: only a rule whose `{}` is `{}` can construct a `RustToolchainInfo`; here it is `{}`".format(
+                ctx.label,
+                name,
+                setting,
+                target.label,
+            ))
+    return fields
+
+RustToolchainInfo, _new_rust_toolchain_info = provider(
+    doc = (
+        "A Rust toolchain: the compiler, the standard library and the settings the actions " +
+        "which run them follow. `rust_toolchain` returns one and carries it on the " +
+        "`ToolchainInfo` it registers as `rust_toolchain_info`, beside the same fields; " +
+        "`@rules_rust//rust/private:utils.bzl%find_toolchain` returns it for a rule which " +
+        "resolved `@rules_rust//rust:toolchain_type`. The constructor takes `ctx` and fails " +
+        "unless the rule's private attributes are the build settings in " +
+        "`RUST_TOOLCHAIN_SETTINGS`."
+    ),
+    fields = _RUST_TOOLCHAIN_INFO_FIELDS,
+    init = _rust_toolchain_info_init,
+)
+
+def rust_toolchain_info_fields(info):
+    """The fields of a `RustToolchainInfo`, by name.
+
+    Args:
+        info (RustToolchainInfo): The provider.
+
+    Returns:
+        dict: Each field's value, for a `ToolchainInfo` which carries the same data.
+    """
+    return {field: getattr(info, field) for field in _RUST_TOOLCHAIN_INFO_FIELDS}
+
 CaptureClippyOutputInfo = provider(
     doc = "Value of the `capture_clippy_output` build setting",
     fields = {"capture_output": "Value of the `capture_clippy_output` build setting"},
