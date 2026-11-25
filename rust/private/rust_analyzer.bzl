@@ -352,7 +352,7 @@ def _rust_analyzer_toolchain_impl(ctx):
     toolchain = platform_common.ToolchainInfo(
         proc_macro_srv = ctx.executable.proc_macro_srv,
         rust_analyzer = ctx.executable.rust_analyzer,
-        rustc = ctx.executable.rustc,
+        rustc = ctx.file.rustc,
         rustc_srcs = ctx.attr.rustc_srcs,
         rustc_srcs_path = ctx.attr.rustc_srcs_path,
         version = ctx.attr.version,
@@ -381,9 +381,8 @@ rust_analyzer_toolchain = rule(
             allow_single_file = True,
         ),
         "rustc": attr.label(
-            doc = "The path to a `rustc` binary.",
+            doc = "The `rustc` binary. Can be a direct source or a filegroup containing one item, as `rust_toolchain.rustc` can.",
             cfg = "exec",
-            executable = True,
             allow_single_file = True,
             mandatory = True,
         ),
