@@ -7,6 +7,7 @@ load("//rust/private:channel_manifest.bzl", "CHANNEL_MANIFEST_FACTS_KEY", "resol
 load(
     "//rust/private:repositories.bzl",
     "DEFAULT_TOOLCHAIN_TRIPLES",
+    "linux_exec_libc_variants",
     "rust_register_toolchains",
     "rust_repository_set",
     "rust_toolchain_tools_repository",
@@ -197,7 +198,12 @@ def _rust_impl(module_ctx):
             # Every platform the registration below downloads for: the exec
             # platforms of the Rust, rustfmt and Cargo toolchains and the
             # extra targets, at every version involved.
-            exec_triples = {triple: True for triple in list(toolchain_triples.keys()) + list(DEFAULT_TOOLCHAIN_TRIPLES.keys()) + list(toolchain.rustfmt_toolchain_triples.keys())}.keys()
+            exec_triples = {triple: True for triple in list(toolchain_triples.keys()) + list(DEFAULT_TOOLCHAIN_TRIPLES.keys()) + list(toolchain.rustfmt_toolchain_triples.keys())}
+
+            # The Linux toolchains provide their tools for the other libc too.
+            for exec_triple in list(exec_triples.keys()):
+                exec_triples.update({variant: True for variant in linux_exec_libc_variants(exec_triple).values()})
+            exec_triples = exec_triples.keys()
             all_triples = {triple: True for triple in list(exec_triples) + list(extra_target_triples)}.keys()
             sha256s = resolve_sha256s(
                 module_ctx,

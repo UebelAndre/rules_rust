@@ -88,14 +88,18 @@ available through the constraints of
 declaring both, and, where the platform declares none, what the resolved C++
 toolchain links, its `target_libc` as `@rules_cc//cc/libc` reads it, so that Rust
 code and C code are never linked against different ones. The toolchain's
-`rust_std` and `target_triple` are `select()`s on it. A platform declaring no
-libc, served by a C++ toolchain which does not name its either, gets the
-toolchain's default: glibc, unless the toolchain runs on musl.
+`rust_std` and `target_triple` are `select()`s on it for
+the target platform, and its `rustc` and other tools are aliases selecting the
+glibc or musl compiler on it for the execution platform, with the
+`rust_toolchain` reporting the matching `exec_triple`. A C++ toolchain which
+does not name its libc, or a platform without one, gets the toolchain's
+default: glibc, unless the toolchain runs on musl.
 
-The standard library of each libc lives in a repository of its own, fetched only
-once a platform selects it. The musl triple of a CPU has to be among the
-toolchain's `extra_target_triples`; a toolchain without the standard library a
-platform asks for falls back to its default.
+The CPU of the execution platform gets both standard libraries and, where Rust
+ships them, both compilers without configuration, fetched only once a C++
+toolchain of that libc is in use. For other CPUs the musl triple has to be among
+the toolchain's `extra_target_triples`; a toolchain without the standard
+library a C++ toolchain asks for falls back to its default.
 
 So building for musl is a matter of the C++ toolchain. With the musl toolchains
 of [toolchains_musl](https://github.com/bazel-contrib/musl-toolchain), which

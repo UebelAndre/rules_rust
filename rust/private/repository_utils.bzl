@@ -403,6 +403,14 @@ rust_toolchain(
 )
 """
 
+_build_file_for_alias_template = """\
+alias(
+    name = "{name}",
+    actual = {actual},
+    visibility = ["//visibility:public"],
+)
+"""
+
 # The libcs `//rust/private/libc` tells apart, with the `config_setting` of each.
 _LIBC_SETTINGS = {
     "glibc": "@rules_rust//rust/private/libc:glibc",
@@ -437,6 +445,46 @@ def sibling_libc_triple(target_triple, libc):
             abi = new_prefix + target_triple.abi[len(prefix):]
             return "{}-{}-{}-{}".format(target_triple.arch, target_triple.vendor, target_triple.system, abi)
     return None
+
+def BUILD_for_exec_tool_aliases(tools, exec_triple, variants):
+    """Emits aliases for a toolchain's tools which select the compiler by the libc of the execution platform.
+
+    Attributes configured for the execution platform (`cfg = "exec"`) cannot select on it
+    themselves: a `select()` is resolved in the configuration of the target carrying it. An
+    alias reached through such an attribute is analyzed in the exec configuration, so its own
+    `select()` sees the execution platform.
+
+    Args:
+        tools (dict): The targets to alias, mapped to the component repository providing them
+            (`rustc`, `cargo` or `clippy`).
+        exec_triple (triple): The exec triple the aliases default to.
+        variants (dict): Per libc, the canonical names of the component repositories for that
+            libc's exec triple, keyed by component. Must include the libc of `exec_triple`. An
+            execution platform declaring a libc without a variant falls back to `exec_triple`'s.
+
+    Returns:
+        str: The rendered aliases.
+    """
+    default_libc = _LIBC_BY_ABI_PREFIX.get([prefix for prefix in _LIBC_BY_ABI_PREFIX if exec_triple.abi.startswith(prefix)][0])
+    if default_libc not in variants:
+        fail("the exec triple {} has no entry in the exec libc variants {}".format(exec_triple.str, variants))
+
+    def tool(libc, component, name):
+        return "@@{}//:{}".format(variants[libc][component], name)  # buildifier: disable=canonical-repository
+
+    # Every libc is listed, falling back to the default's tools, so the
+    # choice reads the same in every toolchain.
+    rendered = []
+    for name, component in tools.items():
+        branches = [
+            (setting, tool(libc if libc in variants else default_libc, component, name))
+            for libc, setting in _LIBC_SETTINGS.items()
+        ]
+        rendered.append(_build_file_for_alias_template.format(
+            name = name,
+            actual = _select(branches, tool(default_libc, component, name)),
+        ))
+    return "".join(rendered)
 
 def BUILD_for_rust_toolchain(
         name,

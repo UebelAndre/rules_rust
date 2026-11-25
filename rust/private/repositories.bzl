@@ -9,6 +9,7 @@ load(
     "//rust/private:repository_utils.bzl",
     "BUILD_for_cargo_toolchain",
     "BUILD_for_clippy_toolchain",
+    "BUILD_for_exec_tool_aliases",
     "BUILD_for_rust_analyzer_proc_macro_srv",
     "BUILD_for_rust_analyzer_toolchain",
     "BUILD_for_rust_toolchain",
@@ -275,7 +276,7 @@ def rust_register_toolchains(
         ):
             toolchain_names.append(toolchain.name)
             toolchain_labels[toolchain.name] = "@{}//:{}".format(toolchain.name + "_tools", "rust_toolchain")
-            exec_compatible_with_by_toolchain[toolchain.name] = triple_to_constraint_set(exec_triple)
+            exec_compatible_with_by_toolchain[toolchain.name] = _libc_free_constraints(exec_triple)
             target_compatible_with_by_toolchain[toolchain.name] = toolchain.target_constraints
             toolchain_types[toolchain.name] = "@rules_rust//rust:toolchain"
             toolchain_target_settings[toolchain.name] = ["@rules_rust//rust/toolchain/channel:{}".format(toolchain.channel.name)] + target_settings
@@ -306,7 +307,8 @@ def rust_register_toolchains(
         toolchain_names.append(rustfmt_repo_name)
         toolchain_labels[rustfmt_repo_name] = "@{}_tools//:rustfmt_toolchain".format(rustfmt_repo_name)
 
-        exec_compatible_with_by_toolchain[rustfmt_repo_name] = triple_to_constraint_set(exec_triple)
+        # Like the Rust toolchains, rustfmt runs on execution platforms of either libc.
+        exec_compatible_with_by_toolchain[rustfmt_repo_name] = _libc_free_constraints(exec_triple)
         target_compatible_with_by_toolchain[rustfmt_repo_name] = []
         toolchain_types[rustfmt_repo_name] = "@rules_rust//rust/rustfmt:toolchain_type"
 
@@ -393,6 +395,15 @@ _RUST_TOOLCHAIN_REPOSITORY_ATTRS = {
             "The rust edition to be used by default (2015, 2018, or 2021). " +
             "If absent, every rule is required to specify its `edition` attribute."
         ),
+    ),
+    "exec_libc_anchors": attr.label_keyed_string_dict(
+        doc = (
+            "The component repositories of each libc the toolchain's tools are provided for, " +
+            "each a label to any file in it, mapped to `<libc>/<component>` (`rustc`, `cargo` or " +
+            "`clippy`). Given, the tools become aliases selecting among them by the libc of the " +
+            "execution platform's C++ toolchain, with `exec_triple`'s libc as the default."
+        ),
+        default = {},
     ),
     "exec_triple": attr.string(
         doc = "The Rust-style target that this compiler runs on",
@@ -595,6 +606,13 @@ def _rust_toolchain_tools_repository_impl(ctx):
 
     # The standard libraries the `rust_toolchain` selects between by the libc
     # of the target platform, keyed by libc.
+    # The component repositories per libc of the execution platform; given,
+    # the toolchain's tools become aliases selecting among them.
+    exec_variants = {}
+    for anchor, key in ctx.attr.exec_libc_anchors.items():
+        libc, _, component = key.partition("/")
+        exec_variants.setdefault(libc, {})[component] = anchor.repo_name
+
     libc_std_anchors = {libc: anchor for anchor, libc in ctx.attr.libc_std_anchors.items()}
     libc_variants = {}
     for libc, variant_triple in ctx.attr.libc_variants.items():
@@ -722,6 +740,41 @@ def _rust_toolchain_tools_repository_impl(ctx):
         if "BAZEL_RUST_STDLIB_LINKFLAGS" in ctx.os.environ:
             stdlib_linkflags = ctx.os.environ["BAZEL_RUST_STDLIB_LINKFLAGS"].split(":")
 
+        # With exec libc variants the tools are aliases in this repository
+        # which select the compiler by the libc of the execution platform.
+        tools_repository = rustc_anchor.repo_name if rustc_anchor else None
+        cargo_label = tool_label(cargo_anchor, "cargo")
+        clippy_driver_label = tool_label(clippy_anchor, "clippy_driver_bin")
+        cargo_clippy_label = tool_label(clippy_anchor, "cargo_clippy_bin")
+        rustdoc_label = tool_label(rustc_anchor, "rustdoc")
+        if exec_variants:
+            tools = {
+                "rustc": COMPONENT.rustc,
+                "rustc_lib": COMPONENT.rustc,
+                "rustdoc": COMPONENT.rustc,
+            }
+            if include_linker:
+                tools["rust-lld"] = COMPONENT.rustc
+            if include_objcopy:
+                tools["rust-objcopy"] = COMPONENT.rustc
+            if include_llvm_tools:
+                tools.update({
+                    "llvm_cov_bin": COMPONENT.rustc,
+                    "llvm_lib": COMPONENT.rustc,
+                    "llvm_profdata_bin": COMPONENT.rustc,
+                })
+            if has_clippy:
+                tools["cargo_clippy_bin"] = COMPONENT.clippy
+                tools["clippy_driver_bin"] = COMPONENT.clippy
+            if has_cargo:
+                tools["cargo"] = COMPONENT.cargo
+            build_components.append(BUILD_for_exec_tool_aliases(tools, exec_triple, exec_variants))
+            tools_repository = None
+            cargo_label = tool_label(None, "cargo")
+            clippy_driver_label = tool_label(None, "clippy_driver_bin")
+            cargo_clippy_label = tool_label(None, "cargo_clippy_bin")
+            rustdoc_label = tool_label(None, "rustdoc")
+
         build_components.append(BUILD_for_rust_toolchain(
             name = "rust_toolchain",
             exec_triple = exec_triple,
@@ -731,7 +784,7 @@ def _rust_toolchain_tools_repository_impl(ctx):
             target_triple = target_triple,
             stdlib_linkflags = stdlib_linkflags,
             default_edition = ctx.attr.edition,
-            tools_repository = rustc_anchor.repo_name if rustc_anchor else None,
+            tools_repository = tools_repository,
             std_repository = std_anchor.repo_name if std_anchor else None,
             libc_variants = libc_variants,
             include_llvm_tools = include_llvm_tools,
@@ -752,7 +805,7 @@ def _rust_toolchain_tools_repository_impl(ctx):
         if has_cargo:
             build_components.append(BUILD_for_cargo_toolchain(
                 name = "cargo_toolchain",
-                cargo = tool_label(cargo_anchor, "cargo"),
+                cargo = cargo_label,
                 version = toolchain_version,
                 channel = channel,
                 iso_date = iso_date,
@@ -761,14 +814,14 @@ def _rust_toolchain_tools_repository_impl(ctx):
         if has_clippy:
             build_components.append(BUILD_for_clippy_toolchain(
                 name = "clippy_toolchain",
-                clippy_driver = tool_label(clippy_anchor, "clippy_driver_bin"),
-                cargo_clippy = tool_label(clippy_anchor, "cargo_clippy_bin"),
+                clippy_driver = clippy_driver_label,
+                cargo_clippy = cargo_clippy_label,
                 rust_toolchain = "//:rust_toolchain",
             ))
 
         build_components.append(BUILD_for_rustdoc_toolchain(
             name = "rustdoc_toolchain",
-            rustdoc = tool_label(rustc_anchor, "rustdoc"),
+            rustdoc = rustdoc_label,
             rust_toolchain = "//:rust_toolchain",
         ))
 
@@ -1113,6 +1166,35 @@ def _linux_libc_variant(target_triple):
             return struct(group = group, libc = libc)
     return None
 
+# The Linux CPUs Rust ships host tools (`rustc`, Cargo, Clippy, the LLVM tools)
+# for with musl as well as glibc, per the release manifests; s390x has glibc
+# host tools only.
+_MUSL_HOST_TOOLS_CPUS = ["aarch64", "loongarch64", "powerpc64le", "riscv64gc", "x86_64"]
+
+def linux_exec_libc_variants(exec_triple):
+    """The exec triples a Linux toolchain provides its tools for, keyed by libc.
+
+    The default toolchain of a Linux execution platform selects its compiler by
+    the libc the platform declares (see `//rust/private/libc`), so it carries the tools
+    of both libcs where Rust ships them.
+
+    Args:
+        exec_triple (str): The Rust-style triple the toolchain runs on.
+
+    Returns:
+        dict: `glibc` and `musl` mapped to their exec triples, or empty for an
+            execution platform without libc variants.
+    """
+    variant = _linux_libc_variant(exec_triple)
+    if not variant:
+        return {}
+    parsed = triple(exec_triple)
+    variants = {variant.libc: exec_triple}
+    for libc in _LINUX_LIBC_BY_ABI_PREFIX.values():
+        if libc != variant.libc and (libc == "glibc" or parsed.arch in _MUSL_HOST_TOOLS_CPUS):
+            variants[libc] = sibling_libc_triple(parsed, libc)
+    return variants
+
 def _libc_free_constraints(target_triple):
     """The constraints of a triple without its libc: those its glibc and musl variants share.
 
@@ -1203,7 +1285,11 @@ def _get_toolchain_repositories(
             return _libc_free_constraints(target_triple)
         return triple_to_constraint_set(target_triple)
 
+    # The execution platform's toolchain runs on both libcs of its CPU (see
+    # `linux_exec_libc_variants`), so it builds for both as well.
     target_triples = [exec_triple] + extra_target_triples_list
+    if libc_variants:
+        target_triples += linux_exec_libc_variants(exec_triple).values()
 
     # The triples of each toolchain, keyed by libc; `None` for a toolchain
     # without libc variants.
@@ -1355,6 +1441,8 @@ def rust_repository_set(
 
     all_toolchain_details = {}
     shared_by_channel = {}
+    variant_shared_by_channel = {}
+    exec_variants = linux_exec_libc_variants(exec_triple) if libc_variants else {}
     for toolchain in _get_toolchain_repositories(
         name = name,
         exec_triple = exec_triple,
@@ -1384,6 +1472,35 @@ def rust_repository_set(
             )
         shared = shared_by_channel[toolchain.channel.name]
 
+        # The compilers for the other libcs of the execution platform, also
+        # declared once per channel and only fetched by execution platforms
+        # declaring that libc.
+        if toolchain.channel.name not in variant_shared_by_channel:
+            variant_shared_by_channel[toolchain.channel.name] = {}
+            for libc, variant_exec_triple in exec_variants.items():
+                if variant_exec_triple == exec_triple:
+                    continue
+                variant_shared_by_channel[toolchain.channel.name][libc] = _shared_tool_repositories(
+                    name = "{}__{}__{}".format(name, toolchain.channel.name, libc),
+                    exec_triple = variant_exec_triple,
+                    version = toolchain.channel.version,
+                    dlltool = dlltool,
+                    dev_components = dev_components,
+                    aliases = aliases,
+                    compact_windows_names = compact_windows_names,
+                    sha256s = sha256s,
+                    urls = urls,
+                    auth = auth,
+                    netrc = netrc,
+                    auth_patterns = auth_patterns,
+                )
+        variant_shared = variant_shared_by_channel[toolchain.channel.name]
+        exec_anchors = {}
+        for libc, variant_exec_triple in exec_variants.items():
+            repositories = shared if variant_exec_triple == exec_triple else variant_shared[libc]
+            for component in (COMPONENT.rustc, COMPONENT.cargo, COMPONENT.clippy):
+                exec_anchors[repositories[component]] = "{}/{}".format(libc, component)
+
         variant_triples = toolchain.libc_variants.values() if toolchain.libc_variants else [toolchain.target_triple]
 
         # Flags and levels belong to the toolchain, so its libc variants must agree on them.
@@ -1409,7 +1526,13 @@ def rust_repository_set(
                         toolchain.name,
                     ))
 
-        tc_exec_compatible_with = exec_compatible_with if exec_compatible_with != None else triple_to_constraint_set(exec_triple)
+        if exec_compatible_with != None:
+            tc_exec_compatible_with = exec_compatible_with
+        elif libc_variants:
+            # The tools select the compiler by the libc of the execution platform.
+            tc_exec_compatible_with = _libc_free_constraints(exec_triple)
+        else:
+            tc_exec_compatible_with = triple_to_constraint_set(exec_triple)
         tc_target_compatible_with = toolchain.target_constraints if toolchain.target_constraints != None else triple_to_constraint_set(toolchain.target_triple)
 
         # The standard library of the execution platform comes with the compiler;
@@ -1466,6 +1589,7 @@ def rust_repository_set(
             clippy_anchor = shared[COMPONENT.clippy],
             libc_variants = toolchain.libc_variants,
             libc_std_anchors = {std_anchors[variant_triple]: libc for libc, variant_triple in toolchain.libc_variants.items()},
+            exec_libc_anchors = exec_anchors,
         )
 
         tools_toolchain_label = "@{}//:rust_toolchain".format(tools_repo_name)

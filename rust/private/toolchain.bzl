@@ -344,6 +344,36 @@ def _expand_flags(ctx, attr_name, targets, make_variables):
         expanded_flags.append(flag)
     return expanded_flags
 
+# The ABI prefix a Linux triple carries for each libc.
+_LINUX_ABI_PREFIX_BY_LIBC = {"glibc": "gnu", "musl": "musl"}
+
+def _triple_for_libc(exec_triple, libc):
+    """The variant of a Linux `exec_triple` linking `libc`, or `exec_triple` itself.
+
+    Args:
+        exec_triple (triple): The triple the toolchain's tools were declared for.
+        libc (str): The libc of the execution platform's C++ toolchain, `glibc`, `musl`
+            or anything else, including empty, for no change.
+
+    Returns:
+        triple: `exec_triple` with its ABI's libc prefix swapped for the one of `libc`, when both
+            are known and differ.
+    """
+    if exec_triple.system != "linux" or not exec_triple.abi or libc not in _LINUX_ABI_PREFIX_BY_LIBC:
+        return exec_triple
+    for prefix in _LINUX_ABI_PREFIX_BY_LIBC.values():
+        if exec_triple.abi.startswith(prefix):
+            new_prefix = _LINUX_ABI_PREFIX_BY_LIBC[libc]
+            if new_prefix == prefix:
+                return exec_triple
+            return triple("{}-{}-{}-{}".format(
+                exec_triple.arch,
+                exec_triple.vendor,
+                exec_triple.system,
+                new_prefix + exec_triple.abi[len(prefix):],
+            ))
+    return exec_triple
+
 def _rust_toolchain_impl(ctx):
     """The rust_toolchain implementation
 
@@ -455,6 +485,13 @@ def _rust_toolchain_impl(ctx):
     )
 
     exec_triple = triple(ctx.attr.exec_triple)
+
+    # The tools of the default Linux toolchains are aliases which select the
+    # compiler by the libc of the execution platform's C++ toolchain, so the
+    # exec triple follows that libc too: `_exec_libc` is configured for the
+    # execution platform and reports it, and a Linux triple carries its libc
+    # in its ABI (`gnu*` for glibc, `musl*` for musl).
+    exec_triple = _triple_for_libc(exec_triple, ctx.attr._exec_libc[config_common.FeatureFlagInfo].value)
 
     if not exec_triple.system:
         fail("No system was provided for the execution platform. Please update {}".format(
@@ -898,6 +935,11 @@ rust_toolchain = rule(
         "version": attr.string(
             doc = "The version of the Rust compiler (e.g. `1.94.1`).",
             default = "",
+        ),
+        "_exec_libc": attr.label(
+            doc = "The libc of the execution platform's C++ toolchain, which `exec_triple` follows on Linux.",
+            default = Label("//rust/private/libc:libc"),
+            cfg = "exec",
         ),
         "_codegen_units": attr.label(
             default = Label("//rust/settings:codegen_units"),
