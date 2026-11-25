@@ -1,0 +1,195 @@
+load("@bazel_skylib//rules:common_settings.bzl", "bool_setting")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load(":std_from_source.bzl", "rust_std_from_source")
+load(":toolchains.bzl", "DYLIB_EXT", "HOST_TRIPLE", "NO_STD_FLAGS", "STDLIB_LINKFLAGS")
+
+package(default_visibility = ["//visibility:public"])
+
+# This example builds two standard libraries for the machine it runs on, from
+# the source of the standard library and with a flag of its own, and a
+# toolchain carrying each: one with `std`, one with `core`, `compiler_builtins`
+# and `alloc` alone. The programs built with them run here, so they are tested.
+#
+# Each toolchain is picked for a platform of the example's own: the host's
+# platform with one more constraint. The programs that name that platform
+# resolve the toolchain, and everything else, the build scripts and tools
+# compiled along the way included, keeps the toolchain the `rust` extension
+# registered and its downloaded standard library.
+
+constraint_setting(name = "standard_library")
+
+constraint_value(
+    name = "std_from_source",
+    constraint_setting = ":standard_library",
+)
+
+constraint_value(
+    name = "no_std_from_source",
+    constraint_setting = ":standard_library",
+)
+
+platform(
+    name = "with_std",
+    constraint_values = [":std_from_source"],
+    parents = ["@platforms//host"],
+)
+
+platform(
+    name = "without_std",
+    constraint_values = [":no_std_from_source"],
+    parents = ["@platforms//host"],
+)
+
+# The setting `rust_std_from_source` builds the standard libraries under; see
+# `std_from_source.bzl`.
+bool_setting(
+    name = "building_std",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "building_std_on",
+    flag_values = {":building_std": "True"},
+)
+
+###############################################################################
+# A toolchain with `std`.
+###############################################################################
+
+# The toolchain the standard library is built with. It has no standard library
+# of its own, and `rust_std_from_source` is the only thing that ever resolves
+# it. The compiler and its libraries are those of the toolchain the `rust`
+# extension registered for the host; the flags are the example's.
+rust_toolchain(
+    name = "std_bootstrap_rust_toolchain",
+    binary_ext = "",
+    dylib_ext = DYLIB_EXT,
+    exec_triple = HOST_TRIPLE,
+    extra_rustc_flags = ["-Cforce-frame-pointers=yes"],
+    rustc = "@rules_rust//rust/toolchain:current_rustc_files",
+    rustc_lib = "@rules_rust//rust/toolchain:current_rustc_lib_files",
+    staticlib_ext = ".a",
+    stdlib_linkflags = STDLIB_LINKFLAGS,
+    target_triple = HOST_TRIPLE,
+)
+
+# `std`, `test`, `proc_macro` and everything they depend on, `libc` included,
+# compiled from `@rust_src`. `libc` and `std` run their build scripts.
+rust_std_from_source(
+    name = "std_library",
+    srcs = "@rust_src//:library_rs",
+    compile_data = ["@rust_src//:library"],
+    rust_toolchain = ":std_bootstrap_rust_toolchain",
+    std = True,
+    target_compatible_with = [":std_from_source"],
+)
+
+# The same toolchain, carrying that standard library. `MODULE.bazel`
+# registers this one, and `//:hosted` resolves it.
+rust_toolchain(
+    name = "std_rust_toolchain",
+    binary_ext = "",
+    dylib_ext = DYLIB_EXT,
+    exec_triple = HOST_TRIPLE,
+    extra_rustc_flags = ["-Cforce-frame-pointers=yes"],
+    rust_std = ":std_library",
+    rustc = "@rules_rust//rust/toolchain:current_rustc_files",
+    rustc_lib = "@rules_rust//rust/toolchain:current_rustc_lib_files",
+    staticlib_ext = ".a",
+    stdlib_linkflags = STDLIB_LINKFLAGS,
+    target_triple = HOST_TRIPLE,
+)
+
+toolchain(
+    name = "std_toolchain",
+    target_compatible_with = [":std_from_source"],
+    toolchain = ":std_rust_toolchain",
+    toolchain_type = "@rules_rust//rust:toolchain_type",
+)
+
+# A program and a test built against that standard library. The test runs
+# through the `test` crate it links: the harness, threads, panics and
+# `println!` of the standard library built above.
+rust_binary(
+    name = "hosted",
+    srcs = ["src/hosted.rs"],
+    edition = "2024",
+    platform = ":with_std",
+)
+
+rust_test(
+    name = "hosted_test",
+    srcs = ["src/hosted.rs"],
+    edition = "2024",
+    platform = ":with_std",
+)
+
+###############################################################################
+# A toolchain without `std`, for the same machine.
+###############################################################################
+
+rust_toolchain(
+    name = "no_std_bootstrap_rust_toolchain",
+    binary_ext = "",
+    dylib_ext = DYLIB_EXT,
+    exec_triple = HOST_TRIPLE,
+    extra_rustc_flags = NO_STD_FLAGS,
+    rustc = "@rules_rust//rust/toolchain:current_rustc_files",
+    rustc_lib = "@rules_rust//rust/toolchain:current_rustc_lib_files",
+    staticlib_ext = ".a",
+    stdlib_linkflags = [],
+    target_triple = HOST_TRIPLE,
+)
+
+# `core`, `compiler_builtins` and `alloc`, what a `#![no_std]` program needs,
+# with `compiler_builtins` providing `memcpy` and friends since no C library
+# will.
+rust_std_from_source(
+    name = "no_std_library",
+    srcs = "@rust_src//:library_rs",
+    compile_data = ["@rust_src//:library"],
+    rust_toolchain = ":no_std_bootstrap_rust_toolchain",
+    target_compatible_with = [":no_std_from_source"],
+)
+
+rust_toolchain(
+    name = "no_std_rust_toolchain",
+    binary_ext = "",
+    dylib_ext = DYLIB_EXT,
+    exec_triple = HOST_TRIPLE,
+    extra_rustc_flags = NO_STD_FLAGS,
+    rust_std = ":no_std_library",
+    rustc = "@rules_rust//rust/toolchain:current_rustc_files",
+    rustc_lib = "@rules_rust//rust/toolchain:current_rustc_lib_files",
+    staticlib_ext = ".a",
+    stdlib_linkflags = [],
+    target_triple = HOST_TRIPLE,
+)
+
+toolchain(
+    name = "no_std_toolchain",
+    target_compatible_with = [":no_std_from_source"],
+    toolchain = ":no_std_rust_toolchain",
+    toolchain_type = "@rules_rust//rust:toolchain_type",
+)
+
+# A program with no standard library and no C runtime, which exits through a
+# system call of its own with a checksum it computed. It is a Linux program:
+# a static binary without `crt1.o` is not something macOS links.
+rust_binary(
+    name = "freestanding",
+    srcs = ["src/no_std.rs"],
+    edition = "2024",
+    platform = ":without_std",
+    target_compatible_with = ["@platforms//os:linux"],
+)
+
+sh_test(
+    name = "freestanding_test",
+    srcs = ["no_std_test.sh"],
+    args = ["$(rootpath :freestanding)"],
+    data = [":freestanding"],
+    target_compatible_with = ["@platforms//os:linux"],
+)

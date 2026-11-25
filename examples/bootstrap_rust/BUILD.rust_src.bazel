@@ -1,0 +1,49 @@
+# The `rust-src` component: the source of the standard library, laid out as
+# rust-lang's `library/` directory, with the crates it depends on vendored
+# under `library/vendor/`. The crate roots are picked out of these by path, so
+# nothing here names a vendored crate's version.
+_CRATES = [
+    "alloc",
+    "backtrace",
+    "compiler-builtins",
+    "core",
+    "panic_abort",
+    "panic_unwind",
+    "portable-simd",
+    "proc_macro",
+    "rustc-std-workspace-alloc",
+    "rustc-std-workspace-core",
+    "rustc-std-workspace-std",
+    "std",
+    "std_detect",
+    "stdarch",
+    "test",
+    "unwind",
+]
+
+_VENDORED = [
+    "cfg-if",
+    "getopts",
+    "hashbrown",
+    "libc",
+    "rustc-demangle",
+    "rustc-literal-escaper",
+]
+
+filegroup(
+    name = "library_rs",
+    srcs = glob(
+        ["library/{}/**/*.rs".format(crate) for crate in _CRATES] +
+        ["library/vendor/{}-*/**/*.rs".format(crate) for crate in _VENDORED],
+    ),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "library",
+    srcs = glob(
+        ["library/{}/**".format(crate) for crate in _CRATES] +
+        ["library/vendor/{}-*/**".format(crate) for crate in _VENDORED],
+    ),
+    visibility = ["//visibility:public"],
+)

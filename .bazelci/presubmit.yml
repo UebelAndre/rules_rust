@@ -913,6 +913,14 @@ tasks:
     working_directory: examples/compile_opt
     build_targets:
       - "//..."
+  example_bootstrap_rust:
+    name: Standard library built from source
+    platform: ubuntu2204
+    working_directory: examples/bootstrap_rust
+    build_targets:
+      - "//..."
+    test_targets:
+      - "//..."
   # TODO: This test requires musl or for rustc to provide necessary gnu libraries for
   # linking gnu libraries.
   # https://github.com/bazelbuild/rules_rust/issues/390
