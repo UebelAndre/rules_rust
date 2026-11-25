@@ -1,13 +1,19 @@
 # buildifier: disable=bzl-visibility
-load("//rust/private:rust.bzl", "rust_binary_without_process_wrapper", "rust_test_without_process_wrapper_test")
+load("//rust:defs.bzl", "rust_test")
+
+# buildifier: disable=bzl-visibility
+load("//rust/private:rust.bzl", "rust_bootstrap_binary")
 load("//util/process_wrapper/private:bootstrap_process_wrapper.bzl", "bootstrap_process_wrapper")
 
-rust_binary_without_process_wrapper(
+# The process wrapper is built with a `rust_bootstrap_toolchain`, the one
+# registered for `//rust/private:bootstrap_toolchain_type`, through the shell
+# script below. Every `rust_toolchain` carries the binary this produces.
+rust_bootstrap_binary(
     name = "process_wrapper",
     srcs = glob(["*.rs"]),
     allocator_libraries = select({
-        "@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols_on": "@rules_rust//ffi/rs:allocator_libraries_with_mangling_support_without_process_wrapper",
-        "//conditions:default": "@rules_rust//ffi/rs:empty_allocator_libraries",
+        "@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols_on": "@rules_rust//ffi/rs:bootstrap_allocator_libraries_with_mangling_support",
+        "//conditions:default": "@rules_rust//ffi/rs:bootstrap_empty_allocator_libraries",
     }),
     edition = "2018",
     # To ensure the process wrapper is produced deterministically
@@ -27,7 +33,9 @@ rust_binary_without_process_wrapper(
     ],
 )
 
-rust_test_without_process_wrapper_test(
+# The tests are an ordinary `rust_test`: it is not a toolchain input, so it
+# compiles the crate again with the `rust_toolchain` and its process wrapper.
+rust_test(
     name = "process_wrapper_test",
     crate = ":process_wrapper",
     edition = "2018",

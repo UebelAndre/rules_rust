@@ -36,3 +36,15 @@ rust_analyzer_detect_sysroot(
     name = "rust_analyzer_detect_sysroot",
     visibility = ["//visibility:public"],
 )
+
+# The toolchain type the process wrapper is built with. Every generated
+# `rust_toolchain` registers a `rust_bootstrap_toolchain` sibling under it, a
+# toolchain which carries the shell process wrapper instead of the Rust one,
+# and the `rust_bootstrap_*` rules in `rust.bzl` resolve it in place of
+# `//rust:toolchain_type`. Nothing a module registers for
+# `//rust:toolchain_type` is ever asked to build its own process wrapper that
+# way. Not an API: only the generated toolchain repositories name it.
+toolchain_type(
+    name = "bootstrap_toolchain_type",
+    visibility = ["//visibility:public"],
+)

@@ -1,10 +1,10 @@
 # buildifier: disable=bzl-visibility
-load("@rules_rust//rust/private:rust.bzl", "rust_library_without_process_wrapper")
+load("@rules_rust//rust/private:rust.bzl", "rust_bootstrap_library")
 
-rust_library_without_process_wrapper(
+rust_bootstrap_library(
     name = "tinyjson",
     srcs = glob(["src/*.rs"]),
-    allocator_libraries = "@rules_rust//ffi/rs:empty_allocator_libraries",
+    allocator_libraries = "@rules_rust//ffi/rs:bootstrap_empty_allocator_libraries",
     edition = "2018",
     # To ensure the process wrapper is produced deterministically
     # debug info, which is known to sometimes have host specific

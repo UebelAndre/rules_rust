@@ -18,6 +18,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_cc//cc:find_cc_toolchain.bzl", find_rules_cc_toolchain = "find_cc_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
+load(":common.bzl", "BOOTSTRAP_TOOLCHAIN_TYPE")
 load(
     ":providers.bzl",
     "AlwaysEnableMetadataOutputGroupsInfo",
@@ -61,20 +62,28 @@ def parse_env_strings(entries):
 def find_toolchain(ctx):
     """Finds the Rust toolchain the rule resolved.
 
+    A `rust_bootstrap_*` rule resolves `//rust/private:bootstrap_toolchain_type`
+    in place of `//rust:toolchain_type`, and gets a `rust_bootstrap_toolchain`
+    whose process wrapper is the shell script. Every other rule resolves
+    `//rust:toolchain_type`.
+
     Args:
         ctx (ctx): The ctx object for the current target.
 
     Returns:
-        RustToolchainInfo: The toolchain resolved for `@rules_rust//rust:toolchain_type`,
+        RustToolchainInfo: The toolchain resolved for the rule's toolchain type,
             or `None` when the rule declared the type optional and none resolved.
     """
-    toolchain = ctx.toolchains[Label("//rust:toolchain_type")]
+    toolchain_type = Label("//rust:toolchain_type")
+    if BOOTSTRAP_TOOLCHAIN_TYPE in ctx.toolchains:
+        toolchain_type = BOOTSTRAP_TOOLCHAIN_TYPE
+    toolchain = ctx.toolchains[toolchain_type]
     if toolchain == None:
         return None
     info = getattr(toolchain, "rust_toolchain_info", None)
     if info == None:
         fail(
-            "{}: the toolchain resolved for `@rules_rust//rust:toolchain_type` carries no `RustToolchainInfo`. ".format(ctx.label) +
+            "{}: the toolchain resolved for `{}` carries no `RustToolchainInfo`. ".format(ctx.label, toolchain_type) +
             "Declare Rust toolchains with `rust_toolchain`, which returns one.",
         )
     return info
@@ -763,11 +772,12 @@ def can_build_metadata(toolchain, ctx, crate_type, *, disable_pipelining = False
     """
 
     # Building metadata requires that:
-    # 1) process_wrapper is enabled (this is disabled when compiling process_wrapper itself)
+    # 1) the toolchain's process wrapper is the Rust one (a `rust_bootstrap_toolchain`
+    #    carries the shell script, which cannot stop rustc after the metadata)
     # 2) either:
     #   * always_enable_metadata_output_groups is set
     #   * this target can use metadata for pipelined compilation
-    return bool(ctx.attr._process_wrapper) and (
+    return not toolchain._bootstrapping and (
         ctx.attr._always_enable_metadata_output_groups[AlwaysEnableMetadataOutputGroupsInfo].always_enable_metadata_output_groups or
         (not disable_pipelining and
          can_use_metadata_for_pipelining(toolchain, crate_type))
@@ -978,22 +988,24 @@ def _symlink_for_non_generated_source(ctx, src_file, package_root):
     else:
         return src_file
 
-def generate_output_diagnostics(ctx, sibling, require_process_wrapper = True):
+def generate_output_diagnostics(ctx, toolchain, sibling, require_process_wrapper = True):
     """Generates a .rustc-output file if it's required.
 
     Args:
         ctx: (ctx): The current rule's context object
+        toolchain: (rust_toolchain): The toolchain the rule resolved.
         sibling: (File): The file to generate the diagnostics for.
-        require_process_wrapper: (bool): Whether to require the process wrapper
-          in order to generate the .rustc-output file.
+        require_process_wrapper: (bool): Whether to require the Rust process
+          wrapper in order to generate the .rustc-output file.
     Returns:
         Optional[File] The .rustc-object file, if generated.
     """
 
-    # Since this feature requires error_format=json, we usually need
-    # process_wrapper, since it can write the json here, then convert it to the
-    # regular error format so the user can see the error properly.
-    if require_process_wrapper and not ctx.attr._process_wrapper:
+    # Since this feature requires error_format=json, we usually need the Rust
+    # process wrapper, since it can write the json here, then convert it to the
+    # regular error format so the user can see the error properly. A
+    # `rust_bootstrap_toolchain` carries the shell script instead.
+    if require_process_wrapper and toolchain._bootstrapping:
         return None
     provider = ctx.attr._rustc_output_diagnostics[RustcOutputDiagnosticsInfo]
     if not provider.rustc_output_diagnostics:

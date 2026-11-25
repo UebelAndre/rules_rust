@@ -367,11 +367,7 @@ def BUILD_for_stdlib(target_triple):
         target_triple = target_triple.str,
     )
 
-_build_file_for_rust_toolchain_template = """\
-load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
-
-rust_toolchain(
-    name = "{toolchain_name}",
+_build_file_for_rust_toolchain_attributes_template = """\
     rust_std = "{rust_std_label}",
     rustc = "{rustc_label}",
     linker = {linker_label},
@@ -400,7 +396,23 @@ rust_toolchain(
     channel = "{channel}",
     iso_date = {iso_date},
     tags = ["rust_version={version}"],
-)
+"""
+
+_build_file_for_rust_toolchain_template = """\
+load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
+
+# buildifier: disable=bzl-visibility
+load("@rules_rust//rust/private:toolchain.bzl", "rust_bootstrap_toolchain")
+
+rust_toolchain(
+    name = "{toolchain_name}",
+{attributes})
+
+# The same toolchain for `@rules_rust//rust/private:bootstrap_toolchain_type`,
+# which the process wrapper is built with. See `rust_bootstrap_toolchain`.
+rust_bootstrap_toolchain(
+    name = "rust_bootstrap_toolchain",
+{attributes})
 """
 
 def BUILD_for_rust_toolchain(
@@ -495,8 +507,7 @@ def BUILD_for_rust_toolchain(
     if include_objcopy:
         rust_objcopy_label = tools + "rust-objcopy"
 
-    return _build_file_for_rust_toolchain_template.format(
-        toolchain_name = name,
+    attributes = _build_file_for_rust_toolchain_attributes_template.format(
         rust_std_label = std + "rust_std-" + target_triple.str,
         rustc_label = tools + "rustc",
         rustc_lib_label = tools + "rustc_lib",
@@ -523,6 +534,11 @@ def BUILD_for_rust_toolchain(
         version = version,
         channel = channel,
         iso_date = repr(iso_date),
+    )
+
+    return _build_file_for_rust_toolchain_template.format(
+        toolchain_name = name,
+        attributes = attributes,
     )
 
 _build_file_for_clippy_toolchain_template = """\

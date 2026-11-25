@@ -176,6 +176,14 @@ RUST_TOOLCHAIN_SETTINGS = {
     "_toolchain_generated_sysroot": Label("//rust/settings:toolchain_generated_sysroot"),
 }
 
+# The process wrapper every rustc action runs through, and the shell script
+# which stands in for it while it is built. A `RustToolchainInfo` with
+# `_bootstrapping` set must come from a rule whose `_process_wrapper` is the
+# script, and every other from one whose `_process_wrapper` is the process
+# wrapper, so a toolchain cannot claim one and carry the other.
+PROCESS_WRAPPER = Label("//util/process_wrapper")
+BOOTSTRAP_PROCESS_WRAPPER = Label("//util/process_wrapper:bootstrap_process_wrapper")
+
 _RUST_TOOLCHAIN_INFO_FIELDS = {
     "all_files": "Depset[File]: Every file an action running `rustc` needs: the sysroot and `support_files`.",
     "binary_ext": "str: The extension of the binaries `rustc` produces.",
@@ -209,6 +217,7 @@ _RUST_TOOLCHAIN_INFO_FIELDS = {
     "make_variables": "TemplateVariableInfo: `RUSTC`, `RUST_SYSROOT`, `RUST_SYSROOT_SHORT`, `RUST_DEFAULT_EDITION`, and `CARGO`, `RUSTDOC`, `RUSTFMT` where the deprecated attributes are set.",
     "nostd_and_global_allocator_ccinfo": "Optional[CcInfo]: `core` and `alloc` without `std`, and `global_allocator_library`.",
     "per_crate_rustc_flags": "List[str]: Flags added to `rustc` for crates matched by name or path.",
+    "process_wrapper": "File: The process wrapper every rustc action runs through: `@rules_rust//util/process_wrapper`, or the shell script which stands in for it while it is built (see `_bootstrapping`).",
     "require_explicit_unstable_features": "bool: Whether unstable features must be opted into with `-Zallow-features`.",
     "rust_doc": "Optional[File]: The deprecated `rust_toolchain.rust_doc`, as laid out in the sysroot. Prefer the `rustdoc_toolchain`.",
     "rust_objcopy": "Optional[File]: `rust-objcopy`, as laid out in the sysroot.",
@@ -231,8 +240,10 @@ _RUST_TOOLCHAIN_INFO_FIELDS = {
     "target_json": "Optional[File]: The custom target specification, when `target_json` is set.",
     "target_os": "Optional[str]: The target's operating system, from the triple or the target specification.",
     "target_triple": "Optional[struct]: The target platform's triple, as `@rules_rust//rust/platform:triple.bzl` parses it, or `None` with `target_json`.",
+    "toolchain_type": "Label: The toolchain type the toolchain is registered for, which its actions name: `@rules_rust//rust:toolchain_type`, or `@rules_rust//rust/private:bootstrap_toolchain_type` for a `rust_bootstrap_toolchain`.",
     "version": "str: The compiler's version, as stated.",
     "version_semver": "Optional[struct]: `version` parsed as `@rules_rust//rust/private:semver.bzl` does, or `None` when it is not a version.",
+    "_bootstrapping": "bool: Whether `process_wrapper` is the shell script: the toolchain is a `rust_bootstrap_toolchain`, which builds the process wrapper itself.",
     "_codegen_units": "int: `--@rules_rust//rust/settings:codegen_units`.",
     "_experimental_compile_rustdoc_tests": "bool: `--@rules_rust//rust/settings:experimental_compile_rustdoc_tests`.",
     "_experimental_use_allocator_libraries_with_mangled_symbols": "int: `rust_toolchain.experimental_use_allocator_libraries_with_mangled_symbols`.",
@@ -252,7 +263,11 @@ _RUST_TOOLCHAIN_INFO_FIELDS = {
 }
 
 def _rust_toolchain_info_init(*, ctx, **fields):
-    """Checks that the rule constructing a `RustToolchainInfo` reads the settings its fields stand for.
+    """Checks that the rule constructing a `RustToolchainInfo` carries what its fields stand for.
+
+    The rule's private attributes must be the build settings in
+    `RUST_TOOLCHAIN_SETTINGS`, and its `_process_wrapper` the process wrapper,
+    or the shell script when `_bootstrapping` is set.
 
     Args:
         ctx (ctx): The context of the rule constructing the provider.
@@ -261,7 +276,9 @@ def _rust_toolchain_info_init(*, ctx, **fields):
     Returns:
         dict: The fields.
     """
-    for name, setting in RUST_TOOLCHAIN_SETTINGS.items():
+    expected = dict(RUST_TOOLCHAIN_SETTINGS)
+    expected["_process_wrapper"] = BOOTSTRAP_PROCESS_WRAPPER if fields.get("_bootstrapping") else PROCESS_WRAPPER
+    for name, setting in expected.items():
         target = getattr(ctx.attr, name, None)
         if target == None:
             fail("{}: only a rule with the attribute `{}` (defaulting to `{}`) can construct a `RustToolchainInfo`".format(
@@ -286,7 +303,7 @@ RustToolchainInfo, _new_rust_toolchain_info = provider(
         "`@rules_rust//rust/private:utils.bzl%find_toolchain` returns it for a rule which " +
         "resolved `@rules_rust//rust:toolchain_type`. The constructor takes `ctx` and fails " +
         "unless the rule's private attributes are the build settings in " +
-        "`RUST_TOOLCHAIN_SETTINGS`."
+        "`RUST_TOOLCHAIN_SETTINGS` and the process wrapper the toolchain claims."
     ),
     fields = _RUST_TOOLCHAIN_INFO_FIELDS,
     init = _rust_toolchain_info_init,

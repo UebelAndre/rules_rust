@@ -1300,6 +1300,7 @@ def construct_arguments(
 
     # Rustc arguments
     rustc_flags = ctx.actions.args()
+
     # Both process wrappers rewrite the param file with its placeholders
     # replaced before rustc reads it: the Rust one in `options.rs`, the
     # bootstrap scripts in `util/process_wrapper/private`.
@@ -2095,50 +2096,50 @@ def rustc_compile_action(
     if use_split_debuginfo:
         action_outputs.append(dwo_outputs)  # buildifier: disable=uninitialized
 
-    if ctx.executable._process_wrapper:
-        # Run as normal
+    # The process wrapper comes from the toolchain. A `rust_toolchain` carries
+    # the Rust one; a `rust_bootstrap_toolchain`, which the process wrapper and
+    # the crates it is made of are built with, carries the shell script that
+    # only forwards the command line to rustc.
+    if not toolchain._bootstrapping:
         ctx.actions.run(
-            executable = ctx.executable._process_wrapper,
+            executable = toolchain.process_wrapper,
             inputs = compile_inputs,
             outputs = action_outputs,
             env = env,
             arguments = args.all,
             mnemonic = "Rustc",
             progress_message = "Compiling Rust {} %{{label}} (Rustc)".format(crate_info.type),
-            toolchain = "@rules_rust//rust:toolchain_type",
+            toolchain = toolchain.toolchain_type,
             resource_set = get_rustc_resource_set(toolchain),
             execution_requirements = {"supports-path-mapping": ""} if args.supports_path_mapping else None,
         )
         if args_metadata:
             ctx.actions.run(
-                executable = ctx.executable._process_wrapper,
+                executable = toolchain.process_wrapper,
                 inputs = compile_inputs,
                 outputs = [build_metadata] + [x for x in [rustc_rmeta_output] if x],
                 env = env,
                 arguments = args_metadata.all,
                 mnemonic = "RustcMetadata",
                 progress_message = "Compiling Rust metadata {} %{{label}} (RustcMetadata)".format(crate_info.type),
-                toolchain = "@rules_rust//rust:toolchain_type",
+                toolchain = toolchain.toolchain_type,
                 execution_requirements = {"supports-path-mapping": ""} if args_metadata.supports_path_mapping else None,
             )
-    elif hasattr(ctx.executable, "_bootstrap_process_wrapper"):
-        # Run without process_wrapper
+    else:
         if build_env_files or build_flags_files or stamp or build_metadata:
-            fail("build_env_files, build_flags_files, stamp, build_metadata are not supported when building without process_wrapper")
+            fail("build_env_files, build_flags_files, stamp, build_metadata are not supported when building with a `rust_bootstrap_toolchain`")
         ctx.actions.run(
-            executable = ctx.executable._bootstrap_process_wrapper,
+            executable = toolchain.process_wrapper,
             inputs = compile_inputs,
             outputs = action_outputs,
             env = env,
             arguments = [args.rustc_path, args.rustc_flags],
             mnemonic = "Rustc",
-            progress_message = "Compiling Rust (without process_wrapper) {} %{{label}} (Rustc)".format(crate_info.type),
-            toolchain = "@rules_rust//rust:toolchain_type",
+            progress_message = "Compiling Rust (bootstrap) {} %{{label}} (Rustc)".format(crate_info.type),
+            toolchain = toolchain.toolchain_type,
             resource_set = get_rustc_resource_set(toolchain),
             execution_requirements = {"supports-path-mapping": ""} if args.supports_path_mapping else None,
         )
-    else:
-        fail("No process wrapper was defined for {}".format(ctx.label))
 
     cco_args = {}
     if experimental_use_cc_common_link:

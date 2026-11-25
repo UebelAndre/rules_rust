@@ -3,7 +3,7 @@ load("@rules_rust//rust:defs.bzl", "rust_static_library")
 # buildifier: disable=bzl-visibility
 load(
     "@rules_rust//rust/private:rust.bzl",
-    "rust_static_library_without_process_wrapper",
+    "rust_bootstrap_static_library",
 )
 
 package(
@@ -22,10 +22,12 @@ rust_static_library(
     tags = ["manual"],
 )
 
-rust_static_library_without_process_wrapper(
-    name = "allocator_library_without_process_wrapper",
+# The same library for the process wrapper, which is built with a
+# `rust_bootstrap_toolchain` and so are the crates that go into it.
+rust_bootstrap_static_library(
+    name = "bootstrap_allocator_library",
     srcs = ["empty.rs"],
-    allocator_libraries = "@rules_rust//ffi/rs:empty_allocator_libraries",
+    allocator_libraries = "@rules_rust//ffi/rs:bootstrap_empty_allocator_libraries",
     edition = "2021",
     tags = ["manual"],
 )

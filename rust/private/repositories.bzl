@@ -58,10 +58,13 @@ _COMPACT_WINDOWS_NAMES = True
 # with it (`rustdoc` and `clippy-driver` are rustc drivers which must match
 # `rustc` exactly), so they are registered with the same constraints and
 # target settings as the `rust_toolchain` they accompany and resolve in
-# lockstep.
+# lockstep. The `rust_bootstrap_toolchain` is the `rust_toolchain` itself
+# declared a second time for the type the process wrapper is built with, see
+# `//rust/private:bootstrap_toolchain_type`.
 COMPANION_TOOLCHAIN_TYPES = {
     "cargo_toolchain": "@rules_rust//cargo:toolchain_type",
     "clippy_toolchain": "@rules_rust//rust/clippy:toolchain_type",
+    "rust_bootstrap_toolchain": "@rules_rust//rust/private:bootstrap_toolchain_type",
     "rustdoc_toolchain": "@rules_rust//rust/rustdoc:toolchain_type",
 }
 

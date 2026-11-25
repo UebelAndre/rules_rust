@@ -10,6 +10,7 @@ load(
 )
 load(
     ":common.bzl",
+    "BOOTSTRAP_TOOLCHAIN_TYPE",
     "rust_common",
 )
 load(
@@ -289,20 +290,36 @@ def _rust_allocator_libraries_impl(ctx):
 
     return providers
 
+_RUST_ALLOCATOR_LIBRARIES_ATTRS = {
+    "allocator_library": attr.label(
+        doc = "An optional library to provide when a default rust allocator is used.",
+        providers = [AllocatorLibrariesImplInfo],
+    ),
+    "global_allocator_library": attr.label(
+        doc = "An optional library to provide when a global rust allocator is used.",
+        providers = [AllocatorLibrariesImplInfo],
+    ),
+}
+
 rust_allocator_libraries = rule(
     implementation = _rust_allocator_libraries_impl,
     provides = [AllocatorLibrariesInfo],
-    attrs = {
-        "allocator_library": attr.label(
-            doc = "An optional library to provide when a default rust allocator is used.",
-            providers = [AllocatorLibrariesImplInfo],
-        ),
-        "global_allocator_library": attr.label(
-            doc = "An optional library to provide when a global rust allocator is used.",
-            providers = [AllocatorLibrariesImplInfo],
-        ),
-    },
+    attrs = _RUST_ALLOCATOR_LIBRARIES_ATTRS,
     toolchains = [
         str(Label("//rust:toolchain_type")),
+    ] + use_cc_toolchain(mandatory = False),
+)
+
+rust_bootstrap_allocator_libraries = rule(
+    implementation = _rust_allocator_libraries_impl,
+    doc = (
+        "`rust_allocator_libraries` for the process wrapper and the crates it is made of, resolved for " +
+        "`@rules_rust//rust/private:bootstrap_toolchain_type` like the `rust_bootstrap_*` rules of " +
+        "`@rules_rust//rust/private:rust.bzl`. Not an API."
+    ),
+    provides = [AllocatorLibrariesInfo],
+    attrs = _RUST_ALLOCATOR_LIBRARIES_ATTRS,
+    toolchains = [
+        str(BOOTSTRAP_TOOLCHAIN_TYPE),
     ] + use_cc_toolchain(mandatory = False),
 )

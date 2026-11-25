@@ -116,6 +116,12 @@ rust_common = struct(
     rustfmt_toolchain_type = Label("//rust/rustfmt:toolchain_type"),
 )
 
+# The toolchain type `rust_bootstrap_*` rules resolve in place of
+# `rust_common.toolchain_type`, so that the process wrapper and the crates it is
+# made of are built by a `rust_bootstrap_toolchain`, which does not depend on
+# the process wrapper. Internal to the rules: see `//rust/private:BUILD.bazel`.
+BOOTSTRAP_TOOLCHAIN_TYPE = Label("//rust/private:bootstrap_toolchain_type")
+
 COMMON_PROVIDERS = [
     CrateInfo,
     DepInfo,

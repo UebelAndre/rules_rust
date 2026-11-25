@@ -18,7 +18,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "use_cc_toolchain")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load(":common.bzl", "COMMON_PROVIDERS", "rust_common")
+load(":common.bzl", "BOOTSTRAP_TOOLCHAIN_TYPE", "COMMON_PROVIDERS", "rust_common")
 load(
     ":providers.bzl",
     "BuildInfo",
@@ -286,7 +286,7 @@ def _rust_library_common(ctx, crate_type):
             paths.replace_extension(rust_lib_name, ".rmeta"),
             sibling = rust_lib,
         )
-        rustc_rmeta_output = generate_output_diagnostics(ctx, rust_metadata)
+        rustc_rmeta_output = generate_output_diagnostics(ctx, toolchain, rust_metadata)
         metadata_supports_pipelining = (
             can_use_metadata_for_pipelining(toolchain, crate_type) and
             not ctx.attr.disable_pipelining
@@ -312,7 +312,7 @@ def _rust_library_common(ctx, crate_type):
             proc_macro_deps = proc_macro_deps,
             aliases = ctx.attr.aliases,
             output = rust_lib,
-            rustc_output = generate_output_diagnostics(ctx, rust_lib),
+            rustc_output = generate_output_diagnostics(ctx, toolchain, rust_lib),
             metadata = rust_metadata,
             metadata_supports_pipelining = metadata_supports_pipelining,
             rustc_rmeta_output = rustc_rmeta_output,
@@ -365,7 +365,7 @@ def _rust_binary_impl(ctx):
             paths.replace_extension("lib" + crate_name, ".rmeta"),
             sibling = output,
         )
-        rustc_rmeta_output = generate_output_diagnostics(ctx, rust_metadata)
+        rustc_rmeta_output = generate_output_diagnostics(ctx, toolchain, rust_metadata)
 
     providers = rustc_compile_action(
         ctx = ctx,
@@ -381,7 +381,7 @@ def _rust_binary_impl(ctx):
             proc_macro_deps = proc_macro_deps,
             aliases = ctx.attr.aliases,
             output = output,
-            rustc_output = generate_output_diagnostics(ctx, output),
+            rustc_output = generate_output_diagnostics(ctx, toolchain, output),
             metadata = rust_metadata,
             rustc_rmeta_output = rustc_rmeta_output,
             edition = get_edition(ctx.attr, toolchain, ctx.label),
@@ -473,7 +473,7 @@ def _rust_test_impl(ctx):
                 paths.replace_extension("lib" + crate_name, ".rmeta"),
                 sibling = output,
             )
-            rustc_rmeta_output = generate_output_diagnostics(ctx, rust_metadata)
+            rustc_rmeta_output = generate_output_diagnostics(ctx, toolchain, rust_metadata)
 
         # Need to consider all src files together when transforming
         srcs = depset(ctx.files.srcs, transitive = [crate.srcs]).to_list()
@@ -509,7 +509,7 @@ def _rust_test_impl(ctx):
             proc_macro_deps = depset(proc_macro_deps, transitive = [crate.proc_macro_deps]).to_list(),
             aliases = aliases,
             output = output,
-            rustc_output = generate_output_diagnostics(ctx, output),
+            rustc_output = generate_output_diagnostics(ctx, toolchain, output),
             metadata = rust_metadata,
             rustc_rmeta_output = rustc_rmeta_output,
             edition = crate.edition,
@@ -544,7 +544,7 @@ def _rust_test_impl(ctx):
                 paths.replace_extension("lib" + crate_name, ".rmeta"),
                 sibling = output,
             )
-            rustc_rmeta_output = generate_output_diagnostics(ctx, rust_metadata)
+            rustc_rmeta_output = generate_output_diagnostics(ctx, toolchain, rust_metadata)
 
         if ctx.attr.rustc_env:
             rustc_env = expand_dict_value_locations(
@@ -567,7 +567,7 @@ def _rust_test_impl(ctx):
             proc_macro_deps = proc_macro_deps,
             aliases = ctx.attr.aliases,
             output = output,
-            rustc_output = generate_output_diagnostics(ctx, output),
+            rustc_output = generate_output_diagnostics(ctx, toolchain, output),
             metadata = rust_metadata,
             rustc_rmeta_output = rustc_rmeta_output,
             edition = get_edition(ctx.attr, toolchain, ctx.label),
@@ -718,13 +718,6 @@ RUSTC_ATTRS = {
     ),
     "_per_crate_rustc_flag": attr.label(
         default = Label("//rust/settings:per_crate_rustc_flag"),
-    ),
-    "_process_wrapper": attr.label(
-        doc = "A process wrapper for running rustc on all platforms.",
-        default = Label("//util/process_wrapper"),
-        executable = True,
-        allow_single_file = True,
-        cfg = "exec",
     ),
     "_rustc_output_diagnostics": attr.label(
         default = Label("//rust/settings:rustc_output_diagnostics"),
@@ -1447,131 +1440,75 @@ rust_binary = rule(
 """),
 )
 
-def _common_attrs_for_binary_without_process_wrapper(attrs):
-    new_attr = dict(attrs)
+def _bootstrap_attrs(attrs):
+    """The attributes of a `rust_bootstrap_*` rule.
 
-    # use a fake process wrapper
-    new_attr["_process_wrapper"] = attr.label(
-        default = None,
-        executable = True,
-        allow_single_file = True,
-        cfg = "exec",
-    )
+    Those of the rule it mirrors, with stamping fixed off: the shell script a
+    `rust_bootstrap_toolchain` carries as its process wrapper does not read
+    the status files.
 
-    new_attr["_bootstrap_process_wrapper"] = attr.label(
-        default = Label("//util/process_wrapper:bootstrap_process_wrapper"),
-        executable = True,
-        allow_single_file = True,
-        cfg = "exec",
-    )
+    Args:
+        attrs (dict): The attributes of the mirrored rule.
 
-    # fix stamp = 0
-    new_attr["stamp"] = attr.int(
-        doc = dedent("""\
-            Fix `stamp = 0` as stamping is not supported when building without process_wrapper:
-            https://github.com/bazelbuild/rules_rust/blob/8df4517d370b0c543a01ba38b63e1d5a4104b035/rust/private/rustc.bzl#L955
-        """),
+    Returns:
+        dict: The attributes of the bootstrap rule.
+    """
+    new_attrs = dict(attrs)
+    new_attrs["stamp"] = attr.int(
+        doc = "Fixed to `0`. Stamping needs the Rust process wrapper, which a `rust_bootstrap_toolchain` does not carry.",
         default = 0,
         values = [0],
     )
+    return new_attrs
 
-    return new_attr
+_BOOTSTRAP_TOOLCHAINS = [
+    str(BOOTSTRAP_TOOLCHAIN_TYPE),
+] + use_cc_toolchain(mandatory = False)
 
-_RustBuiltWithoutProcessWrapperInfo = provider(
-    doc = "A provider identifying the target having been built using a `*_without_process_wrapper` rule variant.",
-    fields = {},
-)
+_BOOTSTRAP_DOC = """\
+{rule} resolved for `@rules_rust//rust/private:bootstrap_toolchain_type` rather than \
+`@rules_rust//rust:toolchain_type`.
 
-def _rust_binary_without_process_wrapper_impl(ctx):
-    providers = _rust_binary_impl(ctx)
-    return providers + [_RustBuiltWithoutProcessWrapperInfo()]
+The process wrapper, `@rules_rust//util/process_wrapper`, is a Rust binary every `rust_toolchain` \
+carries and runs rustc through. The toolchain that builds it cannot be one that carries it, so \
+the process wrapper and the crates it is made of are built with these rules, which resolve the \
+`rust_bootstrap_toolchain` each generated `rust_toolchain` registers beside itself: the same \
+toolchain with a shell script in the process wrapper's place. That script forwards the command \
+line to rustc and nothing more, so these rules support no environment files, no stamping and no \
+metadata-only compiles.
 
-# Provides an internal rust_{binary,library} to use that we can use to build the process
-# wrapper, this breaks the dependency of rust_* on the process wrapper by
-# setting it to None, which the functions in rustc detect and build accordingly.
-rust_binary_without_process_wrapper = rule(
-    implementation = _rust_binary_without_process_wrapper_impl,
-    doc = "A variant of `rust_binary` that uses a minimal process wrapper for `Rustc` actions.",
-    provides = COMMON_PROVIDERS + [_RustBuiltWithoutProcessWrapperInfo],
-    attrs = _common_attrs_for_binary_without_process_wrapper(_COMMON_ATTRS | _RUST_BINARY_ATTRS),
+Not an API: nothing but the process wrapper and its dependencies should use them.
+"""
+
+rust_bootstrap_binary = rule(
+    implementation = _rust_binary_impl,
+    doc = _BOOTSTRAP_DOC.format(rule = "A `rust_binary`"),
+    provides = COMMON_PROVIDERS,
+    attrs = _bootstrap_attrs(_COMMON_ATTRS | _RUST_BINARY_ATTRS),
     executable = True,
     fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain_type")),
-    ] + use_cc_toolchain(mandatory = False),
+    toolchains = _BOOTSTRAP_TOOLCHAINS,
 )
 
-def _rust_library_without_process_wrapper_impl(ctx):
-    providers = _rust_library_impl(ctx)
-    return providers + [_RustBuiltWithoutProcessWrapperInfo()]
-
-rust_library_without_process_wrapper = rule(
-    implementation = _rust_library_without_process_wrapper_impl,
-    doc = "A variant of `rust_library` that uses a minimal process wrapper for `Rustc` actions.",
-    provides = COMMON_PROVIDERS + [_RustBuiltWithoutProcessWrapperInfo],
-    attrs = dict(_common_attrs_for_binary_without_process_wrapper(_COMMON_ATTRS).items()),
+rust_bootstrap_library = rule(
+    implementation = _rust_library_impl,
+    doc = _BOOTSTRAP_DOC.format(rule = "A `rust_library`"),
+    provides = COMMON_PROVIDERS,
+    attrs = _bootstrap_attrs(_COMMON_ATTRS),
     fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain_type")),
-    ] + use_cc_toolchain(mandatory = False),
+    toolchains = _BOOTSTRAP_TOOLCHAINS,
 )
 
-def _rust_static_library_without_process_wrapper_impl(ctx):
-    providers = _rust_static_library_impl(ctx)
-    return providers + [_RustBuiltWithoutProcessWrapperInfo()]
-
-rust_static_library_without_process_wrapper = rule(
-    implementation = _rust_static_library_without_process_wrapper_impl,
-    doc = "A variant of `rust_static_library` that uses a minimal process wrapper for `Rustc` actions.",
-    attrs = dict(_common_attrs_for_binary_without_process_wrapper(_COMMON_ATTRS).items()),
+rust_bootstrap_static_library = rule(
+    implementation = _rust_static_library_impl,
+    doc = _BOOTSTRAP_DOC.format(rule = "A `rust_static_library`"),
+    attrs = _bootstrap_attrs(_COMMON_ATTRS),
     fragments = ["cpp"],
-    toolchains = [
-        str(Label("//rust:toolchain_type")),
-    ] + use_cc_toolchain(mandatory = False),
+    toolchains = _BOOTSTRAP_TOOLCHAINS,
     provides = [
         CcInfo,
         rust_common.test_crate_info,
-        _RustBuiltWithoutProcessWrapperInfo,
     ],
-)
-
-def _test_attrs_for_binary_without_process_wrapper(attrs):
-    new_attrs = {}
-    new_attrs.update(attrs)
-
-    # Require that `crate` has the correct internal provider.
-    new_attrs["crate"] = attr.label(
-        mandatory = False,
-        providers = [_RustBuiltWithoutProcessWrapperInfo],
-        doc = dedent("""\
-            Target inline tests declared in the given crate
-
-            These tests are typically those that would be held out under
-            `#[cfg(test)]` declarations.
-        """),
-    )
-
-    return new_attrs
-
-def _rust_test_without_process_wrapper_test_impl(ctx):
-    if ctx.attr.srcs:
-        fail("`rust_test_without_process_wrapper_test.srcs` is not allowed. Remove it from {}".format(
-            ctx.label,
-        ))
-    providers = _rust_test_impl(ctx)
-    return providers
-
-rust_test_without_process_wrapper_test = rule(
-    implementation = _rust_test_without_process_wrapper_test_impl,
-    doc = "Unlike other `*_without_process_wrapper` rules, this rule does use the process wrapper but requires it's dependencies were not built with one.",
-    provides = COMMON_PROVIDERS,
-    attrs = _test_attrs_for_binary_without_process_wrapper(_COMMON_ATTRS | _RUST_TEST_ATTRS),
-    executable = True,
-    fragments = ["cpp"],
-    test = True,
-    toolchains = [
-        str(Label("//rust:toolchain_type")),
-    ] + use_cc_toolchain(mandatory = False),
 )
 
 def _rust_test_transition_impl(settings, attr):

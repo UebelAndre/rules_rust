@@ -68,7 +68,7 @@ def _construct_writer_arguments(ctx, test_runner, opt_test_params, action):
 
     # Prepare for the process runner to ingest the rest of the arguments
     # to match the expectations of `rustc_compile_action`.
-    writer_args.add(ctx.executable._process_wrapper.short_path)
+    writer_args.add(action.executable.short_path)
 
     return (writer_args, action.env)
 
@@ -260,7 +260,7 @@ def _legacy_rust_doc_test_impl(ctx, toolchain, rustdoc_toolchain, crate_info):
         is_test = True,
     )
 
-    tools = action.tools + [ctx.executable._process_wrapper]
+    tools = action.tools + [action.executable]
 
     writer_args, env = _construct_writer_arguments(
         ctx = ctx,
@@ -358,12 +358,6 @@ rust_doc_test = rule(
                 `$rootpath`. This expansion is useful if you wish to pass a generated
                 file of arguments to rustc: `@$(location //package:target)`.
             """),
-        ),
-        "_process_wrapper": attr.label(
-            doc = "A process wrapper for running rustdoc on all platforms",
-            cfg = "exec",
-            default = Label("//util/process_wrapper"),
-            executable = True,
         ),
         "_rustdoc_compile_wrapper": attr.label(
             doc = "A wrapper that suppresses stdout on success for compiled doc test actions.",

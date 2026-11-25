@@ -1,7 +1,7 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 # buildifier: disable=bzl-visibility
-load("@rules_rust//rust/private:rust_allocator_libraries.bzl", "rust_allocator_libraries")
+load("@rules_rust//rust/private:rust_allocator_libraries.bzl", "rust_allocator_libraries", "rust_bootstrap_allocator_libraries")
 
 rust_allocator_libraries(
     name = "allocator_libraries_with_mangling_support",
@@ -29,10 +29,18 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-# Allocator libraries used while bootstrapping the process wrapper.
-rust_allocator_libraries(
-    name = "allocator_libraries_with_mangling_support_without_process_wrapper",
-    allocator_library = "@rules_rust//ffi/rs/allocator_library:allocator_library_without_process_wrapper",
+# Allocator libraries used while bootstrapping the process wrapper. The
+# process wrapper and the crates it is made of are built with a
+# `rust_bootstrap_toolchain`, and so is everything they depend on.
+rust_bootstrap_allocator_libraries(
+    name = "bootstrap_empty_allocator_libraries",
+    # Public for the process wrapper's dependencies in their own repositories.
+    visibility = ["//visibility:public"],
+)
+
+rust_bootstrap_allocator_libraries(
+    name = "bootstrap_allocator_libraries_with_mangling_support",
+    allocator_library = "@rules_rust//ffi/rs/allocator_library:bootstrap_allocator_library",
     # no need for a global allocator library, since the process wrapper
     # is always bootstrapped in exec mode, which always uses the default
     # allocator.

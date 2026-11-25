@@ -1,5 +1,14 @@
-load("//rust:defs.bzl", "rust_test")
+load("//rust:defs.bzl", "rust_binary", "rust_test")
 load(":process_wrapper_bootstrap_test.bzl", "process_wrapper_bootstrap_test_suite")
+
+# A binary built the ordinary way, through the `rust_toolchain` and the process
+# wrapper, next to the process wrapper itself which is built through a
+# `rust_bootstrap_toolchain` and the shell script.
+rust_binary(
+    name = "with_process_wrapper",
+    srcs = ["main.rs"],
+    edition = "2021",
+)
 
 rust_test(
     name = "bootstrap_process_wrapper_test",

@@ -10,7 +10,7 @@ load("//rust:toolchain.bzl", "rust_stdlib_filegroup", "rust_toolchain")
 load("//rust/platform:triple.bzl", "triple")
 
 # buildifier: disable=bzl-visibility
-load("//rust/private:providers.bzl", "RUST_TOOLCHAIN_SETTINGS", "rust_toolchain_info_fields")
+load("//rust/private:providers.bzl", "PROCESS_WRAPPER", "RUST_TOOLCHAIN_SETTINGS", "rust_toolchain_info_fields")
 
 def _toolchain_specifies_target_triple_test_impl(ctx):
     env = analysistest.begin(ctx)
@@ -129,6 +129,11 @@ def _toolchain_info_rejects_a_missing_setting_test_impl(ctx):
     asserts.expect_failure(env, "only a rule with the attribute `_no_std` (defaulting to `")
     return analysistest.end(env)
 
+def _toolchain_info_rejects_the_wrong_process_wrapper_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    asserts.expect_failure(env, "only a rule whose `_process_wrapper` is `")
+    return analysistest.end(env)
+
 # The targets these tests analyze fail in every configuration, so outside the
 # tests they are incompatible rather than broken: `manual` keeps them out of
 # wildcard builds, but `cquery` and `aquery` analyze them all the same. The
@@ -139,14 +144,34 @@ def _construct_toolchain_info_impl(ctx):
     """A rule which is not `rust_toolchain` constructing a `RustToolchainInfo`."""
     return [RustToolchainInfo(ctx = ctx)]
 
+def _construct_bootstrapping_toolchain_info_impl(ctx):
+    """A rule claiming to carry the bootstrap shell script."""
+    return [RustToolchainInfo(ctx = ctx, _bootstrapping = True)]
+
+_PROCESS_WRAPPER_ATTRS = {
+    "_process_wrapper": attr.label(
+        default = PROCESS_WRAPPER,
+        executable = True,
+        cfg = "exec",
+    ),
+}
+
 _toolchain_reading_another_setting = rule(
     implementation = _construct_toolchain_info_impl,
     attrs = {
         name: attr.label(default = setting)
         for name, setting in RUST_TOOLCHAIN_SETTINGS.items()
-    } | {
+    } | _PROCESS_WRAPPER_ATTRS | {
         "_codegen_units": attr.label(default = Label("//rust/settings:pipelined_compilation")),
     },
+)
+
+_toolchain_bootstrapping_with_the_process_wrapper = rule(
+    implementation = _construct_bootstrapping_toolchain_info_impl,
+    attrs = {
+        name: attr.label(default = setting)
+        for name, setting in RUST_TOOLCHAIN_SETTINGS.items()
+    } | _PROCESS_WRAPPER_ATTRS,
 )
 
 _toolchain_missing_a_setting = rule(
@@ -155,7 +180,7 @@ _toolchain_missing_a_setting = rule(
         name: attr.label(default = setting)
         for name, setting in RUST_TOOLCHAIN_SETTINGS.items()
         if name != "_no_std"
-    },
+    } | _PROCESS_WRAPPER_ATTRS,
 )
 
 toolchain_info_is_carried_by_toolchain_info_test = analysistest.make(_toolchain_info_is_carried_by_toolchain_info_test_impl)
@@ -166,6 +191,11 @@ toolchain_info_rejects_another_setting_test = analysistest.make(
 )
 toolchain_info_rejects_a_missing_setting_test = analysistest.make(
     _toolchain_info_rejects_a_missing_setting_test_impl,
+    expect_failure = True,
+    config_settings = {str(_NEGATIVE_TESTS_FLAG): True},
+)
+toolchain_info_rejects_the_wrong_process_wrapper_test = analysistest.make(
+    _toolchain_info_rejects_the_wrong_process_wrapper_test_impl,
     expect_failure = True,
     config_settings = {str(_NEGATIVE_TESTS_FLAG): True},
 )
@@ -199,6 +229,10 @@ def _define_test_targets():
     )
     _toolchain_missing_a_setting(
         name = "toolchain_missing_a_setting",
+        **negative_kwargs
+    )
+    _toolchain_bootstrapping_with_the_process_wrapper(
+        name = "toolchain_bootstrapping_with_the_process_wrapper",
         **negative_kwargs
     )
 
@@ -349,6 +383,10 @@ def toolchain_test_suite(name):
         name = "toolchain_info_rejects_a_missing_setting_test",
         target_under_test = ":toolchain_missing_a_setting",
     )
+    toolchain_info_rejects_the_wrong_process_wrapper_test(
+        name = "toolchain_info_rejects_the_wrong_process_wrapper_test",
+        target_under_test = ":toolchain_bootstrapping_with_the_process_wrapper",
+    )
     toolchain_specifies_target_triple_test(
         name = "toolchain_specifies_target_triple_test",
         target_under_test = ":rust_triple_toolchain",
@@ -384,6 +422,7 @@ def toolchain_test_suite(name):
             ":toolchain_info_is_carried_by_toolchain_info_test",
             ":toolchain_info_rejects_another_setting_test",
             ":toolchain_info_rejects_a_missing_setting_test",
+            ":toolchain_info_rejects_the_wrong_process_wrapper_test",
             ":toolchain_specifies_target_triple_test",
             ":toolchain_specifies_target_json_test",
             ":toolchain_specifies_inline_target_json_test",
