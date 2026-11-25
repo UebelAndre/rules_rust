@@ -40,7 +40,10 @@ def _rustdoc_toolchain_impl(ctx):
         # The sysroot this one was derived from, so consumers can check that
         # the `rust_toolchain` they resolved is the same one.
         rust_sysroot_anchor = rust_toolchain.sysroot_anchor,
-        all_files = sysroot.files,
+        # A `rustdoc` built in the workspace carries what it loads, the
+        # compiler's libraries laid out beside it, as runfiles; one unpacked
+        # from a distribution has them beside it already and carries none.
+        all_files = depset(transitive = [sysroot.files, ctx.attr.rustdoc[DefaultInfo].default_runfiles.files]),
         make_variables = make_variable_info,
         version = rust_toolchain.version,
         iso_date = rust_toolchain.iso_date,
