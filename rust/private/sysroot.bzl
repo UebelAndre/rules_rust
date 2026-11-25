@@ -232,12 +232,16 @@ def distribution_relative_path(file, target):
             return path[len(package) + 1:]
     return path
 
-def symlink_sysroot_tree(*, ctx, name, target, target_files = None, declared = None):
+def symlink_sysroot_tree(*, ctx, name, target, target_files = None, declared = None, fallback_directory = None, skip_directory = None):
     """Generate a set of symlinks to files from another target.
 
     Each file is recreated at its `distribution_relative_path`, so the tree
     keeps the `bin/`, `lib/` and `lib/rustlib/<triple>` structure of the
-    distribution whatever repository or package the files came from.
+    distribution whatever repository or package the files came from. A file
+    which has no such structure, because it was built in the workspace rather
+    than unpacked from a distribution, is placed in `fallback_directory` by
+    its basename when one is given: a standard library of `rust_library`
+    outputs lands in `lib/rustlib/<triple>/lib` where rustc looks for it.
 
     Components of a distribution overlap. `rustc_lib` and `rust_std` both list
     `lib/rustlib/<triple>/lib/libstd-*.so`, for instance. When two components
@@ -253,6 +257,10 @@ def symlink_sysroot_tree(*, ctx, name, target, target_files = None, declared = N
         target_files (depset): An optional depset to use in place of `target.files`.
         declared (dict): Relative paths already placed in the tree, updated in place.
             Pass the same dict to every call for one sysroot.
+        fallback_directory (str): Where to place a file whose path does not start
+            with `lib/`, relative to the tree, if anywhere but at its own path.
+        skip_directory (str): A directory of the tree, relative to it, whose files
+            are left out: another component owns it.
 
     Returns:
         depset[File]: A depset of the generated symlink files.
@@ -264,6 +272,10 @@ def symlink_sysroot_tree(*, ctx, name, target, target_files = None, declared = N
         declared = {}
     for file in target_files.to_list():
         file_path = distribution_relative_path(file, target)
+        if fallback_directory and not file_path.startswith("lib/"):
+            file_path = "{}/{}".format(fallback_directory, file.basename)
+        if skip_directory and file_path.startswith(skip_directory + "/"):
+            continue
         if file_path in declared:
             continue
         declared[file_path] = file

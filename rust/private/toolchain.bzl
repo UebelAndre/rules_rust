@@ -124,7 +124,12 @@ rust_stdlib_filegroup = rule(
     attrs = {
         "srcs": attr.label_list(
             allow_files = True,
-            doc = "The list of targets/files that are components of the rust-stdlib file group",
+            doc = (
+                "The files of a standard library: those under a distribution's `lib/rustlib/<triple>/lib`, " +
+                "or the rlibs of `rust_library` targets named `core`, `compiler_builtins`, `alloc` and so on " +
+                "when the standard library is built from source. A `rust_toolchain` lays the latter out under " +
+                "`lib/rustlib/<triple>/lib` in its sysroot."
+            ),
             mandatory = True,
         ),
     },
@@ -138,6 +143,7 @@ def _resolve_link_std_dylib(ctx):
         enabled = bool(per_toolchain)
     return not is_exec_configuration(ctx) and \
            enabled and \
+           ctx.attr.rust_std != None and \
            ctx.attr.rust_std[rust_common.stdlib_info].std_dylib != None
 
 def _generate_sysroot(
@@ -152,7 +158,8 @@ def _generate_sysroot(
         rust_std = None,
         rustfmt = None,
         linker = None,
-        rust_objcopy = None):
+        rust_objcopy = None,
+        target_name = None):
     """Generate a rust sysroot from collection of toolchain components
 
     Args:
@@ -168,6 +175,9 @@ def _generate_sysroot(
         rustfmt (File, optional): The path to a `rustfmt` executable.
         linker (Target, optional): The linker target (e.g. `rust-lld`).
         rust_objcopy (File, optional): The path to a `rust-objcopy` executable.
+        target_name (str, optional): The name of the target, which names the
+            `lib/rustlib/<target>/lib` directory a `rust_std` built in the
+            workspace is laid out in.
 
     Returns:
         struct: A struct of generated files representing the new sysroot
@@ -186,10 +196,21 @@ def _generate_sysroot(
     sysroot_rustc = symlink_sysroot_bin(ctx = ctx, name = name, directory = "bin", target = rustc)
     direct_files.append(sysroot_rustc)
 
-    # Rustc dependencies
+    # Rustc dependencies. A distribution's compiler libraries include its own
+    # target's standard library, as `.rmeta` and dylibs under
+    # `lib/rustlib/<target>/lib`. When the toolchain carries a `rust_std`, that
+    # directory is `rust_std`'s alone: a standard library built from source
+    # for the compiler's own target would otherwise sit beside the
+    # distribution's, and rustc would find two candidates for `std`.
     sysroot_rustc_lib = None
     if rustc_lib:
-        sysroot_rustc_lib = symlink_sysroot_tree(ctx = ctx, name = name, target = rustc_lib, declared = declared)
+        sysroot_rustc_lib = symlink_sysroot_tree(
+            ctx = ctx,
+            name = name,
+            target = rustc_lib,
+            declared = declared,
+            skip_directory = "lib/rustlib/{}/lib".format(target_name) if rust_std and target_name else None,
+        )
         transitive_file_sets.extend([sysroot_rustc_lib])
 
     # Rustdoc
@@ -268,7 +289,13 @@ def _generate_sysroot(
     sysroot_rust_std = None
     extra_file_sets = []
     if rust_std:
-        sysroot_rust_std = symlink_sysroot_tree(ctx = ctx, name = name, target = rust_std, declared = declared)
+        sysroot_rust_std = symlink_sysroot_tree(
+            ctx = ctx,
+            name = name,
+            target = rust_std,
+            declared = declared,
+            fallback_directory = "lib/rustlib/{}/lib".format(target_name) if target_name else None,
+        )
         transitive_file_sets.extend([sysroot_rust_std])
 
         # Made available to support $(location) expansion in stdlib_linkflags and extra_rustc_flags.
@@ -395,7 +422,15 @@ def _toolchain_impl(ctx, *, bootstrapping):
             "--@rules_rust//rust/settings:experimental_use_cc_common_link to be set",
         )
 
+    # A toolchain without a standard library builds crates which bring their
+    # own `core` (and `compiler_builtins`, `alloc`, ...) as ordinary
+    # dependencies, which is how a standard library is built from source.
     rust_std = ctx.attr.rust_std
+    stdlib_info = rust_std[rust_common.stdlib_info] if rust_std else None
+
+    # rustc looks for a target's libraries in `lib/rustlib/<target>/lib`; a
+    # target spec file is named by its stem.
+    target_name = ctx.attr.target_triple or "{}.target".format(ctx.label.name)
 
     sysroot = _generate_sysroot(
         ctx = ctx,
@@ -410,7 +445,9 @@ def _toolchain_impl(ctx, *, bootstrapping):
         llvm_tools = ctx.attr.llvm_tools,
         linker = ctx.attr.linker,
         rust_objcopy = ctx.file.rust_objcopy,
+        target_name = target_name,
     )
+    sysroot_rust_std = sysroot.rust_std or depset()
 
     # Determine the path and short_path of the sysroot
     sysroot_path = sysroot.sysroot_anchor.dirname
@@ -443,9 +480,10 @@ def _toolchain_impl(ctx, *, bootstrapping):
 
     make_variable_info = platform_common.TemplateVariableInfo(make_variables)
 
-    expanded_stdlib_linkflags = _expand_flags(ctx, "stdlib_linkflags", rust_std[rust_common.stdlib_info].srcs, make_variables)
-    expanded_extra_rustc_flags = _expand_flags(ctx, "extra_rustc_flags", rust_std[rust_common.stdlib_info].srcs, make_variables)
-    expanded_extra_exec_rustc_flags = _expand_flags(ctx, "extra_exec_rustc_flags", rust_std[rust_common.stdlib_info].srcs, make_variables)
+    stdlib_srcs = stdlib_info.srcs if stdlib_info else []
+    expanded_stdlib_linkflags = _expand_flags(ctx, "stdlib_linkflags", stdlib_srcs, make_variables)
+    expanded_extra_rustc_flags = _expand_flags(ctx, "extra_rustc_flags", stdlib_srcs, make_variables)
+    expanded_extra_exec_rustc_flags = _expand_flags(ctx, "extra_exec_rustc_flags", stdlib_srcs, make_variables)
 
     linking_context = cc_common.create_linking_context(
         linker_inputs = depset([
@@ -597,7 +635,7 @@ def _toolchain_impl(ctx, *, bootstrapping):
         linker = sysroot.linker,
         linker_preference = linker_preference,
         linker_type = ctx.attr.linker_type or None,
-        coverage_supported = bool(ctx.file.llvm_cov) and ctx.attr.rust_std[rust_common.stdlib_info].has_profiler_builtins,
+        coverage_supported = bool(ctx.file.llvm_cov) and bool(stdlib_info) and stdlib_info.has_profiler_builtins,
         llvm_cov = ctx.file.llvm_cov,
         llvm_profdata = ctx.file.llvm_profdata,
         llvm_lib = ctx.files.llvm_lib,
@@ -605,9 +643,9 @@ def _toolchain_impl(ctx, *, bootstrapping):
         lto = lto,
         make_variables = make_variable_info,
         rust_doc = sysroot.rustdoc,
-        rust_std = sysroot.rust_std,
-        rust_std_dylib = ctx.attr.rust_std[rust_common.stdlib_info].std_dylib,
-        rust_std_paths = depset([file.dirname for file in sysroot.rust_std.to_list()]),
+        rust_std = sysroot_rust_std,
+        rust_std_dylib = stdlib_info.std_dylib if stdlib_info else None,
+        rust_std_paths = depset([file.dirname for file in sysroot_rust_std.to_list()]),
         rustc = sysroot.rustc,
         rustc_lib = sysroot.rustc_lib,
         rustfmt = sysroot.rustfmt,
@@ -875,8 +913,13 @@ _RUST_TOOLCHAIN_ATTRS = {
         cfg = "exec",
     ),
     "rust_std": attr.label(
-        doc = "The Rust standard library.",
-        mandatory = True,
+        doc = (
+            "The Rust standard library, a [`rust_stdlib_filegroup`](#rust_stdlib_filegroup). Unset for a " +
+            "toolchain without one: rustc then gets no standard library search path, and the crates built " +
+            "with the toolchain bring their own `core`, `compiler_builtins`, `alloc` and so on as ordinary " +
+            "`deps`, named after the crates they stand in for. That is how a standard library is compiled " +
+            "from source, by a toolchain without one, for a toolchain with it."
+        ),
     ),
     "rustc": attr.label(
         doc = "The location of the `rustc` binary. Can be a direct source or a filegroup containing one item.",

@@ -4,7 +4,7 @@ load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_rust_toolchain_test_target_json//:defs.bzl", "TARGET_JSON")
-load("//rust:defs.bzl", "rust_lto_flag")
+load("//rust:defs.bzl", "rust_library", "rust_lto_flag")
 load("//rust:rust_common.bzl", "RustToolchainInfo")
 load("//rust:toolchain.bzl", "rust_stdlib_filegroup", "rust_toolchain")
 load("//rust/platform:triple.bzl", "triple")
@@ -200,7 +200,73 @@ toolchain_info_rejects_the_wrong_process_wrapper_test = analysistest.make(
     config_settings = {str(_NEGATIVE_TESTS_FLAG): True},
 )
 
+def _toolchain_without_std_test_impl(ctx):
+    """A toolchain with no `rust_std` has no standard library to search, link or instrument."""
+    env = analysistest.begin(ctx)
+    toolchain_info = analysistest.target_under_test(env)[platform_common.ToolchainInfo]
+
+    asserts.equals(env, [], toolchain_info.rust_std.to_list())
+    asserts.equals(env, [], toolchain_info.rust_std_paths.to_list())
+    asserts.equals(env, None, toolchain_info.rust_std_dylib)
+    asserts.false(env, toolchain_info.coverage_supported)
+    asserts.equals(env, None, toolchain_info.libstd_and_allocator_ccinfo)
+    asserts.true(env, toolchain_info.sysroot_anchor != None, "the sysroot is still generated, for the tools in it")
+
+    return analysistest.end(env)
+
+def _rust_std_owns_target_lib_test_impl(ctx):
+    """A `rust_std` built in the workspace lands in `lib/rustlib/<triple>/lib`, and `rustc_lib`'s copy of the distribution's standard library stays out of it."""
+    env = analysistest.begin(ctx)
+    toolchain_info = analysistest.target_under_test(env)[platform_common.ToolchainInfo]
+
+    sysroot = toolchain_info.sysroot
+    relative = sorted([
+        file.path[len(sysroot) + 1:]
+        for file in toolchain_info.sysroot_files.to_list()
+        if file.path.startswith(sysroot + "/")
+    ])
+    asserts.equals(env, [
+        "bin/mock_rustc.exe",
+        "lib/librustc_driver-mock.so",
+        "lib/rustlib/toolchain-test-triple/lib/libcore-built.rlib",
+        "rust.sysroot",
+    ], relative)
+
+    return analysistest.end(env)
+
+def _crate_built_without_std_test_impl(ctx):
+    """A crate built with such a toolchain gets `core` from `deps` and no standard library search path."""
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+
+    actions = [action for action in target.actions if action.mnemonic == "Rustc"]
+    asserts.equals(env, 1, len(actions), "one rustc action")
+    argv = actions[0].argv
+    for index, arg in enumerate(argv):
+        if arg == "-L":
+            asserts.true(env, False, "unexpected library search path {} in {}".format(argv[index + 1], argv))
+    asserts.true(
+        env,
+        any([arg.startswith("--extern=core=") for arg in argv]),
+        "`core` comes from `deps`: {}".format(argv),
+    )
+    asserts.true(
+        env,
+        any([arg.startswith("--sysroot=") for arg in argv]),
+        "the sysroot is still passed, for the tools in it: {}".format(argv),
+    )
+
+    return analysistest.end(env)
+
 toolchain_specifies_target_triple_test = analysistest.make(_toolchain_specifies_target_triple_test_impl)
+toolchain_without_std_test = analysistest.make(_toolchain_without_std_test_impl)
+rust_std_owns_target_lib_test = analysistest.make(_rust_std_owns_target_lib_test_impl)
+crate_built_without_std_test = analysistest.make(
+    _crate_built_without_std_test_impl,
+    config_settings = {
+        "//command_line_option:extra_toolchains": [str(Label("//test/unit/toolchain:no_std_toolchain"))],
+    },
+)
 toolchain_specifies_target_json_test = analysistest.make(_toolchain_specifies_target_json_test_impl)
 toolchain_location_expands_linkflags_test = analysistest.make(_toolchain_location_expands_linkflags_impl)
 toolchain_location_expands_extra_rustc_flags_test = analysistest.make(_toolchain_location_expands_extra_rustc_flags_impl)
@@ -343,6 +409,101 @@ def _define_test_targets():
         target_json = encoded_target_json,
     )
 
+    # A toolchain without a standard library, and a crate built with it which
+    # brings its own `core`.
+    rust_toolchain(
+        name = "rust_no_std_toolchain",
+        binary_ext = "",
+        dylib_ext = ".so",
+        exec_triple = "x86_64-unknown-none",
+        rust_doc = ":mock_rustdoc",
+        rustc = ":mock_rustc",
+        linker = ":mock_rust_lld",
+        staticlib_ext = ".a",
+        stdlib_linkflags = [],
+        target_triple = "toolchain-test-triple",
+    )
+
+    native.toolchain(
+        name = "no_std_toolchain",
+        toolchain = ":rust_no_std_toolchain",
+        toolchain_type = "//rust:toolchain_type",
+    )
+
+    write_file(
+        name = "no_std_core_src",
+        out = "no_std_core.rs",
+        content = ["#![no_std]"],
+    )
+
+    rust_library(
+        name = "no_std_core",
+        srcs = [":no_std_core_src"],
+        crate_name = "core",
+        edition = "2021",
+        tags = ["manual"],
+    )
+
+    write_file(
+        name = "no_std_crate_src",
+        out = "no_std_crate.rs",
+        content = ["#![no_std]"],
+    )
+
+    rust_library(
+        name = "no_std_crate",
+        srcs = [":no_std_crate_src"],
+        edition = "2021",
+        tags = ["manual"],
+        deps = [":no_std_core"],
+    )
+
+    # A standard library built in the workspace, for a toolchain whose
+    # compiler libraries carry the distribution's own, as a host compiler's do.
+    write_file(
+        name = "built_core",
+        out = "libcore-built.rlib",
+        content = [],
+    )
+
+    rust_stdlib_filegroup(
+        name = "built_std_libs",
+        srcs = [":built_core"],
+    )
+
+    write_file(
+        name = "distribution_rustc_driver",
+        out = "lib/librustc_driver-mock.so",
+        content = [],
+    )
+
+    write_file(
+        name = "distribution_std_rmeta",
+        out = "lib/rustlib/toolchain-test-triple/lib/libstd-distribution.rmeta",
+        content = [],
+    )
+
+    native.filegroup(
+        name = "distribution_rustc_lib",
+        srcs = [
+            ":distribution_rustc_driver",
+            ":distribution_std_rmeta",
+        ],
+    )
+
+    rust_toolchain(
+        name = "rust_built_std_toolchain",
+        binary_ext = "",
+        dylib_ext = ".so",
+        exec_triple = "x86_64-unknown-none",
+        rust_std = ":built_std_libs",
+        rustc = ":mock_rustc",
+        rustc_lib = ":distribution_rustc_lib",
+        staticlib_ext = ".a",
+        stdlib_linkflags = [],
+        target_triple = "toolchain-test-triple",
+    )
+
     rust_lto_flag(
         name = "fat_lto",
         build_setting_default = "fat",
@@ -415,6 +576,18 @@ def toolchain_test_suite(name):
         name = "std_libs_support_srcs_outside_package_test",
         target_under_test = ":std_libs_with_srcs_outside_package",
     )
+    toolchain_without_std_test(
+        name = "toolchain_without_std_test",
+        target_under_test = ":rust_no_std_toolchain",
+    )
+    crate_built_without_std_test(
+        name = "crate_built_without_std_test",
+        target_under_test = ":no_std_crate",
+    )
+    rust_std_owns_target_lib_test(
+        name = "rust_std_owns_target_lib_test",
+        target_under_test = ":rust_built_std_toolchain",
+    )
 
     native.test_suite(
         name = name,
@@ -430,5 +603,8 @@ def toolchain_test_suite(name):
             ":toolchain_location_expands_extra_rustc_flags_test",
             ":toolchain_uses_custom_lto_flag_test",
             ":std_libs_support_srcs_outside_package_test",
+            ":toolchain_without_std_test",
+            ":crate_built_without_std_test",
+            ":rust_std_owns_target_lib_test",
         ],
     )

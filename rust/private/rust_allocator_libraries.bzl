@@ -57,7 +57,8 @@ def make_libstd_and_allocator_ccinfo(
         label (Label): The rule's label.
         actions: The rule's ctx.actions object.
         link_std_dylib (boolean): If the standard library should be included as a dylib.
-        rust_std: The Rust standard library.
+        rust_std: The Rust standard library, or `None` for a toolchain without one,
+            which has nothing to link.
         allocator_library (struct): The target to use for providing allocator functions.
           This should be a struct with either:
           * a cc_info field of type CcInfo
@@ -74,6 +75,9 @@ def make_libstd_and_allocator_ccinfo(
         fail("Unexpected type of allocator_library, it must be a struct.")
     if not any([hasattr(allocator_library, field) for field in ["cc_info", "allocator_libraries_impl_info"]]):
         fail("Unexpected contents of allocator_library, it must provide either a cc_info or an allocator_libraries_impl_info.")
+
+    if rust_std == None:
+        return None
 
     if not rust_common.stdlib_info in rust_std:
         fail(dedent("""\
