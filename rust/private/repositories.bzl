@@ -169,7 +169,7 @@ def rust_register_toolchains(
     list of known checksums..
 
     Args:
-        dev_components (bool, optional): Whether to download the rustc-dev components (defaults to False). Requires version to be "nightly".
+        dev_components (bool, optional): Whether to download the rustc-dev components (defaults to False).
         edition (str, optional): The rust edition to be used by default (2015, 2018, or 2021). If absent, every target is required to specify its `edition` attribute.
         allocator_library (str, optional): Target that provides allocator functions when rust_library targets are embedded in a cc_binary.
         global_allocator_library (str, optional): Target that provides allocator functions when global allocator is used with cc_common.link.
@@ -200,15 +200,6 @@ def rust_register_toolchains(
             rustfmt_version = versions[0]
         else:
             rustfmt_version = DEFAULT_NIGHTLY_VERSION
-
-    if dev_components:
-        has_nightly = False
-        for ver in versions:
-            if ver.startswith("nightly"):
-                has_nightly = True
-                break
-        if not has_nightly:
-            fail("rustc-dev components were requested but no \"nightly\" is being registered. Please update `versions` to include a nightly version.")
 
     if not rust_analyzer_version:
         rust_analyzer_version = select_rust_version(versions)
@@ -398,7 +389,10 @@ _RUST_TOOLCHAIN_REPOSITORY_ATTRS = {
         default = True,
     ),
     "dev_components": attr.bool(
-        doc = "Whether to download the rustc-dev components (defaults to False). Requires version to be \"nightly\".",
+        doc = (
+            "Whether to download the `rustc-dev` component, the compiler's own crates as a library, " +
+            "for the tools which link them through `#![feature(rustc_private)]`: rustdoc, Clippy, Miri."
+        ),
         default = False,
     ),
     "dlltool": attr.string(
@@ -994,8 +988,8 @@ def rust_toolchain_repository(
         global_allocator_library (str, optional): Target that provides allocator functions when a global allocator is used with cc_common.link.
         dlltool (str, optional): Target that provides the `dlltool` binary used to generate import libraries. Defaults to the `dlltool.exe` shipped in `rust-mingw` when both the exec and target triples are `*-pc-windows-gnu`. See `rust_toolchain.dlltool`.
         edition (str, optional): The rust edition to be used by default (2015, 2018, or 2021). If absent, every rule is required to specify its `edition` attribute.
-        dev_components (bool, optional): Whether to download the rustc-dev components.
-            Requires version to be "nightly". Defaults to False.
+        dev_components (bool, optional): Whether to download the `rustc-dev` component, the compiler's
+            own crates as a library for the tools which link them. Defaults to False.
         extra_rustc_flags (list, optional): Extra flags to pass to rustc in non-exec configuration.
             Subject to Make variable expansion with respect to RUST_SYSROOT,
             RUST_SYSROOT_SHORT, RUSTC, etc.
@@ -1424,8 +1418,8 @@ def rust_repository_set(
             toolchains should support. If a map, values should be (optional) target_compatible_with lists for that particular target triple.
         edition (str, optional): The rust edition to be used by default (2015, 2018, or 2021). If absent, every rule is
             required to specify its `edition` attribute.
-        dev_components (bool, optional): Whether to download the rustc-dev components.
-            Requires version to be "nightly".
+        dev_components (bool, optional): Whether to download the `rustc-dev` component, the compiler's
+            own crates as a library for the tools which link them.
         extra_rustc_flags (dict, list, optional): Dictionary of target triples to list of extra flags to pass to rustc in non-exec configuration.
         extra_exec_rustc_flags (dict, list, optional): Dictionary of target triples to list of extra flags to pass to rustc in exec configuration.
         opt_level (dict, dict, optional): Dictionary of target triples to optimization config.

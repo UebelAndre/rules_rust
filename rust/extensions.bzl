@@ -251,7 +251,10 @@ _COMMON_TAG_KWARGS = {
         doc = "Target that provides allocator functions when rust_library targets are embedded in a cc_binary.",
     ),
     "dev_components": attr.bool(
-        doc = "Whether to download the rustc-dev components (defaults to False). Requires version to be \"nightly\".",
+        doc = (
+            "Whether to download the `rustc-dev` component, the compiler's own crates as a library, " +
+            "for the tools which link them through `#![feature(rustc_private)]`: rustdoc, Clippy, Miri."
+        ),
         default = False,
     ),
     "dlltool": attr.label(
